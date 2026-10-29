@@ -144,3 +144,17 @@ fn every_expectation_has_its_program() {
         assert!(p.with_extension("atls").exists(), "{} has no program", p.display());
     }
 }
+
+#[test]
+fn docs_list_every_code_in_order() {
+    let doc = std::fs::read_to_string(root().join("docs/diagnostics.md")).unwrap();
+    let listed: Vec<&str> = doc
+        .lines()
+        .filter_map(|l| l.strip_prefix("### `").and_then(|l| l.strip_suffix('`')))
+        .collect();
+    let codes: Vec<&str> = Code::ALL.iter().map(|c| c.as_str()).collect();
+    assert_eq!(
+        listed, codes,
+        "docs/diagnostics.md and the codes in src/frontend/diag.rs differ"
+    );
+}
