@@ -7,7 +7,7 @@ The spec uses a subset of TOML: tables, dotted bare keys, double-quoted strings 
 Unknown keys, duplicate keys and invalid values are errors.
 
 ```toml
-strategy = "sma.atls"
+strategy = "mean-reversion.atls"
 
 [data]
 store = "kis-krx/1d/005930"      # or source = "csv" with a column mapping
@@ -19,7 +19,7 @@ fill = "next-open"
 shorts = false                   # also: from, to, market, commission, sell_tax, slippage_ticks
 
 [params]
-fast = 10
+lookback = 30
 
 [build]
 algotradelib = "/opt/algotradelib"   # an installed prefix

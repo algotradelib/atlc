@@ -7,7 +7,7 @@ Each block kind appears at most once, except `indicator`, which appears once per
 
 - `params {}`: typed parameters with defaults and optional bounds.
   A default must be a literal (parentheses allowed).
-  A bound may refer to earlier parameters (`int<lower=fast + 1> slow`).
+  A bound may refer to earlier parameters (`real<upper=entry> exit`).
   A default outside its bounds must not compile; a value given at run time outside its bounds is refused when the strategy is built.
   Parameters are run-time values: changing one does not recompile.
 - `series {}`: `real` or `bool` declarations (not `int`), recomputed every period, in dependency order.

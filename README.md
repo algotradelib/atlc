@@ -5,20 +5,20 @@ You write a strategy in a few checked blocks; `atlc` turns it into a C++ strateg
 In the prototype, compiled strategies ran as fast in a backtest as the same strategies written by hand in C++.
 
 ```atls
-# sma.atls: long while the fast average is above the slow one.
+# Buy when the price falls well below its recent mean; sell when it comes back.
 params {
-  int<lower=1> fast = 20;
-  int<lower=fast + 1> slow = 60;
+  int<lower=2> lookback = 20;
+  real<lower=0> entry = 2;
+  real exit = 0;
   int<lower=0> quantity = 100;
 }
 series {
-  real fast_avg = sma(close, fast);
-  real slow_avg = sma(close, slow);
+  real z = zscore(close, lookback);
 }
 on_bar {
-  if (fast_avg > slow_avg) {
+  if (z < -entry) {
     target(quantity);
-  } else {
+  } else if (z > exit) {
     target(0);
   }
 }
@@ -28,9 +28,9 @@ Status: in development, before its first release.
 `atlc check` works today (add `--json` for one JSON object per diagnostic); `atlc build` and `atlc run` are planned, and the language may change without notice.
 
 ```sh
-atlc check sma.atls                 # parse and check, no C++ toolchain needed
-atlc build sma.atls -o sma.hpp      # the C++ strategy, for your own algotradelib project
-atlc run sma.toml -P fast=10        # replay it from a run spec and print the report as JSON
+atlc check mean-reversion.atls                        # parse and check, no C++ toolchain needed
+atlc build mean-reversion.atls -o mean-reversion.hpp  # the C++ strategy, for your own algotradelib project
+atlc run mean-reversion.toml -P lookback=30           # replay it from a run spec and print the report as JSON
 ```
 
 ## Install
@@ -50,8 +50,8 @@ A program is a set of blocks:
 
 | Block | What it holds |
 | --- | --- |
-| `params {}` | Typed parameters with bounds (`int<lower=1> fast = 20;`); a tuning grid runs them all from one build |
-| `series {}` | Values computed every bar before the handlers, including indicators (`sma`, `ema`, `stdev`, `ols_slope`, ...) |
+| `params {}` | Typed parameters with bounds (`int<lower=2> lookback = 20;`); a tuning grid runs them all from one build |
+| `series {}` | Values computed every bar before the handlers, including indicators (`zscore`, `sma`, `ema`, `ols_slope`, ...) |
 | `state {}` | Values the handlers keep from bar to bar |
 | `on_start`, `on_bar`, `on_fill`, `on_stop` | Handlers; the only output is a target position |
 | `instruments {}`, `universe {}` | Several named instruments, or the same program over many |

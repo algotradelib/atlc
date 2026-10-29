@@ -6,7 +6,7 @@ How a window treats a missing value is a property of the strategy, because it ch
 
 ```atls
 options { missing = skip; }                                 # the program's default
-series  { real ma = sma(close, 20, missing = restart); }    # one indicator's own policy
+series  { real z = zscore(close, 20, missing = restart); }  # one indicator's own policy
 ```
 
 | Policy | A window with a missing value |
