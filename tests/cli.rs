@@ -92,8 +92,26 @@ fn usage_and_file_errors_exit_two() {
         assert_eq!(code, 2, "{args:?}");
         assert!(out.is_empty() && !err.is_empty(), "{args:?}");
     }
-    let (_, _, err) = atlc(&["run", "x.toml"]);
-    assert!(err.contains("not implemented"), "{err}");
+    for (args, says) in [
+        (&["run"][..], "expected a run spec"),
+        (&["run", "x.toml", "y.toml"], "expected one run spec"),
+        (&["run", "x.toml", "--set", "a=1"], "unknown option `--set`"),
+        (&["run", "x.toml", "-P"], "`-P` needs a value"),
+        (&["run", "x.toml", "-P", "lookback"], "-P takes name=value"),
+        (
+            &["run", "x.toml", "-P", "a=1", "-P", "a=2"],
+            "`params.a` is given twice",
+        ),
+        (
+            &["run", "x.toml", "--fills", "a", "--fills", "b"],
+            "`--fills` is given twice",
+        ),
+        (&["run", "x.toml"], "cannot read"),
+    ] {
+        let (code, out, err) = atlc(args);
+        assert_eq!(code, 2, "{args:?}");
+        assert!(out.is_empty() && err.contains(says), "{args:?}: {err}");
+    }
 }
 
 #[test]
