@@ -1,0 +1,26 @@
+[package]
+name = "atlc"
+version = "0.0.0-9000"
+edition = "2024"
+rust-version = "1.85"
+description = "Compiler for atls, a strategy language for algotradelib, transpiled to C++"
+license = "MIT"
+repository = "https://github.com/algotradelib/atlc"
+readme = "README.md"
+keywords = ["trading", "backtesting", "compiler", "transpiler"]
+categories = ["compilers", "command-line-utilities"]
+# The runtime headers are compiled into the binary (include_str!), so they are part of the package.
+include = ["src/**", "runtime/include/**", "docs/reference/**", "Cargo.toml", "README.md", "LICENSE"]
+
+[lib]
+name = "atlc"
+path = "src/lib.rs"
+
+[[bin]]
+name = "atlc"
+path = "src/main.rs"
+
+# No dependencies: the lab's compiler needed none, and the run spec is a small TOML subset.
+
+[profile.release]
+debug = false

@@ -1,0 +1,26 @@
+# Cargo's build output.
+/target/
+
+# Build directories of the runtime tests and of local strategy builds.
+/build/
+/build-*/
+
+# atlc run's compiled-strategy cache, when it is kept inside a checkout.
+/.atlc-cache/
+
+# Backup files from rustfmt.
+**/*.rs.bk
+
+# Debugging information from MSVC builds.
+*.pdb
+
+# cargo-mutants output.
+**/mutants.out*/
+
+# Stack traces rustc writes after an internal compiler error.
+rustc-ice-*.txt
+
+# Editors and the OS.
+.vscode/
+.idea/
+*.DS_Store
