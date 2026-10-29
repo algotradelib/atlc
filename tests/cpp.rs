@@ -116,17 +116,19 @@ fn cmake(name: &str, source: &Path, out: Option<&Path>, prefix: &str) {
     }
     for sanitized in builds {
         let dir = scratch(&format!("{name}-build{}", if sanitized { "-sanitized" } else { "" }));
+        // Paths with forward slashes: CMake can read a backslash as an escape.
         let mut configure = Command::new("cmake");
         configure
             .arg("-S")
             .arg(source)
             .arg("-B")
             .arg(&dir)
-            .arg(format!("-DCMAKE_PREFIX_PATH={prefix}"))
+            .arg(format!("-DCMAKE_PREFIX_PATH={}", prefix.replace('\\', "/")))
             .arg("-DCMAKE_BUILD_TYPE=Release")
             .arg(format!("-DATLC_SANITIZE={}", if sanitized { "ON" } else { "OFF" }));
         if let Some(out) = out {
-            configure.arg(format!("-DATLC_OUT={}", out.join("include").display()));
+            let include = out.join("include").display().to_string().replace('\\', "/");
+            configure.arg(format!("-DATLC_OUT={include}"));
         }
         run(&mut configure, &dir.join("configure.log"));
         run(
