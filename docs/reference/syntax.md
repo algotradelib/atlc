@@ -83,5 +83,5 @@ arg        = expr | NAME '=' expr ;                        (* named: missing = s
 
 - `NAME '.' NAME` is `fill.price` in `on_fill`, and `y.close` or `y.held` for an instrument named in `instruments {}`.
 - `NAME(...).NAME` reads one value of a user indicator that has several (`band(close, 20).upper`).
-- `target` is a statement, not a function: `target(x) + 1` is a syntax error.
+- `target` is a statement, not a function: `real y = target(1) + 1;` is refused (`target-as-value`).
 - Which statements and expressions are allowed in which block is not part of the grammar; [program structure](program-structure.md) states it.

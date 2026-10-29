@@ -7,6 +7,7 @@ Each entry below gives the code, what it means, and an example from the tests (`
 ## Output
 
 `atlc check FILE [--json]` exits with 0 when the program is valid (warnings allowed), 1 when it has errors, and 2 on a usage error or a file it cannot read.
+Exit code 101 is an internal error of `atlc` (a bug, or a thread it cannot start): `atlc: internal error` on stderr, after any panic message; please report it.
 By default, diagnostics go to stderr in the style of rustc.
 With `--json`, each diagnostic is one JSON object on its own line on stdout:
 
