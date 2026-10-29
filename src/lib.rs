@@ -6,6 +6,13 @@
 
 pub mod frontend;
 pub mod ir;
+pub mod sema;
 
 /// The compiler's version; until the first release the language has no version of its own.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Parses and checks a program: the checked IR (with its warnings), or every error found.
+pub fn check(source: &str) -> Result<ir::Ir, Vec<frontend::diag::Diag>> {
+    let program = frontend::parse(source)?;
+    sema::check(&program, &sema::Options { share: true })
+}
