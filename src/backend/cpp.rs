@@ -617,10 +617,10 @@ impl<'a> Printer<'a> {
             HKind::Ternary(c, a, b)
                 if repr == Repr::Checked
                     && b.kind == HKind::Keep
-                    && matches!(&c.kind, HKind::Binary(op, _, _) if op.is_comparison()) =>
+                    && matches!(&c.kind, HKind::Binary(op, _, _) if op.is_comparison() && *op != BinOp::Ne) =>
             {
                 // `x < y ? v : keep`: an undefined comparison and a false one both give `keep`, so the
-                // comparison needs no three-valued form (NaN compares false).
+                // comparison needs no three-valued form (NaN compares false). Not `!=`: NaN != y is true.
                 let HKind::Binary(op, x, y) = &c.kind else {
                     unreachable!()
                 };

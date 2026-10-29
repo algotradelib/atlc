@@ -196,6 +196,15 @@ fn generated_strategies() {
         &[],
         perturbed,
     );
+    for program in ["missing-open"] {
+        generate(
+            &out,
+            &program.replace('-', "_"),
+            &programs.join(format!("{program}.atls")),
+            &[],
+            None,
+        );
+    }
     emit_runtime(&out);
     cmake("generated", &root().join("tests/generated"), Some(&out), &prefix);
 }

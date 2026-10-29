@@ -1,0 +1,4 @@
+# A comparison with a missing value is undefined, so `keep`: no target on a bar without an open.
+on_bar {
+  target(open != 1 ? 10 : keep);
+}
