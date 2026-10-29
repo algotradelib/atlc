@@ -7,7 +7,7 @@ atlc build --emit-runtime DIR
 
 `atlc build` writes a program as one C++17 header, to `OUT.hpp` or to standard output; `--emit-runtime DIR` writes the runtime headers it includes into `DIR/atls/`.
 Both may be given at once.
-The exit code is 0 when everything was written, 1 when the program has errors (nothing is written), and 2 on a usage or file error.
+The exit code is 0 when everything was written, 1 when the program has errors (nothing is written, not even the runtime), and 2 on a usage or file error.
 
 | Option | Values | Default |
 | --- | --- | --- |

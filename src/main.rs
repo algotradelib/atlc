@@ -144,14 +144,8 @@ fn build(args: &[String]) -> ExitCode {
         }
         i += 1;
     }
-    if let Some(dir) = runtime {
-        if let Err(e) = backend::emit_runtime(std::path::Path::new(dir)) {
-            eprintln!("atlc build: cannot write the runtime into {dir}: {e}");
-            return ExitCode::from(2);
-        }
-        if files.is_empty() {
-            return ExitCode::SUCCESS;
-        }
+    if runtime.is_some() && files.is_empty() {
+        return emit_runtime(runtime);
     }
     let [file] = files[..] else {
         eprintln!("atlc build: expected one file, got {}", files.len());
@@ -199,6 +193,10 @@ fn build(args: &[String]) -> ExitCode {
     for d in &diags {
         eprintln!("{}", diag::render(d, file, &source));
     }
+    // Only a program that checked writes anything, the runtime included.
+    if emit_runtime(runtime) != ExitCode::SUCCESS {
+        return ExitCode::from(2);
+    }
     match out {
         Some(target) => {
             if let Err(e) = std::fs::write(target, header) {
@@ -207,6 +205,17 @@ fn build(args: &[String]) -> ExitCode {
             }
         }
         None => print!("{header}"),
+    }
+    ExitCode::SUCCESS
+}
+
+/// Writes the runtime into `dir`, if one is given.
+fn emit_runtime(dir: Option<&str>) -> ExitCode {
+    if let Some(dir) = dir {
+        if let Err(e) = backend::emit_runtime(std::path::Path::new(dir)) {
+            eprintln!("atlc build: cannot write the runtime into {dir}: {e}");
+            return ExitCode::from(2);
+        }
     }
     ExitCode::SUCCESS
 }

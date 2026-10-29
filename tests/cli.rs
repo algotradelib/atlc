@@ -129,4 +129,15 @@ fn emit_runtime_writes_every_header() {
     for (path, text) in atlc::backend::RUNTIME {
         assert_eq!(std::fs::read_to_string(dir.join(path)).unwrap(), text, "{path}");
     }
+    // With a program that has errors, nothing is written, the runtime included.
+    let other = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("cli-runtime-refused");
+    let _ = std::fs::remove_dir_all(&other);
+    let (code, _, _) = atlc(&[
+        "build",
+        "tests/ui/check/unknown-name.atls",
+        "--emit-runtime",
+        other.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 1);
+    assert!(!other.exists());
 }
