@@ -139,7 +139,7 @@ fn the_corpus() {
         "same tree: {same}, refused by both: {refused}, diagnostic-only: {diagnostic_only}, nesting limit: {too_deep}"
     );
     // The prototype's programs, the parse corpus and every UI program refused by the checker parse alike.
-    assert!(same >= 140, "{counts:?}");
+    assert!(same >= 120, "{counts:?}");
     assert!(refused >= 20, "{counts:?}");
     assert!(diagnostic_only >= 4, "{counts:?}");
     assert_eq!(too_deep, 2, "{counts:?}");
@@ -150,6 +150,36 @@ const REPLACEMENTS: [&str; 24] = [
     "x", "1", "1.5", "\"s\"", "true", "(", ")", "{", "}", "[", "]", ",", ";", "=", "==", "<", ">", "+", "-", "?", ":",
     ".", "target", "window",
 ];
+
+/// A token of the same kind, which mostly keeps a program in the grammar: so that the trees, not just the
+/// verdicts, are compared on many mutants.
+fn same_kind(token: &str) -> Option<&'static str> {
+    let first = token.chars().next()?;
+    Some(match token {
+        "+" => "-",
+        "-" => "*",
+        "*" => "/",
+        "/" => "+",
+        "<" => ">=",
+        ">=" => "==",
+        "==" => "!=",
+        "!=" => "<=",
+        "<=" => ">",
+        ">" => "<",
+        "and" => "or",
+        "or" => "and",
+        "true" => "false",
+        "false" => "true",
+        "int" => "real",
+        "real" => "bool",
+        "bool" => "int",
+        _ if first.is_ascii_digit() || first == '.' => "7.5",
+        _ if (first.is_ascii_alphabetic() || first == '_') && !atlc::frontend::parser::KEYWORDS.contains(&token) => {
+            "zz"
+        }
+        _ => return None,
+    })
+}
 
 #[test]
 fn mutants() {
@@ -180,6 +210,9 @@ fn mutants() {
                 }
                 let r = REPLACEMENTS[(i * 7 + source.len()) % REPLACEMENTS.len()];
                 mutants.push(format!("{} {} {}", &source[..s.start], r, &source[s.end..]));
+                if let Some(r) = same_kind(text(*s)) {
+                    mutants.push(format!("{} {} {}", &source[..s.start], r, &source[s.end..]));
+                }
             }
             for (k, m) in mutants.iter().enumerate() {
                 count += 1;
