@@ -33,7 +33,8 @@ const MAX_DEPTH: usize = 256;
 
 type R<T> = Result<T, Diag>;
 
-const KEYWORDS: [&str; 31] = [
+/// Words reserved everywhere ([syntax](docs/reference/syntax.md)).
+pub const KEYWORDS: [&str; 31] = [
     "params",
     "series",
     "state",
