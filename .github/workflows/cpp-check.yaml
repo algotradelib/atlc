@@ -3,7 +3,7 @@
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, master, 'hotfix/*', 'release/*', develop]
     paths:
       - 'Cargo.toml'
       - 'src/**'
@@ -12,7 +12,7 @@ on:
       - 'examples/**'
       - '.github/workflows/cpp-check.yaml'
   pull_request:
-    branches: [main]
+    branches: [main, master, develop]
     paths:
       - 'Cargo.toml'
       - 'src/**'

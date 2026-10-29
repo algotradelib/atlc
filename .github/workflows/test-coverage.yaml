@@ -4,7 +4,7 @@
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, master, 'hotfix/*', 'release/*', develop]
     paths:
       - 'Cargo.toml'
       - 'src/**'
@@ -18,7 +18,7 @@ on:
       - 'codecov.yml'
       - '.github/workflows/test-coverage.yaml'
   pull_request:
-    branches: [main]
+    branches: [main, master, develop]
     paths:
       - 'Cargo.toml'
       - 'src/**'
