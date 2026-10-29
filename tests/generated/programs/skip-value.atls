@@ -1,0 +1,21 @@
+# Under `skip`, an indicator's values are computed again on a step whose input is missing: a condition on that
+# input is then undefined, so neither arm runs and the value is undefined. `which` picks the value.
+indicator choose(real x, int n) {
+  value real small = x > 1 ? 7 : 8;
+  value real unused = x != 1 ? n * n : 9;
+}
+params {
+  int n = 100000000000000;
+  int which = 0;
+}
+series {
+  real a = choose(open, n, missing = skip).small;
+  real b = choose(open, n, missing = skip).unused;
+}
+on_bar {
+  if (which == 0) {
+    target(a);
+  } else {
+    target(b);
+  }
+}

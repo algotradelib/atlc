@@ -8,6 +8,7 @@
 #include <lazy.hpp>
 #include <loop_edge.hpp>
 #include <missing_open.hpp>
+#include <skip_value.hpp>
 #include <universe_function.hpp>
 
 #include <catch2/catch_test_macros.hpp>
@@ -140,4 +141,16 @@ TEST_CASE("an unselected arm and an undecided right side are not evaluated") {
   auto either = with(2);
   CHECK(target_of(either, true, 1) == std::optional<std::string>("2"));
   CHECK_THROWS_AS(target_of(either, true, 2), std::overflow_error);
+}
+
+TEST_CASE("under skip, a value's condition on a missing input is undefined: neither arm runs") {
+  const auto id = t::id_of("A");
+  auto small = t::with(atls::SkipValue(id), {{"which", 0}});
+  auto unused = t::with(atls::SkipValue(id), {{"which", 1}});
+  // A missing open: `x > 1 ? 7 : 8` is undefined, and `x != 1 ? n * n : 9` runs neither arm.
+  CHECK(target_of(small, false) == std::nullopt);
+  CHECK(target_of(unused, false) == std::nullopt);
+  // An open of 1: each condition is false.
+  CHECK(target_of(small, true, 1) == std::optional<std::string>("8"));
+  CHECK(target_of(unused, true, 1) == std::optional<std::string>("9"));
 }

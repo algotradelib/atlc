@@ -45,7 +45,12 @@ impl Checker<'_> {
     pub(super) fn defined_refs(h: &HExpr) -> Vec<HKind> {
         match &h.kind {
             HKind::Call(Builtin::Defined, args) => match &args[0].kind {
-                k @ (HKind::Node(_) | HKind::State(_) | HKind::Local(_) | HKind::UState(_) | HKind::UValue(_)) => {
+                k @ (HKind::Node(_)
+                | HKind::State(_)
+                | HKind::Local(_)
+                | HKind::UArg(_)
+                | HKind::UState(_)
+                | HKind::UValue(_)) => {
                     vec![k.clone()]
                 }
                 _ => vec![],

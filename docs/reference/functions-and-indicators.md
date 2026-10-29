@@ -37,6 +37,7 @@ indicator mean_sd(real x, int n) {
 - `update {}` runs on each period with a valid input, before the window takes the new tuple; it may be used with or without a window (an EMA needs no window).
   On a missing input it does not run: under `restart` the indicator resets, under `poison` it stops, and under `skip` the window still advances: the missing tuple takes a slot, a valid tuple may leave (running `leave`) and the values are computed again; only `update` and `enter` are passed over.
 - `value` lines are the outputs (`real` only), computed after `enter` and `leave`; with several, a caller reads one as `mean_sd(close, 20).sd`.
+  Since `skip` computes them again on a step whose input is missing, a `real` argument read in a value may be undefined there, as in a handler: a condition on it is undefined, and `defined(x)` tests it.
 - `warmup n;` states the periods before the first value; `w.count` is the number of valid (not missing) tuples in the window.
 - An indicator may be called only in `series {}`; its lookback and definedness are inferred, with the checks that apply to built-ins.
 - Identical calls share one instance.

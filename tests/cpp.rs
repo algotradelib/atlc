@@ -204,6 +204,7 @@ fn generated_strategies() {
         "int-compare",
         "loop-edge",
         "lazy",
+        "skip-value",
     ] {
         generate(
             &out,

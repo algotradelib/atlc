@@ -108,7 +108,8 @@ impl Checker<'_> {
     pub(super) fn user_name(&mut self, ctx: &UCtx, n: &str, span: Span) -> Option<HExpr> {
         if ctx.see_args {
             if let Some(i) = ctx.args.iter().position(|a| a.0 == n) {
-                return Some(Self::h(HKind::UArg(i), ctx.args[i].1, false));
+                let ty = ctx.args[i].1;
+                return Some(self.refine(Self::h(HKind::UArg(i), ty, ctx.args_maybe && ty == Ty::Real)));
             }
         } else if let Some(i) = ctx.args.iter().position(|a| a.0 == n && a.1 == Ty::Int) {
             return Some(Self::h(HKind::UArg(i), Ty::Int, false));
@@ -391,8 +392,10 @@ impl Checker<'_> {
                 .note("whatever `enter` adds for a value, `leave` takes back when that value leaves the window"),
             );
         }
-        // Values, in order; each may read the earlier ones.
+        // Values, in order; each may read the earlier ones. Under `skip` they are computed again on a step whose input
+        // is missing, so there a `real` argument may be undefined.
         ctx.assign = false;
+        ctx.args_maybe = true;
         let mut values = vec![];
         for part in &d.parts {
             if let IndPart::Value(v) = part {

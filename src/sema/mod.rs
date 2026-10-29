@@ -57,6 +57,9 @@ struct UCtx {
     assign: bool,
     /// Arguments are visible (not in a state's initial value or the window's length).
     see_args: bool,
+    /// The `real` arguments may be undefined: in an indicator's values, which `skip` computes again on a step whose
+    /// input is missing.
+    args_maybe: bool,
     ret: Option<Ty>,
     returns_maybe: bool,
     /// Int arguments known to be at least 1 (an indicator's window length).
