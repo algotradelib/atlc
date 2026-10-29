@@ -1,0 +1,38 @@
+# Draft: it runs once the repository has a remote.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+      # The grammar is its own package, so LALRPOP never enters the main package's build.
+      - run: cargo fmt --check --manifest-path grammar/Cargo.toml
+      - run: cargo test --manifest-path grammar/Cargo.toml
+      # The main package has no dependency of any kind.
+      - name: no dependency
+        shell: bash
+        run: test "$(cargo tree -e all --prefix none | sort -u | wc -l)" -eq 1
+
+  # The declared minimum Rust (rust-version in Cargo.toml).
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85
+      - run: cargo test
+      - run: cargo test --manifest-path grammar/Cargo.toml
