@@ -25,7 +25,7 @@ on_bar {
 ```
 
 Status: in development, before its first release.
-Only `atlc --version` works today; the commands below are planned, and the language may change without notice.
+`atlc check` works today (add `--json` for one JSON object per diagnostic); `atlc build` and `atlc run` are planned, and the language may change without notice.
 
 ```sh
 atlc check sma.atls                 # parse and check, no C++ toolchain needed

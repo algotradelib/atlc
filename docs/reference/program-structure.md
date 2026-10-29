@@ -13,7 +13,7 @@ Each block kind appears at most once, except `indicator`, which appears once per
 - `series {}`: `real` or `bool` declarations (not `int`), recomputed every period, in dependency order.
   A series reads bar fields (`open high low close volume`), parameters and earlier series; it must not read `state` or `held`.
   Indicators are allowed only here: a streaming indicator must see every period, so it must not sit under an `if`.
-  A series no handler reads, directly or through another series, is not computed.
+  A series no handler reads, directly or through another series, is not computed, and the checker warns about it.
 - `state {}`: typed values kept between periods, initialized from literals and parameters (no calls), written only by handlers.
 - `options {}`: program-wide settings; today only `missing` ([missing values](missing-values.md)).
 - `warmup EXPR;`: a least number of periods before the periodic handler's first call.
@@ -54,6 +54,7 @@ A declaration must not use a keyword, a built-in's name, `lower` or `upper`.
 
 - Every window's length is built from integer literals and integer parameters with `+ - *`.
   The checker must prove from the parameters' bounds that every window is at least 1.
+  It works with each value's range: with `int<lower=2> n` it proves `n * n - 3` at least 1, but with `int<lower=n + 1> m` it does not prove `m - n` at least 1, since the ranges of `m` and `n` are not related.
 - A lag must be provably at least 1: `close[0]` and `lag(close, 0)` are refused (write `close`), and a negative lag reads a future bar.
 - The lookback of a value, with L its input's lookback (a bar field has L = 1):
   - a full-window indicator of length n (`sma`, `stdev`, `ts_max`, ...): L + n - 1;

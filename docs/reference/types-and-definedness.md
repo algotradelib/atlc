@@ -4,6 +4,7 @@
 
 - `int`: a signed integer, held as a 64-bit integer in the generated C++.
   Literals, defaults and parameter values pass through a double on the way in, so a magnitude above 9e15 is refused: as a literal or default by the checker, as a run-time parameter value by the strategy's setter.
+  An `int` literal is a number written without `.` or exponent, wherever it appears (a `real` default too: write `1e16`); 9e15 itself is accepted; the settings of `replay {}` are run-spec values, not literals in this sense.
   Refusing large literals and defaults is intended behaviour (the prototype accepted them and lost precision past 2^53).
 - `real`: an IEEE 754 double.
 - `bool`: `true` or `false`.

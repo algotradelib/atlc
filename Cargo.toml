@@ -10,7 +10,7 @@ readme = "README.md"
 keywords = ["trading", "backtesting", "compiler", "transpiler"]
 categories = ["compilers", "command-line-utilities"]
 # The runtime headers are compiled into the binary (include_str!), so they are part of the package.
-include = ["src/**", "runtime/include/**", "docs/reference/**", "Cargo.toml", "README.md", "LICENSE"]
+include = ["src/**", "runtime/include/**", "docs/reference/**", "docs/diagnostics.md", "Cargo.toml", "README.md", "LICENSE"]
 
 [lib]
 name = "atlc"

@@ -4,7 +4,7 @@ Draft, for `atlc 0.0.0-9000`; until the first release the language has no versio
 
 This reference defines the language.
 Where it and `atlc` disagree, the reference states the intended behaviour and `atlc` has a bug, unless the reference says a behaviour is unspecified.
-The grammar in [syntax.md](syntax.md) will be checked against the compiler's parser by the test suite (planned): both must accept and refuse the same programs at the syntax stage.
+The grammar in [syntax.md](syntax.md) is checked against the compiler's parser by the test suite (`grammar/`, an LR(1) copy for LALRPOP, which refuses an ambiguous grammar): both accept and refuse the same programs at the syntax stage and build the same tree.
 
 | Chapter | Contents |
 | --- | --- |
@@ -18,3 +18,4 @@ The grammar in [syntax.md](syntax.md) will be checked against the compiler's par
 | [Run spec](run-spec.md) | What `atlc run` reads: data, replay settings, parameters, build settings |
 
 Conventions: "must" and "must not" are rules the checker enforces; "is undefined" means a value is NaN in the sense of [types and definedness](types-and-definedness.md); file names are relative to the repository.
+Every refusal and warning has a stable code, listed in [diagnostics](../diagnostics.md).
