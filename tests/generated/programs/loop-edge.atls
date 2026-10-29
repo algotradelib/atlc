@@ -1,0 +1,19 @@
+# Loops whose last value is the largest 64-bit integer, in a handler and in a function: the body runs once and
+# the loop ends without stepping past it.
+functions {
+  int after(int n) {
+    for (i in n:n) {
+      int seen = i;
+    }
+    return 7;
+  }
+}
+state {
+  int runs = 0;
+}
+on_bar {
+  for (i in 3037000499 * 3037000499 + 5928526806:3037000499 * 3037000499 + 5928526806) {
+    runs = runs + 1;
+  }
+  target(runs * 10 + after(3037000499 * 3037000499 + 5928526806));
+}

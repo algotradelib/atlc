@@ -866,31 +866,30 @@ impl<'a> Printer<'a> {
                     let name = self.local(*var).name.clone();
                     self.local_repr.insert(*var, Repr::Plain);
                     let (f, t) = (self.hexpr(from), self.hexpr(to));
-                    self.line(
-                        indent,
-                        &format!(
-                            "for (std::int64_t l_{n} = {}; l_{n} <= {}; ++l_{n}) {{",
-                            plain(&f),
-                            plain(&t),
-                            n = name
-                        ),
-                    );
-                    self.stmts(body, indent + 1);
-                    self.line(indent, "}");
+                    self.inclusive_loop(indent, &name, &plain(&f), &plain(&t), body);
                 }
                 HStmt::For { var, from, to, body } => {
                     let name = self.local(*var).name.clone();
                     self.local_repr.insert(*var, Repr::Plain);
                     let (f, t) = (self.cexpr(from), self.cexpr(to));
-                    self.line(
-                        indent,
-                        &format!("for (std::int64_t l_{n} = {}; l_{n} <= {}; ++l_{n}) {{", f, t, n = name),
-                    );
-                    self.stmts(body, indent + 1);
-                    self.line(indent, "}");
+                    self.inclusive_loop(indent, &name, &f, &t, body);
                 }
             }
         }
+    }
+
+    /// `for (name in from:to)`: the bounds evaluated once, and no increment past the last value (which may be the
+    /// largest 64-bit integer).
+    fn inclusive_loop(&mut self, indent: usize, name: &str, from: &str, to: &str, body: &[HStmt]) {
+        self.line(
+            indent,
+            &format!("for (std::int64_t l_{name} = {from}, e_{name} = {to}; l_{name} <= e_{name}; ++l_{name}) {{"),
+        );
+        self.stmts(body, indent + 1);
+        self.line(indent + 1, &format!("if (l_{name} == e_{name}) {{"));
+        self.line(indent + 2, "break;");
+        self.line(indent + 1, "}");
+        self.line(indent, "}");
     }
 
     fn handler_reads_fill(stmts: &[HStmt]) -> bool {

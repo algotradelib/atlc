@@ -202,6 +202,7 @@ fn generated_strategies() {
         "universe-function",
         "contraction",
         "int-compare",
+        "loop-edge",
     ] {
         generate(
             &out,

@@ -5,6 +5,7 @@
 #include <contraction.hpp>
 #include <int_compare.hpp>
 #include <integers.hpp>
+#include <loop_edge.hpp>
 #include <missing_open.hpp>
 #include <universe_function.hpp>
 
@@ -112,4 +113,10 @@ TEST_CASE("integers above 2^53 are compared as integers") {
     auto strategy = t::with(atls::IntCompare(t::id_of("A")), {{"which", static_cast<double>(which)}});
     CHECK(target_of(strategy) == expected[which]);
   }
+}
+
+TEST_CASE("a loop ending at the largest 64-bit integer runs once and stops") {
+  atls::LoopEdge strategy(t::id_of("A"));
+  // The handler's loop ran once (10), and the function's loop ended (7).
+  CHECK(target_of(strategy) == std::optional<std::string>("17"));
 }
