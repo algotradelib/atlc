@@ -624,10 +624,10 @@ fn check(e: &mut Entry) -> Result<(), String> {
             }
         },
         Kind::Count => match e.value {
-            Value::Num(_, v) if v >= 0.0 && v.fract() == 0.0 && v <= 1e9 => {
+            Value::Num(ref t, v) if integer_text(t) && (0.0..=1e9).contains(&v) => {
                 e.value = Value::Num(format!("{v}"), v);
             }
-            _ => return Err(bad("a whole number, 0 or more")),
+            _ => return Err(bad("a whole number written as an integer, 0 or more")),
         },
         Kind::Bool => {
             if !matches!(e.value, Value::Bool(_)) {
@@ -672,6 +672,11 @@ fn check(e: &mut Entry) -> Result<(), String> {
     Ok(())
 }
 
+/// Whether a number was written as an integer: TOML reads `2.0` as a float, so an int takes no `.` or exponent.
+fn integer_text(t: &str) -> bool {
+    !t.contains(['.', 'e', 'E'])
+}
+
 /// A yyyymmdd date that exists, as a number.
 fn date(digits: &str) -> Option<u32> {
     if digits.len() != 8 || !digits.bytes().all(|b| b.is_ascii_digit()) {
@@ -692,6 +697,9 @@ fn date(digits: &str) -> Option<u32> {
 
 /// `YYYY-MM-DD`, optionally `THH:MM[:SS]` (or a space for the `T`) and `Z` or `+HH:MM`.
 fn instant(s: &str) -> bool {
+    if !s.is_ascii() {
+        return false;
+    }
     let (day, rest) = s.split_at(s.len().min(10));
     if day.len() != 10 || date(&day.replace('-', "")).is_none() || &day[4..5] != "-" || &day[7..8] != "-" {
         return false;
@@ -717,6 +725,9 @@ fn instant(s: &str) -> bool {
 
 /// `UTC`, `Z`, or `+HH:MM` / `-HH:MM`.
 fn offset(s: &str) -> bool {
+    if !s.is_ascii() {
+        return false;
+    }
     if s == "UTC" || s == "Z" {
         return true;
     }
@@ -756,19 +767,20 @@ pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Stri
         }
     });
     for e in &merged {
-        if let Some(k) = known(&e.key) {
-            if !k.sources.is_empty() && !k.sources.contains(&source.as_str()) {
-                errors.push(format!(
-                    "{}: `{}` applies to data.source = {}, and this run reads \"{source}\"",
-                    e.origin,
-                    e.key,
-                    k.sources
-                        .iter()
-                        .map(|s| format!("\"{s}\""))
-                        .collect::<Vec<_>>()
-                        .join(" or ")
-                ));
-            }
+        if let Some(k) = known(&e.key)
+            && !k.sources.is_empty()
+            && !k.sources.contains(&source.as_str())
+        {
+            errors.push(format!(
+                "{}: `{}` applies to data.source = {}, and this run reads \"{source}\"",
+                e.origin,
+                e.key,
+                k.sources
+                    .iter()
+                    .map(|s| format!("\"{s}\""))
+                    .collect::<Vec<_>>()
+                    .join(" or ")
+            ));
         }
     }
     let both = |a: &str, b: &str, errors: &mut Vec<String>| {
@@ -877,27 +889,29 @@ pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Stri
             at("data.interval")
         ));
     }
-    if fill == "legs" && program.legs && source == "store" {
-        if let Some(Value::List(items)) = get("data.store").map(|e| &e.value) {
-            for c in items
-                .iter()
-                .map(Value::text)
-                .filter(|c| c.split('/').nth(1) != Some("1d"))
-            {
-                errors.push(format!(
-                    "{}replay.fill = \"legs\" needs daily bars, not \"{c}\"",
-                    at("data.store")
-                ));
-            }
-        }
-    }
-    if let (Some(from), Some(to)) = (get("replay.from"), get("replay.to")) {
-        if from.value.text() > to.value.text() {
+    if fill == "legs"
+        && program.legs
+        && source == "store"
+        && let Some(Value::List(items)) = get("data.store").map(|e| &e.value)
+    {
+        for c in items
+            .iter()
+            .map(Value::text)
+            .filter(|c| c.split('/').nth(1) != Some("1d"))
+        {
             errors.push(format!(
-                "{}: replay.from is after replay.to ({})",
-                from.origin, to.origin
+                "{}replay.fill = \"legs\" needs daily bars, not \"{c}\"",
+                at("data.store")
             ));
         }
+    }
+    if let (Some(from), Some(to)) = (get("replay.from"), get("replay.to"))
+        && from.value.text() > to.value.text()
+    {
+        errors.push(format!(
+            "{}: replay.from is after replay.to ({})",
+            from.origin, to.origin
+        ));
     }
 
     // Instruments.
@@ -950,7 +964,7 @@ pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Stri
         };
         let value = match (ty, &e.value) {
             (ParamType::Bool, Value::Bool(b)) => (if *b { "1" } else { "0" }).to_string(),
-            (ParamType::Int, Value::Num(_, v)) if v.fract() == 0.0 && v.abs() <= 9e15 => format!("{v}"),
+            (ParamType::Int, Value::Num(t, v)) if integer_text(t) && v.abs() <= 9e15 => format!("{v}"),
             (ParamType::Real, Value::Num(t, _)) => t.clone(),
             (ParamType::Bool, _) => {
                 errors.push(format!(
@@ -961,7 +975,7 @@ pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Stri
             }
             (ParamType::Int, _) => {
                 errors.push(format!(
-                    "{}: `{name}` is an int parameter: give a whole number of magnitude at most 9e15, not {}",
+                    "{}: `{name}` is an int parameter: give a whole number written as an integer, of magnitude at most 9e15, not {}",
                     e.origin,
                     e.value.describe()
                 ));
@@ -1076,6 +1090,7 @@ mod tests {
             ("[replay]\ncash = \"1000\"", "a number above 0"),
             ("[replay]\ncommission = -0.1", "a number, 0 or more"),
             ("[replay]\nslippage_ticks = 1.5", "a whole number"),
+            ("[replay]\nslippage_ticks = 2.0", "written as an integer"),
             ("[replay]\nshorts = \"yes\"", "`true` or `false`"),
             ("[replay]\nfill = \"close\"", "one of \"next-open\""),
             ("[replay]\nfrom = 20230230", "a date"),
@@ -1101,7 +1116,7 @@ mod tests {
     fn values_are_normalized() {
         let e = spec(
             "strategy = \"../m.atls\"\n[data]\nfiles = [\"a.csv\", \"/abs/b.csv\"]\nstore = \"x/1d/y\"\nas_of = \"2026-10-01T05:00:00Z\"\n\
-             [replay]\nfrom = \"2020-01-02\"\nto = 20201231\nslippage_ticks = 2.0\n",
+             [replay]\nfrom = \"2020-01-02\"\nto = 20201231\nslippage_ticks = 2\n",
         )
         .unwrap();
         let v = |k: &str| e.iter().find(|x| x.key == k).unwrap().value.text();
@@ -1165,7 +1180,7 @@ mod tests {
     fn parameters_are_checked_against_the_program() {
         let p = single();
         let ok = run(
-            &format!("{WIDE_SPEC}[params]\nlookback = 3e1\nentry = 1.50\nflag = true\n"),
+            &format!("{WIDE_SPEC}[params]\nlookback = 30\nentry = 1.50\nflag = true\n"),
             &p,
         )
         .unwrap();
@@ -1176,6 +1191,8 @@ mod tests {
             ("lokback = 3", "no parameter `lokback` (it has lookback, entry, flag)"),
             ("lookback = 2.5", "`lookback` is an int parameter"),
             ("lookback = 1e16", "`lookback` is an int parameter"),
+            ("lookback = 3e1", "written as an integer"),
+            ("lookback = 2.0000000000000001", "written as an integer"),
             ("lookback = true", "`lookback` is an int parameter"),
             ("entry = false", "`entry` is a real parameter"),
             ("flag = 1", "`flag` is a bool parameter"),

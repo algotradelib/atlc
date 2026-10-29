@@ -14,6 +14,8 @@ pub fn parse(source: &str, file: &Path) -> Result<Vec<Entry>, String> {
     let mut out: Vec<Entry> = vec![];
     let mut table = String::new();
     let mut tables: Vec<(String, usize)> = vec![];
+    // Tables a dotted key creates (`a.b = 1` creates `a`); TOML refuses a header for one of them.
+    let mut dotted: Vec<(String, usize)> = vec![];
     for (i, raw) in source.lines().enumerate() {
         let line = i + 1;
         let err = |m: String| format!("{}:{line}: {m}", file.display());
@@ -46,6 +48,11 @@ pub fn parse(source: &str, file: &Path) -> Result<Vec<Entry>, String> {
         } else {
             format!("{table}.{key}")
         };
+        let depth = table.matches('.').count() + usize::from(!table.is_empty());
+        let parts: Vec<&str> = full.split('.').collect();
+        for k in depth + 1..parts.len() {
+            dotted.push((parts[..k].join("."), line));
+        }
         if let Some(first) = out.iter().find(|e| e.key == full) {
             return Err(err(format!("`{full}` is already set on {}", first.origin)));
         }
@@ -54,6 +61,17 @@ pub fn parse(source: &str, file: &Path) -> Result<Vec<Entry>, String> {
             value,
             origin: Origin::File(file.to_path_buf(), line),
         });
+    }
+    // A table is made by a header or by dotted keys, not both (`a.b = 1` with `[a]`, or `[a.b]` with `b.c = 1`
+    // under `[a]`); refusing a header that only lies under a dotted table is stricter than TOML.
+    for (d, dline) in &dotted {
+        let under = format!("{d}.");
+        if let Some((t, tline)) = tables.iter().find(|(t, _)| t == d || t.starts_with(&under)) {
+            return Err(format!(
+                "{}:{tline}: table `[{t}]` and the dotted key on line {dline} both define `{d}`; use one or the other",
+                file.display()
+            ));
+        }
     }
     // A name is a value or a table, not both (`data = "x"` with `[data]`, or `a.b = 1` with `a.b.c = 2`).
     for e in &out {
@@ -224,10 +242,10 @@ fn number(word: &str) -> Option<Value> {
     if frac.is_some_and(|f| !digits(f)) {
         return None;
     }
-    if let Some(e) = exponent {
-        if !digits(e.strip_prefix(['+', '-']).unwrap_or(e)) {
-            return None;
-        }
+    if let Some(e) = exponent
+        && !digits(e.strip_prefix(['+', '-']).unwrap_or(e))
+    {
+        return None;
     }
     let text: String = word.trim_start_matches('+').chars().filter(|c| *c != '_').collect();
     let v: f64 = text.parse().ok()?;
@@ -284,6 +302,16 @@ mod tests {
         assert!(bad("[data]\ncolumns.open = \"o\"\n[data.columns]\nopen = \"p\"").contains("already set"));
         assert!(bad("data = \"x\"\n[data]\nfile = \"y\"").contains("`data` is a value here and a table"));
         assert!(bad("a.b = 1\na.b.c = 2").contains("`a.b` is a value here and a table"));
+        // TOML refuses a header for a table that dotted keys made, in either order.
+        assert!(bad("data.file = \"x\"\n[data]\nsymbol = \"A\"").contains("both define `data`"));
+        assert!(
+            bad("[data]\ncolumns.open = \"o\"\n[data.columns]\nhigh = \"h\"").contains("both define `data.columns`")
+        );
+        assert!(
+            bad("[data.columns]\nopen = \"o\"\n[data]\ncolumns.high = \"h\"").contains("both define `data.columns`")
+        );
+        ok("[data]\ncolumns.open = \"o\"\n[replay]\ncash = 1");
+        ok("[a.b]\nx = 1\n[a]\nc.d = 1");
     }
 
     #[test]
