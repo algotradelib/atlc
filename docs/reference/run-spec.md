@@ -195,7 +195,7 @@ A number is printed with ten significant digits; a figure the library leaves und
 - linked to the `algotradelib::algotradelib` target of the package found by `build.algotradelib` alone when it is set (then also searched first for the package's dependencies), else by `CMAKE_PREFIX_PATH` or `algotradelib_DIR`, then CMake's own search;
 - for a store run, DuckDB's prebuilt C library (`duckdb.h` and the shared library as DuckDB publishes it, tested with 1.5), from `build.duckdb` alone when it is set, else `DUCKDB_ROOT`, then the system's library paths; the executable finds the library by an rpath to its directory on macOS and Linux, and by a copy of `duckdb.dll` beside it on Windows, so it runs from anywhere;
 - C++17 in Release, with floating-point contraction off (`-ffp-contract=off` on GCC, `/fp:precise` on MSVC, the runtime's pragmas on Clang);
-- the compiler: `CXX`, else the first of `c++`, `g++` and `clang++` on `PATH`; on Windows, the one CMake's default generator picks.
+- the compiler: `CXX` (a program's path or name, without arguments), else the first of `c++`, `g++` and `clang++` on `PATH`; on Windows, the one CMake's default generator picks.
 
 The project lives in a cache entry: `ATLC_CACHE_DIR`, else `~/Library/Caches/atlc` on macOS, `%LOCALAPPDATA%\atlc\cache` on Windows, and `$XDG_CACHE_HOME/atlc` or `~/.cache/atlc` elsewhere; never inside a checkout unless `ATLC_CACHE_DIR` says so.
 An entry is named by a key of everything the build reads:
