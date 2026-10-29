@@ -56,6 +56,22 @@ impl Checker<'_> {
                 ));
             }
         }
+        // The prototype accepted these in a universe but generated nothing for them.
+        if self.ir.mode == Mode::Universe {
+            for kind in [HandlerKind::OnStart, HandlerKind::OnStop] {
+                if let Some(s) = span_of(kind) {
+                    self.err(
+                        Diag::new(
+                            Code::UniverseLifecycleHandler,
+                            format!("`{}` is not supported in `universe {{}}` programs", kind.name()),
+                            s,
+                            "not here yet",
+                        )
+                        .note("a universe runs its handlers per instrument; start and stop callbacks per instrument are not built yet"),
+                    );
+                }
+            }
+        }
     }
 
     /// Bare `close` is refused when the program names its instruments.
@@ -214,5 +230,100 @@ impl Checker<'_> {
                 .note("named instruments are read as `y.close`; a universe runs the same code for every instrument"),
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::testing::{errors, ok};
+    use crate::frontend::diag::Code;
+    use crate::ir::Mode;
+
+    #[test]
+    fn modes() {
+        assert_eq!(ok("on_bar { target(1); }").mode, Mode::Single);
+        assert_eq!(
+            ok("instruments { y; x; } on_bar { target(y, 1); target(x, -1); }").mode,
+            Mode::Named(vec!["y".into(), "x".into()])
+        );
+        let u = ok("universe {} options { missing = skip; } on_bar { target(1); }");
+        assert_eq!(u.mode, Mode::Universe);
+        assert!(u.period_clock);
+        assert!(!ok("universe {} on_bar { target(1); }").period_clock);
+        assert_eq!(
+            errors("instruments {} on_bar { target(1); }")[0],
+            Code::EmptyInstruments
+        );
+        assert_eq!(
+            errors("instruments { y; } universe {} on_bar { target(y, 1); }")[0],
+            Code::InstrumentsAndUniverse
+        );
+    }
+
+    #[test]
+    fn handlers_by_mode() {
+        assert_eq!(errors("state { int n = 0; } on_start { n = 1; }"), [Code::MissingOnBar]);
+        assert_eq!(
+            errors("universe {} on_bar { target(1); } on_open { target(1); }"),
+            [Code::BarAndLegs]
+        );
+        assert_eq!(errors("on_close { target(1); }"), [Code::LegsOutsideUniverse]);
+        assert!(ok("universe {} on_open { target(1); }").legs);
+        assert!(ok("universe {} on_close { target(held); }").legs);
+        assert_eq!(
+            errors("universe {} on_bar { target(1); } on_fill { }"),
+            [Code::OnFillOutsideSingle]
+        );
+        assert_eq!(
+            errors("instruments { y; } on_bar { target(y, 1); } on_fill { }"),
+            [Code::OnFillOutsideSingle]
+        );
+    }
+
+    #[test]
+    fn universe_lifecycle_handlers_are_refused() {
+        // A departure from the prototype, which accepted them and generated nothing.
+        let codes =
+            errors("universe {} state { int n = 0; } on_start { n = 1; } on_bar { target(1); } on_stop { n = 2; }");
+        assert_eq!(codes, [Code::UniverseLifecycleHandler, Code::UniverseLifecycleHandler]);
+        assert_eq!(
+            errors("universe {} on_close { target(1); } on_stop { }"),
+            [Code::UniverseLifecycleHandler]
+        );
+        // Single and named programs keep them.
+        ok("state { int n = 0; } on_start { n = 1; } on_bar { target(n); } on_stop { n = 2; }");
+        ok("instruments { y; } on_start { } on_bar { target(y, 1); } on_stop { }");
+    }
+
+    #[test]
+    fn fields_and_cross_sections() {
+        assert_eq!(
+            errors("instruments { y; } series { real c = close; } on_bar { target(y, c); }"),
+            [Code::BareField]
+        );
+        assert_eq!(
+            errors("on_bar { real m = xs_mean(close); target(m); }"),
+            [Code::XsOutsideUniverse]
+        );
+        assert_eq!(
+            errors("universe {} on_bar { if (close > 1) { target(xs_rank(close)); } }"),
+            [Code::XsNested]
+        );
+        assert_eq!(
+            errors("universe {} on_bar { target(xs_sum(close, close)); }"),
+            [Code::FunctionArity]
+        );
+        assert_eq!(
+            errors("universe {} on_bar { target(xs_sum(close > 1)); }"),
+            [Code::ArgumentType]
+        );
+        assert_eq!(
+            errors("universe {} on_bar { target(xs_median(close)); }"),
+            [Code::UnknownFunction]
+        );
+        assert_eq!(
+            ok("universe {} on_bar { real r = xs_rank(close); real n = xs_count(close); target(r / n); }").xs_count,
+            2
+        );
     }
 }
