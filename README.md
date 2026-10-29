@@ -1,5 +1,10 @@
 # atlc
 
+<!-- badges: start -->
+[![ci](https://github.com/algotradelib/atlc/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/algotradelib/atlc/actions/workflows/ci.yaml?query=branch%3Amain)
+[![codecov](https://codecov.io/gh/algotradelib/atlc/graph/badge.svg)](https://codecov.io/gh/algotradelib/atlc)
+<!-- badges: end -->
+
 The compiler for atls, a short strategy language for [algotradelib](https://github.com/algotradelib/algotradelib).
 You write a strategy in a few checked blocks; `atlc` turns it into a C++ strategy for the library's runner.
 In the prototype, compiled strategies ran as fast in a backtest as the same strategies written by hand in C++.
@@ -27,9 +32,9 @@ on_bar {
 Status: in development, before its first release; the language may change without notice.
 
 ```sh
-atlc check mean-reversion.atls                        # parse and check, no C++ toolchain needed
-atlc build mean-reversion.atls -o mean-reversion.hpp  # the C++ strategy, for your own algotradelib project
-atlc run mean-reversion.toml -P lookback=30           # replay it from a run spec and print the report as JSON
+atlc check mean-reversion.atls # parse and check, no C++ toolchain needed
+atlc build mean-reversion.atls -o mean-reversion.hpp # the C++ strategy, for your own algotradelib project
+atlc run mean-reversion.toml -P lookback=30 # replay it from a run spec and print the report as JSON
 ```
 
 Add `--json` to `check` for one JSON object per diagnostic.
@@ -40,7 +45,7 @@ strategy = "mean-reversion.atls"
 
 [data]
 source = "csv"
-file = "bars.csv"        # ts (Unix seconds), open, high, low, close, volume
+file = "bars.csv" # ts (Unix seconds), open, high, low, close, volume
 symbol = "AAPL"
 
 [replay]
