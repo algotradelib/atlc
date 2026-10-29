@@ -1091,3 +1091,119 @@ pub fn stmt_span(s: &Stmt) -> Span {
         | Stmt::Expr { span, .. } => *span,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::frontend::ast_text;
+    use crate::frontend::diag::Code;
+
+    fn expr(s: &str) -> Expr {
+        let program = parse(&format!("on_bar {{ x = {s}; }}")).unwrap();
+        let Item::Handler(_, body, _) = &program.items[0] else {
+            panic!()
+        };
+        let Stmt::Assign { value, .. } = &body[0] else { panic!() };
+        value.clone()
+    }
+
+    fn codes(s: &str) -> Vec<Code> {
+        parse(s).unwrap_err().iter().map(|d| d.code).collect()
+    }
+
+    #[test]
+    fn precedence() {
+        let shown = |s: &str| ast_text(&expr(s));
+        assert_eq!(shown("a + b * c - d"), "a + b * c - d");
+        assert_eq!(shown("(a + b) * c"), "(a + b) * c");
+        assert_eq!(shown("not a and b or c"), "not a and b or c");
+        assert!(matches!(expr("a or b and c").kind, ExprKind::Binary(BinOp::Or, _, _)));
+        assert!(
+            matches!(expr("a ? b : c ? d : e").kind, ExprKind::Ternary(_, _, ref e) if matches!(e.kind, ExprKind::Ternary(..)))
+        );
+        assert!(
+            matches!(expr("-a[1]").kind, ExprKind::Unary(UnOp::Neg, ref i) if matches!(i.kind, ExprKind::Index(..)))
+        );
+        assert!(matches!(expr("f(x).v").kind, ExprKind::Member(..)));
+        assert!(matches!(expr("y.close").kind, ExprKind::Field(..)));
+        assert!(
+            matches!(expr("sma(x, 3, missing = skip)").kind, ExprKind::Call(_, ref a) if matches!(a[2].kind, ExprKind::Named(..)))
+        );
+        // Parentheses keep their span but leave no node.
+        let e = expr("(1)");
+        assert_eq!((e.kind, e.span), (ExprKind::Num(1.0, true), Span::new(13, 16)));
+    }
+
+    #[test]
+    fn statements_and_blocks() {
+        let p = parse("params { int<lower=1, upper=n * 2> n = 3; } replay { cash = -1; fill.mode = \"x\"; replay.on = true; } \
+                       on_bar { target(y, 1); for (i in 1:n) { } while (true) { } f(1); if (a) { } else if (b) { } else { } return 1; }")
+            .unwrap();
+        let Item::Replay(settings, _) = &p.items[1] else {
+            panic!()
+        };
+        assert_eq!(
+            settings.iter().map(|s| s.key.as_str()).collect::<Vec<_>>(),
+            ["cash", "fill.mode", "replay.on"]
+        );
+        assert_eq!(settings[0].value, Lit::Num(-1.0));
+        let Item::Handler(_, body, _) = &p.items[2] else {
+            panic!()
+        };
+        assert!(matches!(&body[0], Stmt::Target { inst: Some(i), .. } if i.name == "y"));
+        assert!(matches!(body[2], Stmt::While { .. }));
+        assert!(matches!(body[3], Stmt::Expr { .. }));
+        assert!(matches!(body[5], Stmt::Return { .. }));
+    }
+
+    #[test]
+    fn errors_and_recovery() {
+        assert_eq!(codes("on_bar { target(1) }"), [Code::ExpectedToken]);
+        assert_eq!(
+            codes("on_bar { a = 1 b = 2; c = ; }"),
+            [Code::ExpectedToken, Code::ExpectedExpression]
+        );
+        assert_eq!(codes("on_bar { if (a && b) { } }"), [Code::CStyleOperator]);
+        assert_eq!(codes("on_bar { if (a = b) { } }"), [Code::AssignInExpression]);
+        assert_eq!(codes("on_bar { x = a < b < c; }"), [Code::ChainedComparison]);
+        assert_eq!(codes("param n = 1;"), [Code::V0Syntax]);
+        assert_eq!(codes("on_bar { target = 1; }"), [Code::V0Syntax]);
+        assert_eq!(codes("live { }"), [Code::LiveBlock]);
+        assert_eq!(codes("1"), [Code::ExpectedBlock]);
+        assert_eq!(codes("params { int for = 1; }"), [Code::KeywordAsName]);
+        assert_eq!(codes("on_bar {"), [Code::ExpectedToken]);
+    }
+
+    #[test]
+    fn nesting_limit() {
+        // Deep nesting needs more stack than a test thread has in a debug build.
+        let run = |f: fn()| {
+            std::thread::Builder::new()
+                .stack_size(64 << 20)
+                .spawn(f)
+                .unwrap()
+                .join()
+                .unwrap()
+        };
+        run(|| {
+            assert_eq!(
+                codes(&format!("on_bar {{ x = {}1; }}", "-".repeat(300))),
+                [Code::NestingTooDeep]
+            )
+        });
+        run(|| {
+            assert_eq!(
+                codes(&format!("on_bar {{ x = {}a; }}", "not ".repeat(300))),
+                [Code::NestingTooDeep]
+            )
+        });
+        run(|| {
+            assert_eq!(
+                codes(&format!("on_bar {{ x = {}1{}; }}", "(".repeat(300), ")".repeat(300))),
+                [Code::NestingTooDeep]
+            )
+        });
+        // The deepest nesting accepted.
+        run(|| drop(parse(&format!("on_bar {{ x = {}1{}; }}", "(".repeat(254), ")".repeat(254))).unwrap()));
+    }
+}

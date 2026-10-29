@@ -160,3 +160,73 @@ impl Checker<'_> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::testing::{errors, ok};
+    use crate::frontend::diag::Code;
+
+    #[test]
+    fn constants() {
+        ok(
+            "params { int<lower=1> n = 3; } state { real s = n * 2 - 1; int c = -n; } on_bar { for (i in 1:n * 2) { s = s + i; } target(s + c); }",
+        );
+        assert_eq!(
+            errors("state { real s = close; } on_bar { target(s); }"),
+            [Code::NotConstant]
+        );
+        assert_eq!(
+            errors("state { real s = abs(1); } on_bar { target(s); }"),
+            [Code::NotConstant]
+        );
+        assert_eq!(
+            errors("state { real a = 1; real b = a; } on_bar { target(b); }"),
+            [Code::NotConstant]
+        );
+        assert_eq!(
+            errors("params { bool f = true; } state { real s = f; } on_bar { target(s); }"),
+            [Code::ConstParamNotInt]
+        );
+        assert_eq!(
+            errors("on_bar { for (i in 1:held) { } target(1); }"),
+            [Code::NotConstant]
+        );
+        assert_eq!(
+            errors("params { int<lower=1> n = 4; } on_bar { for (i in 1:n / 2) { } target(1); }"),
+            [Code::CountDivision]
+        );
+        assert_eq!(
+            errors("on_bar { for (i in 1:2.5) { } target(1); }"),
+            [Code::NotWholeNumber]
+        );
+        assert_eq!(
+            errors("on_bar { for (i in 1:nope) { } target(1); }"),
+            [Code::UnknownName]
+        );
+    }
+
+    #[test]
+    fn ranges_over_the_bounds() {
+        // Ranges are intervals: n * n - 3 is at least 1 from n >= 2, but m - n is not proved positive from
+        // m >= n + 1, since the two ranges are not related.
+        ok("params { int<lower=2> n = 2; } series { real b = sma(close, n * n - 3); } on_bar { target(b); }");
+        assert_eq!(
+            errors(
+                "params { int<lower=2> n = 2; int<lower=n + 1> m = 5; } series { real a = sma(close, m - n); } on_bar { target(a); }"
+            ),
+            [Code::WindowBelowOne]
+        );
+        assert_eq!(
+            errors(
+                "params { int<lower=2> n = 2; int m = 5; } series { real a = sma(close, n * m); } on_bar { target(a); }"
+            ),
+            [Code::WindowBelowOne]
+        );
+        assert_eq!(
+            errors(
+                "params { int<lower=-3, upper=4> n = 2; } series { real a = sma(close, n * n + 1); } on_bar { target(a); }"
+            ),
+            [Code::WindowBelowOne]
+        );
+    }
+}

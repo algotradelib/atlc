@@ -375,3 +375,117 @@ impl Checker<'_> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::testing::{errors, message, ok};
+    use super::super::testing_ir::{lookback, value};
+    use crate::frontend::diag::Code;
+
+    fn program(series: &str) -> String {
+        format!("params {{ int<lower=2> n = 20; int<lower=1> k = 3; }} series {{ {series} }} on_bar {{ target(0); }}")
+    }
+
+    #[test]
+    fn lookbacks() {
+        let ir = ok(&program(
+            "real a = sma(close, n); real b = sma(sma(close, 20), 30); real c = lag(close, k); real d = close[2]; \
+             real e = rsi(close, 14); real f = ts_sum(close, 20, 5); real g = ols_slope(close, open, n); \
+             real h = kf_beta(close, open, 0.0001, 0.001); real i = a + c; real j = close; \
+             real l = sma(close, 5) [2];",
+        ));
+        assert_eq!(lookback(&ir, "a"), 20.0);
+        assert_eq!(lookback(&ir, "b"), 49.0);
+        assert_eq!(lookback(&ir, "c"), 4.0);
+        assert_eq!(lookback(&ir, "d"), 3.0);
+        assert_eq!(lookback(&ir, "e"), 15.0);
+        assert_eq!(lookback(&ir, "f"), 5.0);
+        assert_eq!(lookback(&ir, "g"), 20.0);
+        assert_eq!(lookback(&ir, "h"), 1.0);
+        assert_eq!(lookback(&ir, "i"), 20.0);
+        assert_eq!(lookback(&ir, "j"), 1.0);
+        assert_eq!(lookback(&ir, "l"), 7.0);
+    }
+
+    #[test]
+    fn skip_lookbacks() {
+        // max(n, L + min - 1) for the skip windows; a lag keeps L + k.
+        let ir = ok(&program(
+            "real a = sma(close, 3, missing = skip); real b = sma(sma(close, 5), 3, missing = skip); \
+             real c = sma(sma(close, 5), 3, missing = skip, min = 2); real d = lag(close, 3, missing = skip); \
+             real e = stdev(sma(close, 10), 4, missing = skip, min = 3);",
+        ));
+        assert_eq!(lookback(&ir, "a"), 3.0);
+        assert_eq!(lookback(&ir, "b"), 5.0);
+        assert_eq!(lookback(&ir, "c"), 6.0);
+        assert_eq!(lookback(&ir, "d"), 4.0);
+        assert_eq!(lookback(&ir, "e"), 12.0);
+    }
+
+    #[test]
+    fn windows_are_proved_from_the_bounds() {
+        assert_eq!(
+            errors("params { int n = 5; } series { real a = sma(close, n); } on_bar { target(a); }"),
+            [Code::WindowBelowOne]
+        );
+        assert_eq!(
+            errors("params { int<lower=0> n = 5; } series { real a = sma(close, n); } on_bar { target(a); }"),
+            [Code::WindowBelowOne]
+        );
+        assert_eq!(
+            message("params { int<lower=0> n = 5; } series { real a = sma(close, n); } on_bar { target(a); }"),
+            "`sma`'s window may be below 1"
+        );
+        assert_eq!(
+            errors("params { int<lower=1> n = 5; } series { real a = stdev(close, n); } on_bar { target(a); }"),
+            [Code::WindowBelowTwo]
+        );
+        assert_eq!(
+            errors("series { real a = ols_slope(close, open, 1); } on_bar { target(a); }"),
+            [Code::WindowBelowTwo]
+        );
+        assert_eq!(
+            errors("series { real a = lag(close, 0); } on_bar { target(a); }"),
+            [Code::LookAhead]
+        );
+        assert_eq!(
+            errors("series { real a = close[-1]; } on_bar { target(a); }"),
+            [Code::LookAhead]
+        );
+        assert_eq!(
+            errors("params { int<lower=2> n = 5; } series { real a = sma(close, n - 2); } on_bar { target(a); }"),
+            [Code::WindowBelowOne]
+        );
+        assert_eq!(
+            errors("series { real a = ts_sum(close, 5, 6); } on_bar { target(a); }"),
+            [Code::MinOutOfRange]
+        );
+        assert_eq!(
+            errors(
+                "params { real<lower=0, upper=2> d = 0.5; } series { real a = kf_beta(close, open, d, 1); } on_bar { target(a); }"
+            ),
+            [Code::FilterParameters]
+        );
+        // stdev_pop takes a window of one under skip.
+        ok("series { real a = stdev_pop(close, 1, missing = skip); } on_bar { target(a); }");
+    }
+
+    #[test]
+    fn warmup_and_liveness() {
+        let ir = ok(
+            "params { int<lower=1> n = 4; } warmup n * 2 + 1; series { real a = sma(close, 3); real unused = sma(close, 9); } on_bar { target(a); }",
+        );
+        assert_eq!(value(&ir, ir.warmup.as_ref().unwrap()), 9.0);
+        assert_eq!(ir.warnings.len(), 1);
+        assert_eq!(ir.warnings[0].code, Code::UnusedSeries);
+        let unused = ir.series.iter().find(|s| s.0 == "unused").unwrap().1;
+        assert!(!ir.live[unused]);
+        assert!(ir.live[ir.series[0].1]);
+        assert_eq!(errors("warmup close; on_bar { target(1); }"), [Code::NotConstant]);
+        assert_eq!(errors("warmup 2.5; on_bar { target(1); }"), [Code::NotWholeNumber]);
+        // A series read only by a handler other than on_bar is kept for it.
+        let ir =
+            ok("series { real a = sma(close, 3); } state { real s = 0; } on_fill { s = a; } on_bar { target(s); }");
+        assert_eq!(ir.kept, [ir.series[0].1]);
+    }
+}

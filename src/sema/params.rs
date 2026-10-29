@@ -128,3 +128,67 @@ impl Checker<'_> {
         self.declare(&d.name, Name::Param(id));
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::testing::{errors, message, ok};
+    use crate::frontend::ast::Ty;
+    use crate::frontend::diag::Code;
+
+    #[test]
+    fn defaults_and_bounds() {
+        let ir = ok(
+            "params { int<lower=1> fast = 20; int<lower=fast + 1, upper=fast * 10> slow = 60; real r = -0.5; bool b = true; real p = (2); } on_bar { target(0); }",
+        );
+        assert_eq!(ir.params.len(), 5);
+        assert_eq!((ir.params[1].ty, ir.params[1].default), (Ty::Int, 60.0));
+        assert_eq!(ir.params[1].lower.as_ref().unwrap().1, "fast + 1");
+        assert_eq!(ir.params[2].default, -0.5);
+        assert_eq!(ir.params[3].default, 1.0);
+        assert_eq!(ir.params[4].default, 2.0);
+        assert_eq!(
+            errors("params { int<lower=1> fast = 20; int<lower=fast + 1> slow = 10; } on_bar { target(0); }"),
+            [Code::DefaultBelowBound]
+        );
+        assert_eq!(
+            message("params { int<lower=1> fast = 20; int<lower=fast + 1> slow = 10; } on_bar { target(0); }"),
+            "the default of `slow` (10) is below its lower bound"
+        );
+        assert_eq!(
+            errors("params { int<upper=5> n = 6; } on_bar { target(0); }"),
+            [Code::DefaultAboveBound]
+        );
+        assert_eq!(
+            errors("params { int n = 1 + 1; } on_bar { target(0); }"),
+            [Code::DefaultNotLiteral]
+        );
+        assert_eq!(
+            errors("params { int n = 1.5; } on_bar { target(0); }"),
+            [Code::IntDefaultNotWhole]
+        );
+        assert_eq!(
+            errors("params { int n = 1e3; } on_bar { target(0); }"),
+            [Code::IntDefaultNotWhole]
+        );
+        assert_eq!(
+            errors("params { bool b = 0; } on_bar { target(0); }"),
+            [Code::BoolDefaultNotBool]
+        );
+        assert_eq!(
+            errors("params { real r = false; } on_bar { target(0); }"),
+            [Code::NumericDefaultIsBool]
+        );
+        assert_eq!(
+            errors("params { bool<upper=1> b = true; } on_bar { target(0); }"),
+            [Code::BoolBounds]
+        );
+        assert_eq!(
+            errors("params { int<lower=later> n = 1; int later = 0; } on_bar { target(0); }"),
+            [Code::UnknownName]
+        );
+        assert_eq!(
+            errors("params { int n = 1; } on_bar { n = 2; target(0); }"),
+            [Code::AssignParam]
+        );
+    }
+}

@@ -229,3 +229,45 @@ pub(crate) mod testing {
         }
     }
 }
+
+#[cfg(test)]
+pub(crate) mod testing_ir {
+    //! Reading the IR in the passes' unit tests.
+    use crate::frontend::ast::BinOp;
+    use crate::ir::{CExpr, Ir, Node};
+
+    /// A constant expression's value with the parameters' defaults.
+    pub fn value(ir: &Ir, c: &CExpr) -> f64 {
+        match c {
+            CExpr::Num(v) => *v,
+            CExpr::Param(i) => ir.params[*i].default,
+            CExpr::Neg(a) => -value(ir, a),
+            CExpr::Bin(op, a, b) => {
+                let (a, b) = (value(ir, a), value(ir, b));
+                match op {
+                    BinOp::Add => a + b,
+                    BinOp::Sub => a - b,
+                    BinOp::Mul => a * b,
+                    _ => a / b,
+                }
+            }
+            CExpr::Max(v) => v.iter().map(|x| value(ir, x)).fold(f64::NEG_INFINITY, f64::max),
+        }
+    }
+
+    /// A series' node.
+    pub fn series<'a>(ir: &'a Ir, name: &str) -> &'a Node {
+        let id = ir
+            .series
+            .iter()
+            .find(|s| s.0 == name)
+            .unwrap_or_else(|| panic!("no series {name}"))
+            .1;
+        &ir.nodes[id]
+    }
+
+    /// A series' lookback with the defaults.
+    pub fn lookback(ir: &Ir, name: &str) -> f64 {
+        value(ir, &series(ir, name).lookback)
+    }
+}

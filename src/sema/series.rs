@@ -385,3 +385,87 @@ impl Checker<'_> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::testing::{errors, ok};
+    use super::super::testing_ir::series;
+    use crate::frontend::ast::Ty;
+    use crate::frontend::diag::Code;
+    use crate::ir::{Ind, NodeKind};
+    use crate::sema::{Options, check};
+
+    #[test]
+    fn identical_expressions_share_one_node() {
+        let src = "series { real a = sma(close, 5); real b = sma(close, 5) + 1; } on_bar { target(a + b); }";
+        let ir = ok(src);
+        let NodeKind::Binary(_, left, _) = series(&ir, "b").kind else {
+            panic!()
+        };
+        assert_eq!(left, ir.series[0].1);
+        // Without sharing, only bar fields are merged.
+        let program = crate::frontend::parse(src).unwrap();
+        let ir = check(&program, &Options { share: false }).unwrap();
+        let smas = ir
+            .nodes
+            .iter()
+            .filter(|n| matches!(n.kind, NodeKind::Ind(Ind::Sma, ..)))
+            .count();
+        assert_eq!(smas, 2);
+        let fields = ir
+            .nodes
+            .iter()
+            .filter(|n| matches!(n.kind, NodeKind::Field(..)))
+            .count();
+        assert_eq!(fields, 1);
+    }
+
+    #[test]
+    fn series_rules() {
+        let ir = ok("series { bool up = close > open; real n = up ? 1 : 0; } on_bar { target(n); }");
+        assert_eq!(series(&ir, "up").ty, Ty::Bool);
+        assert_eq!(series(&ir, "n").ty, Ty::Real);
+        assert_eq!(errors("series { int n = 1; } on_bar { target(1); }"), [Code::IntSeries]);
+        assert_eq!(
+            errors("state { real s = 0; } series { real a = s; } on_bar { target(a); }"),
+            [Code::SeriesReadsState]
+        );
+        assert_eq!(
+            errors("series { real a = held; } on_bar { target(a); }"),
+            [Code::SeriesReadsHeld]
+        );
+        assert_eq!(
+            errors("series { real a = keep; } on_bar { target(a); }"),
+            [Code::KeepInSeries]
+        );
+        assert_eq!(
+            errors("series { real a = b; real b = close; } on_bar { target(a + b); }"),
+            [Code::UnknownName]
+        );
+        assert_eq!(
+            errors("series { real a = close > 1 ? 1 : 2; real b = a ? 1 : 2; } on_bar { target(b); }"),
+            [Code::ConditionNotBool]
+        );
+        assert_eq!(
+            errors("universe {} series { real a = xs_rank(close); } on_bar { target(a); }"),
+            [Code::XsInSeries]
+        );
+        assert_eq!(
+            errors("series { real a = sma(close, 5, 1, 2); } on_bar { target(a); }"),
+            [Code::IndicatorArity]
+        );
+        assert_eq!(
+            errors("series { real a = kf_beta(close, open, 0.1); } on_bar { target(a); }"),
+            [Code::IndicatorArity]
+        );
+        assert_eq!(
+            errors("series { real a = ols_slope(close > 1, open, 5); } on_bar { target(a); }"),
+            [Code::SeriesNotNumeric]
+        );
+        // A failed declaration is poisoned: reading it reports nothing more.
+        assert_eq!(
+            errors("series { real a = nope; real b = a + 1; } on_bar { target(b); }"),
+            [Code::UnknownName]
+        );
+    }
+}

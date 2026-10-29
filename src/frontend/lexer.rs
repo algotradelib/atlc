@@ -156,3 +156,52 @@ pub fn lex(source: &str) -> Result<Vec<Token>, Diag> {
     });
     Ok(out)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::frontend::diag::Code;
+
+    fn toks(s: &str) -> Vec<Tok> {
+        lex(s).unwrap().into_iter().map(|t| t.tok).collect()
+    }
+
+    #[test]
+    fn numbers() {
+        assert_eq!(
+            toks("20 0.05 .5 1e-4 2E+2 1. 1e"),
+            [
+                Tok::Num(20.0, true),
+                Tok::Num(0.05, false),
+                Tok::Num(0.5, false),
+                Tok::Num(1e-4, false),
+                Tok::Num(200.0, false),
+                Tok::Num(1.0, false),
+                // `1e` with no digits after the `e` is the number 1 and the name `e`.
+                Tok::Num(1.0, true),
+                Tok::Ident("e".into()),
+                Tok::Eof,
+            ]
+        );
+    }
+
+    #[test]
+    fn comments_strings_and_punctuation() {
+        assert_eq!(
+            toks("a # x\n// y\n<= != && \"s\""),
+            [
+                Tok::Ident("a".into()),
+                Tok::Punct("<="),
+                Tok::Punct("!="),
+                Tok::Punct("&&"),
+                Tok::Str("s".into()),
+                Tok::Eof,
+            ]
+        );
+        assert_eq!(lex("\"open").unwrap_err().code, Code::UnclosedString);
+        assert_eq!(lex("\"a\nb\"").unwrap_err().code, Code::UnclosedString);
+        let e = lex("x = é;").unwrap_err();
+        assert_eq!((e.code, e.span), (Code::UnexpectedCharacter, Span::new(4, 6)));
+        assert_eq!(lex("").unwrap()[0].span, Span::new(0, 0));
+    }
+}

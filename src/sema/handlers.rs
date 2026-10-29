@@ -868,3 +868,110 @@ impl Checker<'_> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::testing::{errors, ok};
+    use crate::frontend::diag::Code;
+    use crate::ir::{HKind, HStmt};
+
+    #[test]
+    fn statements() {
+        let ir = ok(
+            "params { int<lower=1> n = 3; } state { real s = 0; } on_bar { real x = close; \
+                     for (i in 1:n) { s = s + i; } if (x > s) { target(1); } else if (x < s) { target(-1); } else { target(keep); } }",
+        );
+        let body = ir.handlers.on_bar.as_ref().unwrap();
+        assert!(matches!(body[0], HStmt::Local { .. }));
+        assert!(matches!(body[1], HStmt::For { .. }));
+        assert!(matches!(&body[2], HStmt::If { els, .. } if matches!(els[0], HStmt::If { .. })));
+        assert_eq!(errors("on_bar { while (true) { } target(1); }"), [Code::WhileLoop]);
+        assert_eq!(errors("on_bar { close; target(1); }"), [Code::ExpressionStatement]);
+        assert_eq!(errors("on_bar { return 1; }"), [Code::ReturnOutsideFunction]);
+        assert_eq!(errors("on_bar { if (close) { target(1); } }"), [Code::ConditionNotBool]);
+        assert_eq!(errors("on_bar { real x = 1; x = 2; target(x); }"), [Code::AssignLocal]);
+        assert_eq!(
+            errors("series { real a = close; } on_bar { a = 1; target(a); }"),
+            [Code::AssignSeries]
+        );
+        assert_eq!(errors("on_bar { held = 1; target(1); }"), [Code::AssignReadOnly]);
+        assert_eq!(errors("on_bar { nope = 1; target(1); }"), [Code::UnknownName]);
+    }
+
+    #[test]
+    fn where_values_are_read() {
+        assert_eq!(
+            errors("on_bar { target(1); } on_fill { target(0); }"),
+            [Code::TargetInHandler]
+        );
+        assert_eq!(
+            errors("state { real s = 0; } on_start { s = close; } on_bar { target(1); }"),
+            [Code::NoBar]
+        );
+        assert_eq!(
+            errors("series { real a = close; } state { real s = 0; } on_stop { s = a; } on_bar { target(a); }"),
+            [Code::NoBar]
+        );
+        assert_eq!(
+            errors("state { real s = 0; } on_fill { s = held; } on_bar { target(1); }"),
+            [Code::HeldInHandler]
+        );
+        assert_eq!(errors("on_bar { target(fill.price); }"), [Code::FillOutsideOnFill]);
+        assert_eq!(
+            errors("state { real s = 0; } on_fill { s = fill.cost; } on_bar { target(1); }"),
+            [Code::UnknownField]
+        );
+        assert_eq!(
+            errors("series { real a = sma(close, 3); } on_bar { target(sma(close, 3)); }"),
+            [Code::IndicatorInHandler]
+        );
+        assert_eq!(errors("on_bar { target(close[1]); }"), [Code::IndicatorInHandler]);
+        assert_eq!(errors("on_bar { target(bars); }"), [Code::BarsOutsideUniverse]);
+        let ir = ok(
+            "state { real p = 0; bool b = false; } on_fill { p = fill.price + fill.quantity; b = fill.buy; } on_bar { target(held); }",
+        );
+        assert!(ir.uses_held);
+        // In `on_open`, only today's open is known.
+        assert_eq!(
+            errors("universe {} on_open { target(close); }"),
+            [Code::OpenReadsFuture]
+        );
+        let ir = ok("universe {} on_open { target(open > 1 ? bars : periods); }");
+        let HStmt::Target(_, value) = &ir.handlers.on_open.as_ref().unwrap()[0] else {
+            panic!()
+        };
+        assert!(
+            matches!(&value.kind, HKind::Ternary(c, _, _) if matches!(&c.kind, HKind::Binary(_, a, _) if a.kind == HKind::OpenNow))
+        );
+    }
+
+    #[test]
+    fn named_instruments() {
+        let ir = ok(
+            "instruments { y; x; } series { real spread = y.close - x.close; } on_bar { target(y, spread > 0 ? 1 : y.held); target(x, 0); }",
+        );
+        let body = ir.handlers.on_bar.as_ref().unwrap();
+        assert!(matches!(body[0], HStmt::Target(0, _)) && matches!(body[1], HStmt::Target(1, _)));
+        assert_eq!(
+            errors("instruments { y; } on_bar { target(1); }"),
+            [Code::TargetNeedsInstrument]
+        );
+        assert_eq!(
+            errors("instruments { y; } on_bar { target(z, 1); }"),
+            [Code::NotAnInstrument]
+        );
+        assert_eq!(
+            errors("instruments { y; } on_bar { target(y, held); }"),
+            [Code::HeldNeedsInstrument]
+        );
+        assert_eq!(
+            errors("instruments { y; } on_bar { target(y, y.ask); }"),
+            [Code::UnknownField]
+        );
+        assert_eq!(
+            errors("instruments { y; } state { real s = 0; } on_start { s = y.held; } on_bar { target(y, 1); }"),
+            [Code::HeldInHandler]
+        );
+        assert_eq!(errors("on_bar { target(y, 1); }"), [Code::TargetNamesInstrument]);
+    }
+}

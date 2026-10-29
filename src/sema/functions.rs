@@ -639,3 +639,158 @@ impl Checker<'_> {
         ))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::testing::{errors, ok};
+    use super::super::testing_ir::{lookback, series};
+    use crate::frontend::diag::Code;
+    use crate::ir::{Class, NodeKind};
+
+    const MEAN_SD: &str = "indicator mean_sd(real x, int n) { window w[n]; state real s = 0; state real q = 0; \
+        enter(v) { s = s + v; q = q + v * v; } leave(v) { s = s - v; q = q - v * v; } \
+        value real mean = s / w.count; value real sd = sqrt((q - s * s / w.count) / (w.count - 1)); }";
+
+    #[test]
+    fn functions() {
+        let ir = ok(
+            "functions { real clip(real z, real cap) { return min(max(z, -cap), cap); } \
+                     real twice(real z) { if (z > 0) { return clip(z, 1) * 2; } else { return 0; } } } \
+                     series { real a = twice(close); } on_bar { target(clip(a, 3)); }",
+        );
+        assert_eq!(ir.functions.len(), 2);
+        assert!(!ir.functions[0].may_undef);
+        assert!(matches!(series(&ir, "a").kind, NodeKind::UCall(1, _)));
+        assert_eq!(
+            errors("functions { real f(real x) { if (x > 0) { return 1; } } } on_bar { target(f(1)); }"),
+            [Code::MissingReturn]
+        );
+        assert_eq!(
+            errors("functions { real f(real x) { return close; } } on_bar { target(f(1)); }"),
+            [Code::NotVisible]
+        );
+        assert_eq!(
+            errors(
+                "functions { real f(real x) { return g(x); } real g(real x) { return x; } } on_bar { target(f(1)); }"
+            ),
+            [Code::UnknownFunction]
+        );
+        assert_eq!(
+            errors("functions { real f(real x) { return x; } } on_bar { target(f(1, 2)); }"),
+            [Code::FunctionArity]
+        );
+        assert_eq!(
+            errors("functions { real f(real x) { return x; } } on_bar { target(f(true)); }"),
+            [Code::ArgumentType]
+        );
+        assert_eq!(
+            errors("functions { int f(real x) { return 1; } } on_bar { target(f(1)); }"),
+            [Code::IntFunctionRealArguments]
+        );
+        assert_eq!(
+            errors("functions { real f(real x) { return sma(x, 3); } } on_bar { target(f(1)); }"),
+            [Code::IndicatorInHandler]
+        );
+        // A function whose body may return an undefined value makes its calls maybe undefined.
+        assert!(
+            ok("functions { real inv(real x) { return 1 / x; } } on_bar { target(inv(close)); }").functions[0]
+                .may_undef
+        );
+    }
+
+    #[test]
+    fn user_indicators() {
+        let ir = ok(&format!(
+            "{MEAN_SD} params {{ int<lower=2> n = 20; }} series {{ real m = mean_sd(close, n).mean; real s = mean_sd(close, n).sd; }} on_bar {{ target(m + s); }}"
+        ));
+        assert_eq!(ir.indicators.len(), 1);
+        assert!(ir.indicators[0].uses_count);
+        assert_eq!(lookback(&ir, "m"), 20.0);
+        let NodeKind::UInd { value, .. } = series(&ir, "s").kind else {
+            panic!()
+        };
+        assert_eq!(value, 1);
+        assert_eq!(series(&ir, "m").class, Class::Maybe);
+        // An EMA without a window: update and a warm-up.
+        let ir = ok(
+            "indicator e(real x, int n) { warmup n; state real v = 0; update { v = v + (x - v) * 2 / (n + 1); } value real out = v; } \
+                     series { real a = e(close, 10); } on_bar { target(a); }",
+        );
+        assert_eq!(lookback(&ir, "a"), 10.0);
+        // `/ (n + 1)` is not a provably nonzero divisor, so the state and the value may be undefined.
+        assert_eq!(series(&ir, "a").class, Class::Maybe);
+        let call = |series: &str| format!("{MEAN_SD} series {{ {series} }} on_bar {{ target(0); }}");
+        assert_eq!(errors(&call("real a = mean_sd(close, 5);")), [Code::AmbiguousValue]);
+        assert_eq!(
+            errors(&call("real a = mean_sd(close, 5).median;")),
+            [Code::UnknownValue]
+        );
+        assert_eq!(errors(&call("real a = mean_sd(close).mean;")), [Code::IndicatorArity]);
+        assert_eq!(
+            errors(&call("real a = mean_sd(close, 0).mean;")),
+            [Code::WindowBelowOne]
+        );
+        assert_eq!(
+            errors(&call("real a = mean_sd(close, 5, min = 2).mean;")),
+            [Code::UnknownNamedArgument]
+        );
+        assert_eq!(
+            errors(&call("real a = mean_sd(close > 1, 5).mean;")),
+            [Code::ArgumentType]
+        );
+        ok(&call("real a = mean_sd(close, 5, missing = skip).mean;"));
+        assert_eq!(
+            errors(&format!("{MEAN_SD} on_bar {{ target(mean_sd(close, 5).mean); }}")),
+            [Code::UserIndicatorInHandler]
+        );
+        assert_eq!(
+            errors(&format!("{MEAN_SD} on_bar {{ target(mean_sd(close, 5)); }}")),
+            [Code::IndicatorInHandler]
+        );
+    }
+
+    #[test]
+    fn indicator_bodies() {
+        let body = |parts: &str| errors(&format!("indicator f(real x) {{ {parts} }} on_bar {{ target(0); }}"));
+        assert_eq!(
+            body("window w[3]; state real s = 0; enter(v) { s = s + v; } value real t = s;"),
+            [Code::EnterLeavePair]
+        );
+        assert_eq!(
+            body("state real s = 0; update { s = x; } value real t = s + close;"),
+            [Code::NotVisible, Code::IndicatorWithoutValue]
+        );
+        assert_eq!(
+            body("state real s = 0; value real t = s; update { t = 1; }"),
+            [Code::AssignInFunction]
+        );
+        assert_eq!(
+            body("window w[3]; window u[3]; value real t = x;"),
+            [Code::DuplicateWindow]
+        );
+        assert_eq!(
+            body("state real s = 0; state real s = 1; value real t = s;"),
+            [Code::ShadowedName]
+        );
+        assert_eq!(
+            body("value real t = xs_mean(x);"),
+            [Code::CallInBody, Code::IndicatorWithoutValue]
+        );
+        assert_eq!(
+            body("state real s = x; value real t = s;"),
+            [Code::NotVisible, Code::NotVisible, Code::IndicatorWithoutValue]
+        );
+        assert_eq!(
+            errors("indicator f(real x, bool b) { value real t = x; } on_bar { target(0); }"),
+            [Code::IndicatorBoolArgument]
+        );
+        assert_eq!(
+            errors("indicator f(int n) { value real t = n; } on_bar { target(0); }"),
+            [Code::IndicatorWithoutSeries]
+        );
+        assert_eq!(
+            errors("functions { real f(real a, real a) { return a; } } on_bar { target(0); }"),
+            [Code::DuplicateArgument]
+        );
+    }
+}
