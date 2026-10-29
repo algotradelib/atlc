@@ -261,6 +261,39 @@ fn check_csv_run(dir: &Path, cache: &Path, bars: &[Bar], lookback: usize, env: &
     out
 }
 
+/// Every example's spec is valid for its program, and the programs are the tested ones (no C++ needed).
+#[test]
+fn the_examples_check() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut specs = 0;
+    for e in std::fs::read_dir(root.join("examples")).unwrap().flatten() {
+        let path = e.path();
+        if path.extension().is_some_and(|x| x == "atls") {
+            let tested = root.join("tests/programs").join(path.file_name().unwrap());
+            assert_eq!(
+                std::fs::read_to_string(&path).unwrap(),
+                std::fs::read_to_string(&tested).unwrap(),
+                "{}",
+                path.display()
+            );
+        }
+        if path.extension().is_none_or(|x| x != "toml") {
+            continue;
+        }
+        specs += 1;
+        let (strategy, entries) = atlc::spec::read(&path).unwrap_or_else(|e| panic!("{e:?}"));
+        let source = std::fs::read_to_string(&strategy).unwrap();
+        let ir = atlc::check(&source).unwrap_or_else(|_| panic!("{}", strategy.display()));
+        let replay = atlc::spec::from_replay(&ir.replay, &strategy, &source).unwrap();
+        let run = atlc::spec::resolve(&[replay, entries], &atlc::spec::Program::of(&ir))
+            .unwrap_or_else(|e| panic!("{}: {e:?}", path.display()));
+        assert!(!run.store);
+        let data = run.args.iter().find(|(k, _)| k == "data.file").unwrap();
+        assert!(Path::new(&data.1).is_file(), "{}", data.1);
+    }
+    assert_eq!(specs, 5);
+}
+
 #[test]
 fn csv_run_matches_a_replay_computed_here() {
     let Some(prefix) = prefix("csv_run_matches_a_replay_computed_here") else {
