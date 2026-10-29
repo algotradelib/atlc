@@ -6,13 +6,11 @@
 | --- | --- |
 | `atls/ops.hpp` | Rings, the built-in indicators in each arithmetic, the three-valued operators on undefined values, the target rule |
 | `atls/universe.hpp` | One single-instrument strategy run over several instruments |
-| `atls/version.hpp` | The runtime's compatibility identifier, which every generated header checks |
 
-`atlc` compiles them into its binary, so they always match the code it generates; `atlc build --emit-runtime DIR` writes them into `DIR/atls/` for a project that includes generated strategies.
+They are plain hand-written files: `atlc` compiles them into its binary, so it carries the runtime it generates code for, and `atlc build --emit-runtime DIR` writes them into `DIR/atls/` as they are.
+A project that keeps generated strategies regenerates them and writes the runtime out with the same `atlc`: nothing checks a header against a runtime from another version.
 They need algotradelib and a C++17 compiler, with floating-point contraction off; [the generated C++](../docs/reference/generated-code.md) says how to compile them.
 The replay driver used by `atlc run` is planned.
-
-After changing a header, run `BLESS=1 cargo test version_header` to write the new identifier into `atls/version.hpp`.
 
 ## Tests
 

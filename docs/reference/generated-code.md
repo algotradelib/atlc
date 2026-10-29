@@ -52,10 +52,10 @@ For a runner, the struct also states `warmup_bars()` (the bars before the handle
 | --- | --- |
 | `atls/ops.hpp` | Rings, the built-in indicators in each arithmetic, the three-valued operators on undefined values, the target rule |
 | `atls/universe.hpp` | One single-instrument strategy over several instruments: `atls::Universe<S>` forwards each bar to the strategy trading its instrument, `atls::UniverseBars<S>` each bar of a slice |
-| `atls/version.hpp` | `ATLS_RUNTIME_ID`, the runtime's compatibility identifier |
 
-The runtime is compiled into `atlc`, so the copy `--emit-runtime` writes always matches the headers the same `atlc` generates.
-`ATLS_RUNTIME_ID` is computed from the other runtime headers; every generated header checks it and stops with an `#error` naming the `atlc` version when the runtime it finds has another identifier.
+`atlc` carries the runtime headers it generates code for, compiled into it, and `--emit-runtime` writes them out as they are; `atlc run` always uses them.
+A generated header and a runtime from different `atlc` versions are not checked against each other: a project that keeps generated headers must regenerate them and write the runtime out (`atlc build --emit-runtime DIR`) with the same `atlc`.
+The first line of a generated header names the `atlc` that wrote it.
 
 The runtime includes algotradelib's `strategy` headers.
 `--indicators naive` solves `ols_slope` and `ols_intercept` with Eigen, so it needs an algotradelib built with Eigen (`ATL_USE_EIGEN=ON`, the default); without it, such a strategy fails to compile with a message saying so.
