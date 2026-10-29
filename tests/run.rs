@@ -99,7 +99,8 @@ fn field(json: &str, name: &str) -> String {
     let key = format!("\"{name}\": ");
     let at = json.find(&key).unwrap_or_else(|| panic!("no {name} in {json}")) + key.len();
     let rest = &json[at..];
-    rest[..rest.find([',', '\n']).unwrap_or(rest.len())].to_string()
+    // Up to the comma or the line's end; the report's lines end in CRLF on Windows.
+    rest[..rest.find([',', '\r', '\n']).unwrap_or(rest.len())].to_string()
 }
 
 /// Copies a directory tree.
