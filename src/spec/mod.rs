@@ -617,7 +617,9 @@ fn check(e: &mut Entry) -> Result<(), String> {
             Value::Num(ref t, v) if v > min || (!strict && v == min) => {
                 // The replay reads these as exact decimals, which take no exponent.
                 let Some(plain) = plain_decimal(t) else {
-                    return Err(bad("a number of at most 18 significant digits"));
+                    return Err(bad(
+                        "a number of at most 18 digits and 255 decimal places as a plain decimal",
+                    ));
                 };
                 e.value = Value::Num(plain, v);
             }

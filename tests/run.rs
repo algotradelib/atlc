@@ -495,8 +495,9 @@ fn the_cache_rebuilds_on_what_the_build_used() {
     let out = run(&[], &[]);
     assert!(out.built() && out.stderr.contains("has changed"), "{}", out.stderr);
     assert!(!run(&[], &[]).built());
-    // A file a toolchain file includes, edited in place: CMake read it, so the build is stale.
-    let included = dir.join("flags.cmake");
+    // A file a toolchain file includes, edited in place: CMake read it, so the build is stale. Its name holds a
+    // character past U+FFFF, which CMake's list of inputs writes as a surrogate pair.
+    let included = dir.join("flags-\u{1F600}.cmake");
     std::fs::write(&included, "set(ATLC_TEST_FLAG 1)\n").unwrap();
     let toolchain = dir.join("toolchain.cmake");
     let include_path = included.display().to_string().replace('\\', "/");

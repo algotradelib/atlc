@@ -46,7 +46,7 @@ algotradelib = "/opt/algotradelib"
 A spec is TOML, limited to a subset that every TOML reader reads the same way:
 - `[table]` headers and `key = value` lines; keys are bare (letters, digits, `_`, `-`), dotted keys are allowed (`columns.open = "Open"`);
 - strings in double quotes without escapes (a backslash is refused), or in single quotes, read as written (`'C:\data\bars.csv'`);
-- decimal numbers (`100_000`, `0.00015`, `1.5e-4`), `true`, `false`, and arrays of strings or numbers on one line; a value that must be whole (an `int` parameter, `slippage_ticks`) is written as an integer, since TOML reads `2.0` as a float; cash and cost values are read exactly as decimals (`1.5e-4` is 0.00015), with at most 18 significant digits;
+- decimal numbers (`100_000`, `0.00015`, `1.5e-4`), `true`, `false`, and arrays of strings or numbers on one line; a value that must be whole (an `int` parameter, `slippage_ticks`) is written as an integer, since TOML reads `2.0` as a float; cash and cost values are read exactly as decimals (`1.5e-4` is 0.00015): written out as a plain decimal, at most 18 digits without the leading zeros and at most 255 decimal places (`1e18` and `1e-256` are refused);
 - `#` comments;
 - spaces and tabs between the parts of a line, and no control character but tab, even in a string or a comment.
 

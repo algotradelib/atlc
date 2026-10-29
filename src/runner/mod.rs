@@ -251,13 +251,8 @@ impl Project {
             ));
         }
         let (roots, mut files) = found(&build.join("atlc-found.txt"));
-        let inputs = cmake_inputs(&build.join(".cmake/api/v1/reply"));
-        if inputs.is_empty() {
-            return Err(format!(
-                "CMake wrote no list of the files it read (its file API) in {}",
-                build.display()
-            ));
-        }
+        let inputs =
+            cmake_inputs(&build.join(".cmake/api/v1/reply")).map_err(|m| format!("{m}, in {}", build.display()))?;
         files.extend(inputs);
         let join = |paths: &[PathBuf]| {
             paths
@@ -373,41 +368,47 @@ fn found(path: &Path) -> (Vec<PathBuf>, Vec<PathBuf>) {
 
 /// The CMake files a configure read, from the file API's `cmakeFiles-v1` reply in `reply`: each input's absolute
 /// path, without those CMake generated in the build tree (relative paths are the project's own, already in the key).
-fn cmake_inputs(reply: &Path) -> Vec<PathBuf> {
-    let Some(text) = std::fs::read_dir(reply).ok().and_then(|dir| {
-        dir.flatten()
-            .find(|e| e.file_name().to_string_lossy().starts_with("cmakeFiles-v1-"))
-            .and_then(|e| std::fs::read_to_string(e.path()).ok())
-    }) else {
-        return vec![];
-    };
-    let mut out = vec![];
-    let Some(start) = text.find("\"inputs\"") else {
-        return out;
-    };
+/// A reply that is missing or that cannot be read whole is an error, never a shorter list.
+fn cmake_inputs(reply: &Path) -> Result<Vec<PathBuf>, String> {
+    let text = std::fs::read_dir(reply)
+        .ok()
+        .and_then(|dir| {
+            dir.flatten()
+                .find(|e| e.file_name().to_string_lossy().starts_with("cmakeFiles-v1-"))
+                .and_then(|e| std::fs::read_to_string(e.path()).ok())
+        })
+        .ok_or("CMake wrote no list of the files it read (its file API)")?;
+    let unreadable = |what: &str| format!("cannot read CMake's list of the files it read: {what}");
+    let start = text.find("\"inputs\"").ok_or_else(|| unreadable("no inputs"))?;
     let mut rest = &text[start..];
+    let mut out = vec![];
+    let mut seen = 0;
     // Each input is a flat object: `{ "path" : "...", "isGenerated" : true, ... }`.
-    while let Some(open) = rest.find(['{', ']']) {
+    loop {
+        let open = rest
+            .find(['{', ']'])
+            .ok_or_else(|| unreadable("the inputs never end"))?;
         if rest[open..].starts_with(']') {
             break;
         }
-        let Some(len) = json_object_len(&rest[open..]) else {
-            break;
-        };
+        let len = json_object_len(&rest[open..]).ok_or_else(|| unreadable("an input never ends"))?;
         let object = &rest[open..open + len];
         let generated = object
             .split_whitespace()
             .collect::<String>()
             .contains("\"isGenerated\":true");
-        if let Some(path) = json_string_after(object, "\"path\"") {
-            let path = PathBuf::from(path);
-            if path.is_absolute() && !generated {
-                out.push(path);
-            }
+        let path = json_string_after(object, "\"path\"").ok_or_else(|| unreadable(object))?;
+        let path = PathBuf::from(path);
+        if path.is_absolute() && !generated {
+            out.push(path);
         }
+        seen += 1;
         rest = &rest[open + len..];
     }
-    out
+    if seen == 0 {
+        return Err(unreadable("no inputs"));
+    }
+    Ok(out)
 }
 
 /// The length of the JSON object at the start of `text`, through its closing brace (braces in strings skipped).
@@ -447,8 +448,21 @@ fn json_string_after(object: &str, key: &str) -> Option<String> {
                 'b' => out.push('\u{8}'),
                 'f' => out.push('\u{c}'),
                 'u' => {
-                    let hex: String = chars.by_ref().take(4).collect();
-                    out.push(char::from_u32(u32::from_str_radix(&hex, 16).ok()?)?);
+                    let high = hex4(&mut chars)?;
+                    // A character past U+FFFF is two escapes, a UTF-16 surrogate pair.
+                    let code = if (0xD800..0xDC00).contains(&high) {
+                        if chars.next()? != '\\' || chars.next()? != 'u' {
+                            return None;
+                        }
+                        let low = hex4(&mut chars)?;
+                        if !(0xDC00..0xE000).contains(&low) {
+                            return None;
+                        }
+                        0x10000 + ((high - 0xD800) << 10) + (low - 0xDC00)
+                    } else {
+                        high
+                    };
+                    out.push(char::from_u32(code)?);
                 }
                 other => out.push(other),
             },
@@ -456,6 +470,15 @@ fn json_string_after(object: &str, key: &str) -> Option<String> {
         }
     }
     None
+}
+
+/// The four hex digits of a JSON `\u` escape, as a number.
+fn hex4(chars: &mut std::str::Chars) -> Option<u32> {
+    let hex: String = chars.by_ref().take(4).collect();
+    if hex.len() != 4 {
+        return None;
+    }
+    u32::from_str_radix(&hex, 16).ok()
 }
 
 /// A path as CMake reads it: forward slashes.
@@ -729,25 +752,45 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("atlc-api-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
-        assert!(cmake_inputs(&dir).is_empty());
+        assert!(cmake_inputs(&dir).unwrap_err().contains("no list"));
+        let reply = dir.join("cmakeFiles-v1-0a1b.json");
+        // As CMake writes it: a character past U+FFFF (here U+1F600) is a surrogate pair.
         std::fs::write(
-            dir.join("cmakeFiles-v1-0a1b.json"),
-            "{\n  \"inputs\" :\n  [\n    { \"path\" : \"CMakeLists.txt\" },\n                 { \"isGenerated\" : true, \"path\" : \"/b/CMakeFiles/4.1/CMakeCXXCompiler.cmake\" },\n    \
-             { \"isExternal\" : true, \"path\" : \"/t/my {tool}\\\"chain\\\\.cmake\" },\n    \
-             { \"isCMake\" : true, \"isExternal\" : true, \"path\" : \"/c/Modules/Find\\u0041.cmake\" }\n  ],\n  \
-             \"paths\" : { \"build\" : \"/b\", \"source\" : \"/s\" }\n}\n",
+            &reply,
+            r#"{
+  "inputs" :
+  [
+    { "path" : "CMakeLists.txt" },
+    { "isGenerated" : true, "path" : "/b/CMakeFiles/4.1/CMakeCXXCompiler.cmake" },
+    { "isExternal" : true, "path" : "/t/my {tool}\"chain\\.cmake" },
+    { "isCMake" : true, "isExternal" : true, "path" : "/c/Modules/FindA.cmake" },
+    { "isExternal" : true, "path" : "/t/flags-😀.cmake" }
+  ],
+  "paths" : { "build" : "/b", "source" : "/s" }
+}
+"#,
         )
         .unwrap();
         // Windows reads `/t/...` as relative; the paths here are Unix ones.
         if !cfg!(windows) {
             assert_eq!(
-                cmake_inputs(&dir),
+                cmake_inputs(&dir).unwrap(),
                 [
                     PathBuf::from("/t/my {tool}\"chain\\.cmake"),
-                    PathBuf::from("/c/Modules/FindA.cmake")
+                    PathBuf::from("/c/Modules/FindA.cmake"),
+                    PathBuf::from("/t/flags-\u{1F600}.cmake"),
                 ]
             );
         }
+        // An input that cannot be decoded (a lone surrogate) fails the build rather than going unwatched.
+        std::fs::write(
+            &reply,
+            r#"{ "inputs" : [ { "path" : "/t/a.cmake" }, { "path" : "/t/\ud83d.cmake" } ] }"#,
+        )
+        .unwrap();
+        assert!(cmake_inputs(&dir).unwrap_err().contains("cannot read"));
+        std::fs::write(&reply, r#"{ "inputs" : [ ] }"#).unwrap();
+        assert!(cmake_inputs(&dir).unwrap_err().contains("no inputs"));
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
