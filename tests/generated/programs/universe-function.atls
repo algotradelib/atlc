@@ -1,4 +1,5 @@
-# A cross-sectional value passed to a function: each instrument targets a hundredth of the mean close.
+# Cross-sectional values passed to a function: each instrument targets a hundredth of the mean close (the sum over
+# the count is the same number).
 universe {}
 functions {
   real id(real x) {
@@ -7,5 +8,6 @@ functions {
 }
 on_bar {
   real x = id(xs_mean(close));
-  target(x / 100);
+  real y = id(xs_sum(close)) / xs_count(close);
+  target(min(x, y) / 100);
 }

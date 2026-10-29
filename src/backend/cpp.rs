@@ -1907,8 +1907,14 @@ impl<'a> Printer<'a> {
                         self.xs_code.insert(id, format!("xs{}_[ln]", id));
                     }
                     _ => {
-                        self.line(indent, &format!("double xs{}_sum = 0;", id));
-                        self.line(indent, &format!("std::size_t xs{}_n = 0;", id));
+                        // Only what the operator reads: a sum, a count, or both for the mean.
+                        let (sum, count) = (op != XsOp::Count, op != XsOp::Sum);
+                        if sum {
+                            self.line(indent, &format!("double xs{}_sum = 0;", id));
+                        }
+                        if count {
+                            self.line(indent, &format!("std::size_t xs{}_n = 0;", id));
+                        }
                         self.line(indent, "for (std::size_t ln = 0; ln < lanes_.size(); ++ln) {");
                         self.line(indent + 1, "if (!active_[ln]) {");
                         self.line(indent + 2, "continue;");
@@ -1916,8 +1922,12 @@ impl<'a> Printer<'a> {
                         self.line(indent + 1, "[[maybe_unused]] auto& L = lanes_[ln];");
                         self.line(indent + 1, &format!("const double v = {};", a));
                         self.line(indent + 1, "if (!std::isnan(v)) {");
-                        self.line(indent + 2, &format!("xs{}_sum += v;", id));
-                        self.line(indent + 2, &format!("++xs{}_n;", id));
+                        if sum {
+                            self.line(indent + 2, &format!("xs{}_sum += v;", id));
+                        }
+                        if count {
+                            self.line(indent + 2, &format!("++xs{}_n;", id));
+                        }
                         self.line(indent + 1, "}");
                         self.line(indent, "}");
                         let code = match op {
