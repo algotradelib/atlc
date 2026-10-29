@@ -269,7 +269,7 @@ pub const KEYS: &[Key] = &[
         "replay.market",
         Kind::Choice(&["us", "kr"]),
         ANY,
-        "`kr` for a store coordinate whose source starts with `kis`, `kiwoom` or `toss` or contains `krx`, else `us`",
+        "`kr` when the first store coordinate's source starts with `kis`, `kiwoom` or `toss` or contains `krx`, else `us`",
         "`us`: USD, any price; `kr`: KRW, prices on the KRX tick table",
     ),
     key(

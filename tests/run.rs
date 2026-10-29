@@ -325,6 +325,31 @@ fn csv_run_matches_a_replay_computed_here() {
         "{}",
         out.stderr
     );
+    // A bound on another parameter is checked against the final values, whatever their order.
+    std::fs::write(
+        dir.join("bounded.atls"),
+        "params {\n  real<lower=0> entry = 2;\n  real<lower=0, upper=entry> exit = 1;\n}\nseries {\n  real z = zscore(close, 5);\n}\n\
+         on_bar {\n  if (z < -entry) {\n    target(10);\n  } else if (z > exit) {\n    target(0);\n  }\n}\n",
+    )
+    .unwrap();
+    let bounded = |params: &str| {
+        let spec = format!(
+            "strategy = 'bounded.atls'\n[data]\nsource = \"csv\"\nfile = \"bars.csv\"\nsymbol = \"AAA\"\n[params]\n{params}\n\
+             [build]\nalgotradelib = {}\n",
+            toml_path(&prefix)
+        );
+        std::fs::write(dir.join("bounded.toml"), spec).unwrap();
+        atlc_run(&dir, &cache, &["bounded.toml"], &[])
+    };
+    let out = bounded("entry = 0.5\nexit = 0.2");
+    assert_eq!(out.code, 0, "{}", out.stderr);
+    let out = bounded("entry = 0.5\nexit = 0.9");
+    assert_eq!(out.code, 4, "{}", out.stderr);
+    assert!(
+        out.stderr.contains("exit = 0.9 is above its upper bound"),
+        "{}",
+        out.stderr
+    );
     // A spec error stops before anything is built.
     std::fs::write(dir.join("bad.toml"), "strategy = 'x.atls'\n[replay]\ncash = 0\n").unwrap();
     let out = atlc_run(&dir, &cache, &["bad.toml"], &[]);

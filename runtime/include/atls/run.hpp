@@ -1332,13 +1332,26 @@ int main(int argc, char** argv) {
       ids.push_back(instrument_of(symbol, market).id_);
     }
     Strategy strategy(ids);
+    std::vector<std::pair<std::string, double>> params;
     for (const auto& param : s.with_prefix("param.")) {
       std::size_t used = 0;
       const double value = std::stod(param.second, &used);
       if (used != param.second.size()) {
         throw std::invalid_argument("param." + param.first + ": '" + param.second + "' is not a number");
       }
-      strategy.set(param.first, value);
+      params.emplace_back(param.first, value);
+    }
+    // A generated `set` stores the value, then checks every bound with the values so far, so a bound on another
+    // parameter (`real<upper=entry> exit`) could refuse a value the next one makes valid. Every value is set first,
+    // whatever the checks say, then set again: the second pass checks every bound against the final values.
+    for (const auto& param : params) {
+      try {
+        strategy.set(param.first, param.second);
+      } catch (const std::exception&) {
+      }
+    }
+    for (const auto& param : params) {
+      strategy.set(param.first, param.second);
     }
     double periods = 252;
     if (const auto p = s.get("replay.periods_per_year")) {
