@@ -1,0 +1,73 @@
+# Draft: it runs once the repository has a remote.
+# Coverage of atlc's Rust code by every test, the C++ and store runs of `atlc run` included (tests/cpp.rs, tests/run.rs).
+# The C++ runtime headers are compiled by those tests but not measured.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'Cargo.toml'
+      - 'src/**'
+      - 'runtime/**'
+      - 'tests/**'
+      - 'codecov.yml'
+      - '.github/workflows/test-coverage.yaml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Cargo.toml'
+      - 'src/**'
+      - 'runtime/**'
+      - 'tests/**'
+      - 'codecov.yml'
+      - '.github/workflows/test-coverage.yaml'
+
+name: test-coverage
+
+jobs:
+  test-coverage:
+    runs-on: ubuntu-latest
+    env:
+      CMAKE_BUILD_PARALLEL_LEVEL: '4'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - uses: taiki-e/install-action@cargo-llvm-cov
+
+      - id: atl
+        uses: algotradelib/.github/actions/setup-atl@main
+
+      # Catch2 is not in the library's package: built here, as in ci.yaml.
+      - name: Catch2
+        run: |
+          git clone --depth 1 --branch v3.8.1 https://github.com/catchorg/Catch2.git "$RUNNER_TEMP/catch2-src"
+          cmake -S "$RUNNER_TEMP/catch2-src" -B "$RUNNER_TEMP/catch2-build" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
+            -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/catch2"
+          cmake --build "$RUNNER_TEMP/catch2-build" --parallel 4
+          cmake --install "$RUNNER_TEMP/catch2-build"
+          echo "CMAKE_PREFIX_PATH=$RUNNER_TEMP/catch2:$CMAKE_PREFIX_PATH" >> "$GITHUB_ENV"
+
+      # DuckDB's prebuilt C library, for the store runs.
+      - name: DuckDB
+        run: |
+          mkdir -p "$RUNNER_TEMP/duckdb"
+          curl -fsSL -o "$RUNNER_TEMP/duckdb.zip" "https://github.com/duckdb/duckdb/releases/download/v1.5.6/libduckdb-linux-amd64.zip"
+          (cd "$RUNNER_TEMP/duckdb" && cmake -E tar xf ../duckdb.zip)
+          echo "ATLC_TEST_DUCKDB=$RUNNER_TEMP/duckdb" >> "$GITHUB_ENV"
+
+      # The tests run the atlc binary as a child process; cargo-llvm-cov measures it too.
+      - name: Coverage
+        env:
+          ATLC_TEST_PREFIX: ${{ steps.atl.outputs.path }}
+        run: cargo llvm-cov --lcov --output-path lcov.info
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          # A fork has no Codecov token, so a failed upload fails only this repository's runs.
+          fail_ci_if_error: ${{ !github.event.repository.fork }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: lcov.info
+          codecov_yml_path: codecov.yml
