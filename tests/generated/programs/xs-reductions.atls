@@ -1,0 +1,11 @@
+# Inside a reduction's argument the ordinary rules hold (a false condition guards n * n), and a condition around a
+# reduction does not change the instruments it combines.
+universe {}
+params {
+  int n = 100000000000000;
+}
+on_bar {
+  real inner = xs_sum(close != 10000 ? n * n : 7);
+  real outer = open > 1 ? xs_sum(1) : keep;
+  target(defined(outer) ? outer : inner);
+}

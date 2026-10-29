@@ -11,6 +11,7 @@
 #include <skip_value.hpp>
 #include <universe_function.hpp>
 #include <xs_guard.hpp>
+#include <xs_reductions.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -164,4 +165,21 @@ TEST_CASE("a condition does not guard what a cross-sectional reduction evaluates
   slice.bars_ = {bar_of("A", 1, true)};
   slice.period_end_ = slice.bars_[0].period_end_;
   CHECK_THROWS_AS(strategy.on_bars(ctx, slice), std::overflow_error);
+}
+
+TEST_CASE("inside a reduction's argument a condition still guards, and around it does not filter the instruments") {
+  atls::XsReductions strategy({t::id_of("A"), t::id_of("B")});
+  atl::strategy::MinimalContext ctx;
+  atl::strategy::BarSlice slice;
+  // Both close at 10,000; A opens at 1, B at 2.
+  slice.bars_ = {bar_of("A", 10000, true), bar_of("B", 10000, true)};
+  slice.bars_[0].bar_.open_ = atl::Decimal64(1, 0);
+  slice.bars_[1].bar_.open_ = atl::Decimal64(2, 0);
+  slice.period_end_ = slice.bars_[0].period_end_;
+  REQUIRE_NOTHROW(strategy.on_bars(ctx, slice));
+  REQUIRE(ctx.targets().size() == 2);
+  // A: `xs_sum(close != 10000 ? n * n : 7)` runs no n * n and adds 7 for each instrument.
+  CHECK(ctx.targets()[0].target_quantity_.str() == "14");
+  // B: `open > 1 ? xs_sum(1) : keep` counts both instruments, not only those whose open is above 1.
+  CHECK(ctx.targets()[1].target_quantity_.str() == "2");
 }

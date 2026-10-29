@@ -206,6 +206,7 @@ fn generated_strategies() {
         "lazy",
         "skip-value",
         "xs-guard",
+        "xs-reductions",
     ] {
         generate(
             &out,
