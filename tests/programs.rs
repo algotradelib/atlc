@@ -1,4 +1,5 @@
-//! Valid programs: the prototype's own programs (`tests/programs/`) and the code examples of the language
+//! Valid programs: one of each kind (`tests/programs/`: one instrument, named instruments, a universe with
+//! session legs, state with `on_fill`, functions and a user indicator) and the code examples of the language
 //! reference and the README must check without a diagnostic.
 
 use std::path::{Path, PathBuf};
@@ -35,11 +36,11 @@ fn check_clean(name: &str, source: &str) {
 }
 
 #[test]
-fn prototype_programs() {
+fn valid_programs() {
     let mut files = vec![];
     walk(&root().join("tests/programs"), "atls", &mut files);
     files.sort();
-    assert_eq!(files.len(), 26);
+    assert_eq!(files.len(), 5);
     for p in files {
         check_clean(&p.display().to_string(), &std::fs::read_to_string(&p).unwrap());
     }

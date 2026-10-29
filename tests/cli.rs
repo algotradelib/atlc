@@ -27,8 +27,8 @@ fn version() {
 #[test]
 fn a_valid_program_prints_nothing() {
     for args in [
-        &["check", "tests/programs/sma.atls"][..],
-        &["check", "--json", "tests/programs/sma.atls"],
+        &["check", "tests/programs/mean-reversion.atls"][..],
+        &["check", "--json", "tests/programs/mean-reversion.atls"],
     ] {
         assert_eq!(atlc(args), (0, String::new(), String::new()), "{args:?}");
     }
@@ -59,10 +59,10 @@ fn usage_and_file_errors_exit_two() {
     for args in [
         &["check"][..],
         &["check", "a.atls", "b.atls"],
-        &["check", "--color", "tests/programs/sma.atls"],
+        &["check", "--color", "tests/programs/mean-reversion.atls"],
         &["check", "no/such/file.atls"],
         &["check", "--json", "no/such/file.atls"],
-        &["build", "tests/programs/sma.atls"],
+        &["build", "tests/programs/mean-reversion.atls"],
         &["run", "sma.toml"],
         &["frobnicate"],
         &[],
