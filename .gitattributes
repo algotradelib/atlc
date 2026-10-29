@@ -2,3 +2,6 @@
 *.atls text eol=lf
 *.stderr text eol=lf
 *.json text eol=lf
+# The runtime headers are hashed into the identifier generated headers check; expected C++ is compared byte for byte.
+runtime/include/** text eol=lf
+tests/codegen/*.hpp text eol=lf
