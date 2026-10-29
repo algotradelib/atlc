@@ -763,8 +763,8 @@ mod tests {
     { "path" : "CMakeLists.txt" },
     { "isGenerated" : true, "path" : "/b/CMakeFiles/4.1/CMakeCXXCompiler.cmake" },
     { "isExternal" : true, "path" : "/t/my {tool}\"chain\\.cmake" },
-    { "isCMake" : true, "isExternal" : true, "path" : "/c/Modules/FindA.cmake" },
-    { "isExternal" : true, "path" : "/t/flags-😀.cmake" }
+    { "isCMake" : true, "isExternal" : true, "path" : "/c/Modules/Find\u0041.cmake" },
+    { "isExternal" : true, "path" : "/t/flags-\ud83d\ude00.cmake" }
   ],
   "paths" : { "build" : "/b", "source" : "/s" }
 }
