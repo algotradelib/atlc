@@ -1041,6 +1041,21 @@ mod tests {
     const WIDE_SPEC: &str = "strategy = \"m.atls\"\n[data]\nfile = \"closes.csv\"\n";
 
     #[test]
+    fn the_reference_lists_every_key() {
+        let doc = include_str!("../../docs/reference/run-spec.md");
+        for k in KEYS {
+            assert!(
+                doc.contains(&format!("`{}`", k.name)),
+                "run-spec.md does not list `{}`",
+                k.name
+            );
+        }
+        for k in ["instruments.NAME", "params.NAME"] {
+            assert!(doc.contains(&format!("`{k}`")), "{k}");
+        }
+    }
+
+    #[test]
     fn values_are_checked_key_by_key() {
         for (src, says) in [
             ("stratgy = \"m.atls\"", "unknown setting `stratgy`"),

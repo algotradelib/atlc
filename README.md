@@ -24,14 +24,32 @@ on_bar {
 }
 ```
 
-Status: in development, before its first release.
-`atlc check` and `atlc build` work today (add `--json` to `check` for one JSON object per diagnostic); `atlc run` is planned, and the language may change without notice.
+Status: in development, before its first release; the language may change without notice.
 
 ```sh
 atlc check mean-reversion.atls                        # parse and check, no C++ toolchain needed
 atlc build mean-reversion.atls -o mean-reversion.hpp  # the C++ strategy, for your own algotradelib project
 atlc run mean-reversion.toml -P lookback=30           # replay it from a run spec and print the report as JSON
 ```
+
+Add `--json` to `check` for one JSON object per diagnostic.
+A run spec says what to replay the program on:
+
+```toml
+strategy = "mean-reversion.atls"
+
+[data]
+source = "csv"
+file = "bars.csv"        # ts (Unix seconds), open, high, low, close, volume
+symbol = "AAPL"
+
+[replay]
+cash = 100000
+commission = 0.0005
+```
+
+`atlc run` builds the strategy once per program shape and keeps the build in a cache, so another parameter or other data replays without compiling again; `--fills FILE` writes every fill.
+[`examples/`](examples) runs each program shape on a small synthetic file, and the [run spec reference](docs/reference/run-spec.md) has every key.
 
 ## Install
 
@@ -40,9 +58,9 @@ cargo install --git https://github.com/algotradelib/atlc
 ```
 
 `atlc check` and `atlc build` need nothing else.
-`atlc run` compiles the generated strategy, so it will also need a C++17 compiler, CMake and an installed algotradelib; see [its install guide](https://github.com/algotradelib/algotradelib#install).
-Reading bars from a Parquet store will also need DuckDB.
-If algotradelib is installed under a prefix CMake does not search, set `CMAKE_PREFIX_PATH` to that prefix, or name it in the run spec.
+`atlc run` compiles the generated strategy, so it also needs a C++17 compiler, CMake 3.20 or later and an installed algotradelib; see [its install guide](https://github.com/algotradelib/algotradelib#install).
+If algotradelib is installed under a prefix CMake does not search, set `CMAKE_PREFIX_PATH` to that prefix, or name it in the run spec (`[build] algotradelib`).
+Reading bars from a Parquet store also needs [DuckDB's C library](https://duckdb.org/docs/installation/) (`duckdb.h` and the shared library), found by `[build] duckdb` or `DUCKDB_ROOT`; CSV data needs nothing more.
 
 ## The language
 
