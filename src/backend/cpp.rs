@@ -1575,6 +1575,7 @@ impl<'a> Printer<'a> {
             self.line(1, "/** `on_start`. */");
             self.line(1, "template <class Ctx>");
             self.line(1, "void on_start(Ctx&) {");
+            self.fp_contract();
             self.in_on_bar = false;
             self.stmts(body, 2);
             self.line(1, "}");
@@ -1699,6 +1700,7 @@ impl<'a> Printer<'a> {
             self.line(1, "/** `on_stop`. */");
             self.line(1, "template <class Ctx>");
             self.line(1, "void on_stop(Ctx&) {");
+            self.fp_contract();
             self.stmts(body, 2);
             self.line(1, "}");
             self.line(0, "");
@@ -1708,6 +1710,7 @@ impl<'a> Printer<'a> {
             "/** Checks the bounds, sizes the rings and resets every series and state. */",
         );
         self.line(1, "void setup() {");
+        self.fp_contract();
         self.bound_checks(2);
         self.line(2, "bars_ = 0;");
         self.reset_lines(2);
@@ -1889,6 +1892,7 @@ impl<'a> Printer<'a> {
         self.line(0, "");
         self.line(2, "/** Sizes the rings and resets every series and state. */");
         self.line(2, "void setup([[maybe_unused]] const Params& params_) {");
+        self.fp_contract();
         self.line(3, "bars_ = 0;");
         self.reset_lines(3);
         self.line(2, "}");
@@ -2038,6 +2042,7 @@ impl<'a> Printer<'a> {
         self.in_on_bar = false;
         self.line(1, "/** Checks the bounds and resets every instrument. */");
         self.line(1, "void setup() {");
+        self.fp_contract();
         self.bound_checks(2);
         self.line(2, "periods_ = 0;");
         self.line(2, "lanes_.assign(ids_.size(), Lane{});");
@@ -2227,6 +2232,7 @@ impl<'a> Printer<'a> {
         self.line(2, "}");
         // reset
         self.line(2, "void reset() {");
+        self.fp_contract();
         if size.is_some() {
             for &s in &series {
                 self.line(3, &format!("w_{}_.clear();", def.args[s].0));

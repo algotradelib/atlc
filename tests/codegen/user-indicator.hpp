@@ -63,6 +63,9 @@ struct UserIndicator {
       w_x_.reset(static_cast<std::size_t>(a_n) + 1);
     }
     void reset() {
+#if defined(__clang__)
+    #pragma clang fp contract(off)
+#endif
       w_x_.clear();
       count_ = 0;
       steps_ = 0;
@@ -175,6 +178,9 @@ struct UserIndicator {
 
   /** Checks the bounds, sizes the rings and resets every series and state. */
   void setup() {
+#if defined(__clang__)
+    #pragma clang fp contract(off)
+#endif
     if (params_.lookback_ < 2) {
       throw std::invalid_argument("lookback = " + atls::ops::text(params_.lookback_) + " is below its lower bound 2 = " + atls::ops::text(2));
     }

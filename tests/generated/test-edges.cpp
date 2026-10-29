@@ -2,6 +2,7 @@
 // defect the generated code had.
 #include "replay.hpp"
 
+#include <contraction.hpp>
 #include <integers.hpp>
 #include <missing_open.hpp>
 #include <universe_function.hpp>
@@ -90,4 +91,14 @@ TEST_CASE("a cross-sectional value passed to a function") {
   const auto shares = std::to_string(static_cast<std::int64_t>(mean / 100));
   CHECK(outcome.result_.executions_[0].fill_.quantity_.str() == shares);
   CHECK(outcome.result_.executions_[1].fill_.quantity_.str() == shares);
+}
+
+TEST_CASE("state initialization, on_start and on_stop round a * b + c twice, as the handlers do") {
+  atls::Contraction strategy(t::id_of("A"));
+  atl::strategy::MinimalContext ctx;
+  CHECK(strategy.st_at_setup_ == 0.0);
+  strategy.on_start(ctx);
+  CHECK(strategy.st_at_start_ == 0.0);
+  strategy.on_stop(ctx);
+  CHECK(strategy.st_at_stop_ == 0.0);
 }

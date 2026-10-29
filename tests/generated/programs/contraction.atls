@@ -1,0 +1,21 @@
+# a * b + c is exactly 0 when the product is rounded before the sum, and -5.55e-17 when it is fused: state
+# initialization, on_start and on_stop must round twice, as the handlers do.
+params {
+  real a = 1.0000000074505806;
+  real b = 0.9999999925494194;
+  real c = -1;
+}
+state {
+  real at_setup = a * b + c;
+  real at_start = 1;
+  real at_stop = 1;
+}
+on_start {
+  at_start = a * b + c;
+}
+on_stop {
+  at_stop = a * b + c;
+}
+on_bar {
+  target(at_start == 0 ? 1 : 2);
+}

@@ -138,6 +138,9 @@ struct Pairs {
 
   /** Checks the bounds, sizes the rings and resets every series and state. */
   void setup() {
+#if defined(__clang__)
+    #pragma clang fp contract(off)
+#endif
     if (params_.lookback_ < 2) {
       throw std::invalid_argument("lookback = " + atls::ops::text(params_.lookback_) + " is below its lower bound 2 = " + atls::ops::text(2));
     }

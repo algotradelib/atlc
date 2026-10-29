@@ -46,6 +46,9 @@ struct Universe {
 
     /** Sizes the rings and resets every series and state. */
     void setup([[maybe_unused]] const Params& params_) {
+#if defined(__clang__)
+    #pragma clang fp contract(off)
+#endif
       bars_ = 0;
       ind1_.set(static_cast<std::size_t>(params_.lookback_));
       ind1_.set_min(static_cast<std::size_t>(1));
@@ -189,6 +192,9 @@ struct Universe {
 
   /** Checks the bounds and resets every instrument. */
   void setup() {
+#if defined(__clang__)
+    #pragma clang fp contract(off)
+#endif
     if (params_.lookback_ < 1) {
       throw std::invalid_argument("lookback = " + atls::ops::text(params_.lookback_) + " is below its lower bound 1 = " + atls::ops::text(1));
     }

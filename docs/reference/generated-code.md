@@ -76,7 +76,7 @@ target_compile_options(backtest PRIVATE
 ```
 
 Floating-point contraction must stay off ([types and definedness](types-and-definedness.md), "Arithmetic"):
-- Clang: nothing to set; the runtime and the generated code turn it off with a pragma;
+- Clang: nothing to set; the runtime and every generated function turn it off with a pragma;
 - GCC: `-ffp-contract=off`;
 - MSVC, Visual Studio 2022 or later: `/fp:precise`, never `/fp:contract` or `/fp:fast`.
 
