@@ -67,7 +67,7 @@ Refusing built-in names for arguments, loop variables and an indicator's window,
   - `ols_slope(y, x, n)`, `ols_intercept`: max(Ly, Lx) + n - 1; `kf_*`: max(Ly, Lx);
   - an expression of several inputs: the largest of their lookbacks;
   - under `missing = skip`: see [missing values](missing-values.md).
-  A lookback built from parameters deepens by one level for each indicator with a parameter window over a series that has one, and is refused past 256 levels, the nesting limit of [syntax](syntax.md).
+  The checker keeps each lookback as an expression of parameters, and refuses a program whose lookback expression is more than 256 levels high, the nesting limit of [syntax](syntax.md); a chain of indicators over indicators deepens it, by several levels for a `skip` window, a pair indicator or a user indicator.
   So `sma(sma(close, 20), 30)` needs 49 periods.
 - The periodic handlers' first call comes after max(1, warmup, the lookbacks of every series any handler reads) periods: one gate for the program.
 - After that gate the checker treats eventually-defined values as defined, but a handler can still see an undefined value: an undefined input restarts an indicator, and `skip`, `poison` or a domain error (`log(0)`) can leave a value undefined ([types and definedness](types-and-definedness.md)).
