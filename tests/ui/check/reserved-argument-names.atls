@@ -1,0 +1,16 @@
+# Built-in names are refused for every declaration, arguments and an indicator's window, states and step names included
+# (the prototype checked only top-level declarations and locals).
+functions {
+  real f(real close, real lower) {
+    for (held in 1:2) { }
+    return close + lower;
+  }
+}
+indicator g(real open) {
+  window sma[3];
+  state real volume = 0;
+  enter(high) { volume = volume + high; }
+  leave(low) { volume = volume - low; }
+  value real total = volume;
+}
+on_bar { target(f(1, 2)); }

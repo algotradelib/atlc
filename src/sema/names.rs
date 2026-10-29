@@ -69,13 +69,7 @@ pub(super) fn edit_distance(a: &str, b: &str) -> usize {
 
 impl Checker<'_> {
     pub(super) fn declare(&mut self, ident: &Ident, name: Name) -> bool {
-        if is_reserved(&ident.name) {
-            self.err(Diag::new(
-                Code::BuiltInName,
-                format!("`{}` is a built-in name", ident.name),
-                ident.span,
-                "choose another name",
-            ));
+        if !self.not_reserved(ident) {
             return false;
         }
         if let Some((_, prev)) = self.names.get(&ident.name) {
@@ -92,6 +86,23 @@ impl Checker<'_> {
             return false;
         }
         self.names.insert(ident.name.clone(), (name, ident.span));
+        true
+    }
+
+    /// Refuses a built-in's name (or `lower`, `upper`) for anything a program declares: also arguments,
+    /// loop variables, the names `enter` and `leave` give their values, and an indicator's window and states
+    /// (the prototype checked only the top-level declarations and locals). An indicator's values are read as
+    /// `ind(...).name` and may take a built-in's name (`value real ema`).
+    pub(super) fn not_reserved(&mut self, ident: &Ident) -> bool {
+        if is_reserved(&ident.name) {
+            self.err(Diag::new(
+                Code::BuiltInName,
+                format!("`{}` is a built-in name", ident.name),
+                ident.span,
+                "choose another name",
+            ));
+            return false;
+        }
         true
     }
 
@@ -178,6 +189,38 @@ mod tests {
         assert_eq!(
             errors("on_bar { int a = 1; int a = 2; target(a); }"),
             [Code::ShadowedName]
+        );
+        // Every declaration: arguments, loop variables, an indicator's window, states, values and step names
+        // (a departure: the prototype accepted these).
+        assert_eq!(
+            errors("functions { real f(real close) { return close; } } on_bar { target(f(1)); }"),
+            [Code::BuiltInName]
+        );
+        assert_eq!(
+            errors("indicator g(real lower) { value real v = lower; } on_bar { target(1); }"),
+            [Code::BuiltInName]
+        );
+        assert_eq!(
+            errors("on_bar { for (held in 1:2) { } target(1); }"),
+            [Code::BuiltInName]
+        );
+        assert_eq!(
+            errors("functions { real f(real x) { for (keep in 1:2) { } return x; } } on_bar { target(f(1)); }"),
+            [Code::BuiltInName]
+        );
+        assert_eq!(
+            errors(
+                "indicator g(real x) { window sma[2]; state real abs = 0; enter(log) { abs = log; } leave(upper) { abs = 0; } value real v = abs; } on_bar { target(1); }"
+            ),
+            [Code::BuiltInName; 4]
+        );
+        // Values are read as `g(...).ema`, so they may take a built-in's name.
+        ok(
+            "indicator g(real x) { value real ema = x; value real twice = ema * 2; } series { real a = g(close).ema; } on_bar { target(a); }",
+        );
+        // Contextual indicator words are names everywhere, even in an indicator.
+        ok(
+            "indicator g(real window) { value real update = window; } series { real a = g(close); } on_bar { target(a); }",
         );
         // Contextual indicator words are ordinary names outside an indicator.
         ok("params { int<lower=1> window = 3; } series { real value = sma(close, window); } on_bar { target(value); }");

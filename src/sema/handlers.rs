@@ -161,6 +161,7 @@ impl Checker<'_> {
             Stmt::For {
                 var, from, to, body, ..
             } if self.uctx.is_some() => {
+                self.not_reserved(var);
                 let (f, t) = (self.hexpr(from, k), self.hexpr(to, k));
                 let id = self.ir.locals.len();
                 self.ir.locals.push(Local {
@@ -376,6 +377,7 @@ impl Checker<'_> {
             Stmt::For {
                 var, from, to, body, ..
             } => {
+                self.not_reserved(var);
                 let f = self.cexpr(from, "a loop bound", true);
                 let t = self.cexpr(to, "a loop bound", true);
                 let id = self.ir.locals.len();

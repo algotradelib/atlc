@@ -22,6 +22,7 @@ impl Checker<'_> {
     pub(super) fn function_def(&mut self, d: &FunctionDef) {
         let mut args = vec![];
         for a in &d.args {
+            self.not_reserved(&a.name);
             if args.iter().any(|(n, _): &(String, Ty)| *n == a.name.name) {
                 self.err(Diag::new(
                     Code::DuplicateArgument,
@@ -147,6 +148,7 @@ impl Checker<'_> {
     pub(super) fn indicator_def(&mut self, d: &IndicatorDef) {
         let mut args = vec![];
         for a in &d.args {
+            self.not_reserved(&a.name);
             if a.ty == Ty::Bool {
                 self.err(
                     Diag::new(
@@ -185,6 +187,7 @@ impl Checker<'_> {
         for part in &d.parts {
             match part {
                 IndPart::Window { name, size, span } => {
+                    self.not_reserved(name);
                     if window.is_some() {
                         self.err(
                             Diag::new(
@@ -239,6 +242,7 @@ impl Checker<'_> {
         let mut states: Vec<UStateIr> = vec![];
         for part in &d.parts {
             if let IndPart::State(v) = part {
+                self.not_reserved(&v.name);
                 self.uctx = Some(ctx.clone());
                 if let Some(h) = self.hexpr(&v.init, HandlerKind::User) {
                     if self.assignable(v.ty, h.ty, h.maybe && v.ty != Ty::Real, v.init.span, &v.name.name) {
@@ -314,6 +318,7 @@ impl Checker<'_> {
                         let mut scope = HashMap::new();
                         let mut ids = vec![];
                         for n in names {
+                            self.not_reserved(n);
                             let id = self.ir.locals.len();
                             self.ir.locals.push(Local {
                                 name: n.name.clone(),

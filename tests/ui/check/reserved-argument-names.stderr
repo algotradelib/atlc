@@ -1,0 +1,48 @@
+error[built-in-name]: `close` is a built-in name
+ --> tests/ui/check/reserved-argument-names.atls:4:15
+  |
+4 |   real f(real close, real lower) {
+  |               ^^^^^ choose another name
+
+error[built-in-name]: `lower` is a built-in name
+ --> tests/ui/check/reserved-argument-names.atls:4:27
+  |
+4 |   real f(real close, real lower) {
+  |                           ^^^^^ choose another name
+
+error[built-in-name]: `held` is a built-in name
+ --> tests/ui/check/reserved-argument-names.atls:5:10
+  |
+5 |     for (held in 1:2) { }
+  |          ^^^^ choose another name
+
+error[built-in-name]: `open` is a built-in name
+ --> tests/ui/check/reserved-argument-names.atls:9:18
+  |
+9 | indicator g(real open) {
+  |                  ^^^^ choose another name
+
+error[built-in-name]: `sma` is a built-in name
+  --> tests/ui/check/reserved-argument-names.atls:10:10
+   |
+10 |   window sma[3];
+   |          ^^^ choose another name
+
+error[built-in-name]: `volume` is a built-in name
+  --> tests/ui/check/reserved-argument-names.atls:11:14
+   |
+11 |   state real volume = 0;
+   |              ^^^^^^ choose another name
+
+error[built-in-name]: `high` is a built-in name
+  --> tests/ui/check/reserved-argument-names.atls:12:9
+   |
+12 |   enter(high) { volume = volume + high; }
+   |         ^^^^ choose another name
+
+error[built-in-name]: `low` is a built-in name
+  --> tests/ui/check/reserved-argument-names.atls:13:9
+   |
+13 |   leave(low) { volume = volume - low; }
+   |         ^^^ choose another name
+

@@ -49,6 +49,9 @@ A universe program with `on_start` or `on_stop` must not compile (the prototype 
 ## Names
 
 A declaration must not use a keyword, a built-in's name, `lower` or `upper`.
+This holds for every name a program declares: parameters, series, states, locals, functions and indicators, their arguments, loop variables, the names `enter` and `leave` give their values, and an indicator's window and states.
+An indicator's values are the exception: they are read as `ind(...).name`, so they may take a built-in's name (`value real ema = ...;`).
+Refusing built-in names for arguments, loop variables and an indicator's window, states and step names is intended behaviour (the prototype accepted them).
 
 ## Lookback and warm-up
 
