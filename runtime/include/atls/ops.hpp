@@ -89,6 +89,74 @@ inline std::int64_t whole(std::string_view name, double value) {
   return static_cast<std::int64_t>(value);
 }
 
+// Integer arithmetic: an `int` is always defined, so a result that does not fit in 64 bits cannot become NaN. It
+// throws instead, and the strategy stops rather than trading on a wrong number (C++'s signed overflow is undefined
+// behaviour, so each operation is checked before it runs).
+
+/**
+ * @brief Throws for an integer operation whose result does not fit in 64 bits.
+ * @param a The left operand.
+ * @param op The operator.
+ * @param b The right operand.
+ * @throws std::overflow_error Always.
+ */
+[[noreturn]] inline void overflow(std::int64_t a, const char* op, std::int64_t b) {
+  throw std::overflow_error("atls: integer overflow in " + text(a) + " " + op + " " + text(b));
+}
+
+/**
+ * @brief `a + b`.
+ * @throws std::overflow_error If the sum does not fit in 64 bits.
+ */
+inline std::int64_t add_int(std::int64_t a, std::int64_t b) {
+  if ((b > 0 && a > std::numeric_limits<std::int64_t>::max() - b) || (b < 0 && a < std::numeric_limits<std::int64_t>::min() - b)) {
+    overflow(a, "+", b);
+  }
+  return a + b;
+}
+
+/**
+ * @brief `a - b`.
+ * @throws std::overflow_error If the difference does not fit in 64 bits.
+ */
+inline std::int64_t sub_int(std::int64_t a, std::int64_t b) {
+  if ((b < 0 && a > std::numeric_limits<std::int64_t>::max() + b) || (b > 0 && a < std::numeric_limits<std::int64_t>::min() + b)) {
+    overflow(a, "-", b);
+  }
+  return a - b;
+}
+
+/**
+ * @brief `a * b`.
+ * @throws std::overflow_error If the product does not fit in 64 bits.
+ */
+inline std::int64_t mul_int(std::int64_t a, std::int64_t b) {
+  constexpr std::int64_t max = std::numeric_limits<std::int64_t>::max();
+  constexpr std::int64_t min = std::numeric_limits<std::int64_t>::min();
+  const bool over = a > 0 ? (b > 0 ? a > max / b : b < min / a) : (b > 0 ? a < min / b : (a != 0 && b < max / a));
+  if (over) {
+    overflow(a, "*", b);
+  }
+  return a * b;
+}
+
+/**
+ * @brief `-a`.
+ * @throws std::overflow_error For the smallest 64-bit integer, whose negation does not fit.
+ */
+inline std::int64_t neg_int(std::int64_t a) {
+  if (a == std::numeric_limits<std::int64_t>::min()) {
+    overflow(0, "-", a);
+  }
+  return -a;
+}
+
+/**
+ * @brief `abs(a)`.
+ * @throws std::overflow_error For the smallest 64-bit integer, whose magnitude does not fit.
+ */
+inline std::int64_t abs_int(std::int64_t a) { return a < 0 ? neg_int(a) : a; }
+
 // Three-valued operators on doubles: NaN is undefined, a bool is 0 or 1.
 
 /** @brief `a / b`, undefined when `b` is 0. */

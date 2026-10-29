@@ -10,4 +10,4 @@
  */
 
 /** @brief The runtime's compatibility identifier. */
-#define ATLS_RUNTIME_ID 0xb6f021227b1b
+#define ATLS_RUNTIME_ID 0x6f6a5585b150

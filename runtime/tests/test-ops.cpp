@@ -183,6 +183,33 @@ TEST_CASE("the functions follow the undefined rules") {
   CHECK_THROWS_AS(ops::whole("n", 1e16), std::invalid_argument);
 }
 
+TEST_CASE("integer arithmetic is exact in 64 bits, and a result past them throws") {
+  constexpr std::int64_t max = std::numeric_limits<std::int64_t>::max();
+  constexpr std::int64_t min = std::numeric_limits<std::int64_t>::min();
+  CHECK(ops::add_int(max - 1, 1) == max);
+  CHECK(ops::add_int(min + 1, -1) == min);
+  CHECK_THROWS_AS(ops::add_int(max, 1), std::overflow_error);
+  CHECK_THROWS_AS(ops::add_int(min, -1), std::overflow_error);
+  CHECK(ops::sub_int(min + 1, 1) == min);
+  CHECK(ops::sub_int(-1, max) == min);
+  CHECK_THROWS_AS(ops::sub_int(min, 1), std::overflow_error);
+  CHECK_THROWS_AS(ops::sub_int(0, min), std::overflow_error);
+  CHECK(ops::mul_int(3037000499, 3037000499) == 9223372030926249001);
+  CHECK(ops::mul_int(-3037000499, 3037000499) == -9223372030926249001);
+  CHECK(ops::mul_int(min / 2, 2) == min);
+  CHECK(ops::mul_int(-1, max) == -max);
+  CHECK(ops::mul_int(0, min) == 0);
+  CHECK_THROWS_AS(ops::mul_int(3037000500, 3037000500), std::overflow_error);
+  CHECK_THROWS_AS(ops::mul_int(-3037000500, 3037000500), std::overflow_error);
+  CHECK_THROWS_AS(ops::mul_int(-3037000500, -3037000500), std::overflow_error);
+  CHECK_THROWS_AS(ops::mul_int(min, -1), std::overflow_error);
+  CHECK_THROWS_AS(ops::mul_int(-1, min), std::overflow_error);
+  CHECK(ops::neg_int(max) == min + 1);
+  CHECK_THROWS_AS(ops::neg_int(min), std::overflow_error);
+  CHECK(ops::abs_int(min + 1) == max);
+  CHECK_THROWS_AS(ops::abs_int(min), std::overflow_error);
+}
+
 TEST_CASE("stdev and z-score: running sums agree with two passes, and a flat window has no z-score") {
   for (std::size_t n : {2u, 3u, 20u, 90u}) {
     const auto xs = walk(600, static_cast<unsigned>(n + 100));
