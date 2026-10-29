@@ -65,6 +65,64 @@ fn codes_in(json: &str) -> Vec<(String, String)> {
         .collect()
 }
 
+/// The numbers after `"key":` in `text`, in order.
+fn numbers_after(text: &str, key: &str) -> Vec<usize> {
+    let pat = format!("\"{key}\":");
+    text.match_indices(&pat)
+        .map(|(i, _)| {
+            let rest = &text[i + pat.len()..];
+            rest[..rest.find(|c: char| !c.is_ascii_digit()).unwrap()]
+                .parse()
+                .unwrap()
+        })
+        .collect()
+}
+
+/// (line, column) of a byte offset, counted independently of atlc: lines from 1, columns in characters from 1.
+fn position(source: &str, offset: usize) -> (usize, usize) {
+    let before = &source[..offset];
+    let line_start = before.rfind('\n').map_or(0, |i| i + 1);
+    (
+        before.matches('\n').count() + 1,
+        before[line_start..].chars().count() + 1,
+    )
+}
+
+/// Every span of a JSON diagnostic, primary and secondary, is a valid range of the source, and its lines and
+/// columns are those of its bytes.
+fn spans_agree(rel: &str, line: &str, source: &str) {
+    let lines = numbers_after(line, "line");
+    let columns = numbers_after(line, "column");
+    let starts = numbers_after(line, "byte_start");
+    let ends = numbers_after(line, "byte_end");
+    assert!(
+        !starts.is_empty() && starts.len() == ends.len() && lines.len() == 2 * starts.len(),
+        "{rel}: {line}"
+    );
+    assert_eq!(lines.len(), columns.len(), "{rel}: {line}");
+    for (k, (&s, &e)) in starts.iter().zip(&ends).enumerate() {
+        assert!(
+            s <= e && e <= source.len(),
+            "{rel}: bytes {s}..{e} outside a source of {}: {line}",
+            source.len()
+        );
+        assert!(
+            source.is_char_boundary(s) && source.is_char_boundary(e),
+            "{rel}: {s}..{e} splits a character"
+        );
+        assert_eq!(
+            (lines[2 * k], columns[2 * k]),
+            position(source, s),
+            "{rel}: start of span {k}: {line}"
+        );
+        assert_eq!(
+            (lines[2 * k + 1], columns[2 * k + 1]),
+            position(source, e),
+            "{rel}: end of span {k}: {line}"
+        );
+    }
+}
+
 #[test]
 fn ui() {
     let bless = std::env::var_os("BLESS").is_some_and(|v| v == "1");
@@ -96,6 +154,10 @@ fn ui() {
             );
         }
         seen.extend(codes.into_iter().map(|(_, c)| c));
+        let source = std::fs::read_to_string(path).unwrap();
+        for line in json.lines() {
+            spans_agree(&rel, line, &source);
+        }
         for (ext, actual) in [("stderr", &stderr), ("json", &json)] {
             let expected_path = path.with_extension(ext);
             if bless {

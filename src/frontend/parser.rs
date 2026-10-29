@@ -134,7 +134,8 @@ impl Parser {
             d = Diag::new(
                 Code::ExpectedToken,
                 format!("expected `;` {}, found {}", context, t.describe()),
-                Span::new(prev.end, prev.end + 1),
+                // An insertion point: the empty range just past the previous token.
+                Span::new(prev.end, prev.end),
                 "add `;` here",
             );
         }

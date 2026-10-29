@@ -1,0 +1,13 @@
+error[expected-token]: expected `;` after `target(...)`, found the end of the file
+ --> tests/ui/syntax/missing-semicolon-at-eof.atls:1:18
+  |
+1 | on_bar {target(1)
+  |                  ^ add `;` here
+
+error[expected-token]: expected `}` to close the block, found the end of the file
+ --> tests/ui/syntax/missing-semicolon-at-eof.atls:1:18
+  |
+1 | on_bar {target(1)
+  |                  ^ expected `}`
+  |        - this `{` is never closed
+

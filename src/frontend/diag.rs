@@ -322,13 +322,20 @@ pub fn json_string(s: &str) -> String {
     out
 }
 
+/// A span made valid for `source`: inside it, on character boundaries, and not reversed.
+pub fn clamp(span: Span, source: &str) -> Span {
+    let start = boundary(source, span.start);
+    Span::new(start, boundary(source, span.end).max(start))
+}
+
+/// Bytes and lines/columns, both from the same clamped span, so that they always agree.
 fn json_span(span: Span, source: &str) -> String {
+    let span = clamp(span, source);
     let (l1, c1, _, _) = line_col(source, span.start);
-    let (l2, c2, _, _) = line_col(source, span.end.max(span.start));
+    let (l2, c2, _, _) = line_col(source, span.end);
     format!(
         "{{\"start\":{{\"line\":{l1},\"column\":{c1}}},\"end\":{{\"line\":{l2},\"column\":{c2}}},\"byte_start\":{},\"byte_end\":{}}}",
-        span.start,
-        span.end.max(span.start)
+        span.start, span.end
     )
 }
 
@@ -392,6 +399,27 @@ mod tests {
         assert_eq!(
             json,
             "{\"severity\":\"warning\",\"code\":\"unused-series\",\"message\":\"say \\\"hi\\\"\\\\\",\"file\":\"dir/a b.atls\",\"span\":{\"start\":{\"line\":2,\"column\":11},\"end\":{\"line\":2,\"column\":14},\"byte_start\":15,\"byte_end\":18},\"label\":\"l\\tab\",\"secondary\":[],\"notes\":[]}"
+        );
+    }
+
+    #[test]
+    fn json_spans_are_clamped_to_the_source() {
+        // Bytes and positions come from one clamped span: past the end, inside a character, reversed.
+        let source = "a\u{d55c}";
+        for (span, bytes) in [
+            (Span::new(4, 5), (4, 4)),
+            (Span::new(2, 3), (1, 1)),
+            (Span::new(4, 1), (4, 4)),
+        ] {
+            let json = json_span(span, source);
+            assert!(
+                json.ends_with(&format!("\"byte_start\":{},\"byte_end\":{}}}", bytes.0, bytes.1)),
+                "{json}"
+            );
+        }
+        assert_eq!(
+            json_span(Span::new(4, 9), source),
+            "{\"start\":{\"line\":1,\"column\":3},\"end\":{\"line\":1,\"column\":3},\"byte_start\":4,\"byte_end\":4}"
         );
     }
 

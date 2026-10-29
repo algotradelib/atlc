@@ -1,0 +1,12 @@
+error[expected-token]: expected `;` after the setting, found the end of the file
+ --> tests/ui/syntax/replay-string-at-eof.atls:1:23
+  |
+1 | replay { market = "서울"
+  |                       ^ add `;` here
+
+error[expected-token]: expected `}` to close `replay`, found the end of the file
+ --> tests/ui/syntax/replay-string-at-eof.atls:1:23
+  |
+1 | replay { market = "서울"
+  |                       ^ expected `}`
+
