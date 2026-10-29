@@ -10,6 +10,11 @@ on:
       - 'src/**'
       - 'runtime/**'
       - 'tests/**'
+      # Read by the tests: the examples and the specs, the README's and the reference's code blocks, the diagnostics.
+      - 'examples/**'
+      - 'README.md'
+      - 'docs/reference/**'
+      - 'docs/diagnostics.md'
       - 'codecov.yml'
       - '.github/workflows/test-coverage.yaml'
   pull_request:
@@ -19,6 +24,11 @@ on:
       - 'src/**'
       - 'runtime/**'
       - 'tests/**'
+      # Read by the tests: the examples and the specs, the README's and the reference's code blocks, the diagnostics.
+      - 'examples/**'
+      - 'README.md'
+      - 'docs/reference/**'
+      - 'docs/diagnostics.md'
       - 'codecov.yml'
       - '.github/workflows/test-coverage.yaml'
 
