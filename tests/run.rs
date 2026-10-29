@@ -360,10 +360,81 @@ fn csv_run_matches_a_replay_computed_here() {
         "{}",
         out.stderr
     );
-    if std::env::var("ATLC_TEST_SANITIZE").is_ok_and(|v| v == "1") && !cfg!(windows) {
-        let flags = "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer";
-        let env = [("CXXFLAGS", flags), ("LDFLAGS", "-fsanitize=address,undefined")];
-        assert!(check_csv_run(&dir, &cache, &bars, 5, &env).built());
+    let sanitize = std::env::var("ATLC_TEST_SANITIZE").is_ok_and(|v| v == "1") && !cfg!(windows);
+    let flags = "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer";
+    let sanitized = [("CXXFLAGS", flags), ("LDFLAGS", "-fsanitize=address,undefined")];
+    if sanitize {
+        assert!(check_csv_run(&dir, &cache, &bars, 5, &sanitized).built());
+    }
+    // Times and rows are read as written or refused, never read differently.
+    let data = |name: &str, data: &str, csv: &str, env: &[(&str, &str)]| {
+        std::fs::write(dir.join(format!("{name}.csv")), csv).unwrap();
+        let spec = format!(
+            "strategy = {}\n[data]\nsource = \"csv\"\nfile = \"{name}.csv\"\n{data}\n[build]\nalgotradelib = {}\n",
+            toml_path(&program),
+            toml_path(&prefix)
+        );
+        std::fs::write(dir.join(format!("{name}.toml")), spec).unwrap();
+        atlc_run(&dir, &cache, &[&format!("{name}.toml")], env)
+    };
+    let long = "ts,open,high,low,close,volume\n";
+    for env in if sanitize {
+        vec![&[][..], &sanitized[..]]
+    } else {
+        vec![&[][..]]
+    } {
+        let iso = "symbol = \"AAA\"\ntime_format = \"iso\"";
+        let out = data(
+            "offset",
+            iso,
+            &format!("{long}2020-01-01T09:00:00+09:00,1,1,1,1,1\n2020-01-02T09:00+09:00,1,1,1,1,1\n"),
+            env,
+        );
+        assert_eq!(out.code, 0, "{}", out.stderr);
+        assert!(!out.built(), "{}", out.stderr);
+        assert_eq!(field(&out.stdout, "first_bar"), "\"2020-01-01T00:00:00Z\"");
+        for (name, settings, csv, says) in [
+            ("no-day", iso, format!("{long}2020-02-30,1,1,1,1,1\n"), "not a date"),
+            (
+                "junk",
+                iso,
+                format!("{long}2020-01-01junk,1,1,1,1,1\n"),
+                "not an ISO time",
+            ),
+            (
+                "hour",
+                iso,
+                format!("{long}2020-01-01T24:00,1,1,1,1,1\n"),
+                "not an ISO time",
+            ),
+            (
+                "far",
+                "symbol = \"AAA\"",
+                format!("{long}9223372036854775807,1,1,1,1,1\n"),
+                "outside the years 1 to 9999",
+            ),
+            (
+                "short",
+                "layout = \"wide\"",
+                "ts,AAA,stamp\n1577836800,100\n".to_string(),
+                "expected 3 cells, found 2",
+            ),
+            (
+                "stamps",
+                "symbol = \"AAA\"",
+                "ts,stamp,open,high,low,close,volume\n1577836800,close,1,1,1,1,1\n1577923200,open,1,1,1,1,1\n"
+                    .to_string(),
+                "share one stamp",
+            ),
+        ] {
+            let out = data(name, settings, &csv, env);
+            assert_eq!(out.code, 4, "{name}: {}", out.stderr);
+            assert!(
+                out.stderr.contains(says) && out.stdout.is_empty(),
+                "{name}: {}",
+                out.stderr
+            );
+        }
     }
     let _ = std::fs::remove_dir_all(&cache);
 }

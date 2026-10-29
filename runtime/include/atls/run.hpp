@@ -186,6 +186,74 @@ inline atl::Decimal64 decimal_of(const std::string& text, const std::string& whe
   }
 }
 
+/**
+ * @brief Whether a yyyymmdd number is a date of the years 1 to 9999.
+ * @param yyyymmdd The number.
+ * @return Whether the date exists.
+ */
+inline bool date_exists(long long yyyymmdd) {
+  const long long y = yyyymmdd / 10000;
+  const long long m = yyyymmdd / 100 % 100;
+  const long long d = yyyymmdd % 100;
+  if (yyyymmdd < 0 || y < 1 || y > 9999 || m < 1 || m > 12 || d < 1) {
+    return false;
+  }
+  static constexpr int days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+  const bool leap = (y % 4 == 0 && y % 100 != 0) || y % 400 == 0;
+  return d <= days[m - 1] + (m == 2 && leap ? 1 : 0);
+}
+
+/**
+ * @brief Midnight UTC of a yyyymmdd date; a date that does not exist is refused.
+ *
+ * The day count is Howard Hinnant's `days_from_civil`, from "chrono-Compatible Low-Level Date Algorithms"
+ * (https://howardhinnant.github.io/date_algorithms.html), which he placed in the public domain.
+ *
+ * @param yyyymmdd The date.
+ * @return Its midnight.
+ */
+inline std::chrono::system_clock::time_point day_of(int yyyymmdd) {
+  if (!date_exists(yyyymmdd)) {
+    throw std::invalid_argument("not a date: " + std::to_string(yyyymmdd));
+  }
+  int y = yyyymmdd / 10000;
+  const int m = yyyymmdd / 100 % 100;
+  const int d = yyyymmdd % 100;
+  y -= m <= 2;
+  const int era = (y >= 0 ? y : y - 399) / 400;
+  const unsigned yoe = static_cast<unsigned>(y - era * 400);
+  const unsigned doy = (153 * static_cast<unsigned>(m + (m > 2 ? -3 : 9)) + 2) / 5 + static_cast<unsigned>(d) - 1;
+  const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+  const long long days = era * 146097LL + static_cast<long long>(doe) - 719468LL;
+  return std::chrono::system_clock::time_point{} + std::chrono::hours(24 * days);
+}
+
+/**
+ * @brief Whether every character of a text is a digit.
+ * @param text The text.
+ * @return Whether it is non-empty and all digits.
+ */
+inline bool all_digits(const std::string& text) {
+  return !text.empty() && std::all_of(text.begin(), text.end(), [](char c) { return c >= '0' && c <= '9'; });
+}
+
+/**
+ * @brief A date written yyyymmdd or YYYY-MM-DD; anything else, or a date that does not exist, is refused.
+ * @param text The text.
+ * @param where What is read, for errors.
+ * @return The date, yyyymmdd.
+ */
+inline int date_of(const std::string& text, const std::string& where) {
+  std::string digits = text;
+  if (text.size() == 10 && text[4] == '-' && text[7] == '-') {
+    digits = text.substr(0, 4) + text.substr(5, 2) + text.substr(8, 2);
+  }
+  if (digits.size() != 8 || !all_digits(digits) || !date_exists(std::stoll(digits))) {
+    throw std::invalid_argument(where + ": not a date (yyyymmdd or YYYY-MM-DD): '" + text + "'");
+  }
+  return std::stoi(digits);
+}
+
 /** @brief A wide table: dates (yyyymmdd) and, per column, the cell text ("" when missing). */
 struct Table {
   /** @brief Each row's date, yyyymmdd. */
@@ -263,7 +331,7 @@ inline Table load_wide(const std::string& path) {
     std::stringstream row(line);
     std::getline(row, cell, ',');
     trim(cell);
-    const auto date = whole_of(cell, path + ":" + std::to_string(number));
+    const auto date = date_of(cell, path + ":" + std::to_string(number));
     if (!table.dates_.empty() && date <= table.dates_.back()) {
       throw std::invalid_argument(path + ":" + std::to_string(number) + ": dates must increase");
     }
@@ -303,40 +371,12 @@ inline std::vector<std::string> load_names(const std::string& path) {
 }
 
 /**
- * @brief Midnight UTC of a yyyymmdd date.
- *
- * The day count is Howard Hinnant's `days_from_civil`, from "chrono-Compatible Low-Level Date Algorithms"
- * (https://howardhinnant.github.io/date_algorithms.html), which he placed in the public domain.
- *
- * @param yyyymmdd The date.
- * @return Its midnight.
- */
-inline std::chrono::system_clock::time_point day_of(int yyyymmdd) {
-  int y = yyyymmdd / 10000;
-  const int m = yyyymmdd / 100 % 100;
-  const int d = yyyymmdd % 100;
-  y -= m <= 2;
-  const int era = (y >= 0 ? y : y - 399) / 400;
-  const unsigned yoe = static_cast<unsigned>(y - era * 400);
-  const unsigned doy = (153 * static_cast<unsigned>(m + (m > 2 ? -3 : 9)) + 2) / 5 + static_cast<unsigned>(d) - 1;
-  const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-  const long long days = era * 146097LL + static_cast<long long>(doe) - 719468LL;
-  return std::chrono::system_clock::time_point{} + std::chrono::hours(24 * days);
-}
-
-/**
  * @brief A date setting.
  * @param text yyyymmdd or YYYY-MM-DD.
  * @return The date, yyyymmdd.
  */
 inline int parse_date(const std::string& text) {
-  std::string digits;
-  for (const char c : text) {
-    if (c != '-') {
-      digits.push_back(c);
-    }
-  }
-  return static_cast<int>(whole_of(digits, "a date setting"));
+  return date_of(text, "a date setting");
 }
 
 /**
@@ -405,6 +445,35 @@ struct Data {
 };
 
 /**
+ * @brief A stamp cell.
+ * @param cell `open` or `close`.
+ * @param where The file and line, for errors.
+ * @return The stamp.
+ */
+inline atl::BarStamp stamp_of(const std::string& cell, const std::string& where) {
+  if (cell == "open") {
+    return atl::BarStamp::OPEN;
+  }
+  if (cell == "close") {
+    return atl::BarStamp::CLOSE;
+  }
+  throw std::invalid_argument(where + ": a stamp is 'open' or 'close', not '" + cell + "'");
+}
+
+/**
+ * @brief Sets the stamp of a series before its next bar; a symbol's bars share one stamp.
+ * @param series The series.
+ * @param stamp The next bar's stamp.
+ * @param where The file and line, for errors.
+ */
+inline void set_stamp(BarSeries& series, atl::BarStamp stamp, const std::string& where) {
+  if (!series.bars_.empty() && series.stamp_ != stamp) {
+    throw std::invalid_argument(where + ": the stamp of " + series.symbol_ + " changes; a symbol's bars share one stamp");
+  }
+  series.stamp_ = stamp;
+}
+
+/**
  * @brief Splits one CSV line on commas (no quoting).
  * @param line The line.
  * @return The cells, trimmed.
@@ -465,11 +534,92 @@ inline long offset_of(const std::string& text) {
 }
 
 /**
+ * @brief An instant a number of seconds after the Unix epoch, within the years 1 to 9999.
+ * @param secs The seconds.
+ * @param where The file and line, for errors.
+ * @return The instant.
+ */
+inline std::chrono::system_clock::time_point epoch_plus(long long secs, const std::string& where) {
+  // 0001-01-01T00:00:00Z and 9999-12-31T23:59:59Z.
+  if (secs < -62135596800LL || secs > 253402300799LL) {
+    throw std::invalid_argument(where + ": " + std::to_string(secs) + " seconds is outside the years 1 to 9999");
+  }
+  return std::chrono::system_clock::time_point{} + std::chrono::seconds(secs);
+}
+
+/**
+ * @brief A two-digit field of a time, or -1 when the text there is not two digits.
+ * @param text The text.
+ * @param at Where the field starts.
+ * @return The field's value.
+ */
+inline int two_digits(const std::string& text, std::size_t at) {
+  if (at + 2 > text.size() || !all_digits(text.substr(at, 2))) {
+    return -1;
+  }
+  return (text[at] - '0') * 10 + (text[at + 1] - '0');
+}
+
+/**
+ * @brief An ISO time cell: YYYY-MM-DD, optionally `T` or a space then HH:MM or HH:MM:SS, optionally `Z` or
+ *   `+HH:MM`/`-HH:MM`; anything after it, or a field out of range, is refused.
+ * @param cell The cell.
+ * @param offset Seconds east of UTC, for a cell that names no offset.
+ * @param where The file and line, for errors.
+ * @return The instant.
+ */
+inline std::chrono::system_clock::time_point iso_of(const std::string& cell, long offset, const std::string& where) {
+  const auto bad = [&cell, &where]() {
+    return std::invalid_argument(
+      where + ": not an ISO time (YYYY-MM-DD, then optionally THH:MM[:SS] and Z or +HH:MM): '" + cell + "'"
+    );
+  };
+  if (cell.size() < 10) {
+    throw bad();
+  }
+  const auto day = day_of(date_of(cell.substr(0, 10), where));
+  std::size_t at = 10;
+  long secs = 0;
+  if (at < cell.size() && (cell[at] == 'T' || cell[at] == ' ')) {
+    const int hh = two_digits(cell, at + 1);
+    const int mm = at + 3 < cell.size() && cell[at + 3] == ':' ? two_digits(cell, at + 4) : -1;
+    if (hh < 0 || hh > 23 || mm < 0 || mm > 59) {
+      throw bad();
+    }
+    at += 6;
+    int ss = 0;
+    if (at < cell.size() && cell[at] == ':') {
+      ss = two_digits(cell, at + 1);
+      if (ss < 0 || ss > 59) {
+        throw bad();
+      }
+      at += 3;
+    }
+    secs = hh * 3600L + mm * 60L + ss;
+    if (at < cell.size() && cell[at] == 'Z') {
+      offset = 0;
+      at += 1;
+    } else if (at < cell.size() && (cell[at] == '+' || cell[at] == '-')) {
+      const int oh = two_digits(cell, at + 1);
+      const int om = at + 3 < cell.size() && cell[at + 3] == ':' ? two_digits(cell, at + 4) : -1;
+      if (oh < 0 || oh > 14 || om < 0 || om > 59) {
+        throw bad();
+      }
+      offset = (cell[at] == '-' ? -1L : 1L) * (oh * 3600L + om * 60L);
+      at += 6;
+    }
+  }
+  if (at != cell.size()) {
+    throw bad();
+  }
+  return day + std::chrono::seconds(secs - offset);
+}
+
+/**
  * @brief A time cell as an instant.
  * @param cell The cell.
- * @param format `unix` (seconds), `unix_ms`, `yyyymmdd`, or `iso` (YYYY-MM-DD, optionally with HH:MM[:SS] after
- *   `T` or a space).
- * @param offset Seconds east of UTC of the local times (`yyyymmdd` and `iso`).
+ * @param format `unix` (seconds), `unix_ms`, `yyyymmdd`, or `iso` (see iso_of()).
+ * @param offset Seconds east of UTC of the local times (`yyyymmdd`, and `iso` cells that name no offset).
  * @param where The file and line, for errors.
  * @return The instant.
  */
@@ -479,29 +629,22 @@ inline std::chrono::system_clock::time_point time_of(
   long offset,
   const std::string& where
 ) {
-  using std::chrono::seconds;
   if (format == "unix") {
-    return std::chrono::system_clock::time_point{} + seconds(whole_of(cell, where));
+    return epoch_plus(whole_of(cell, where), where);
   }
   if (format == "unix_ms") {
-    return std::chrono::system_clock::time_point{} +
-      std::chrono::duration_cast<std::chrono::system_clock::duration>(std::chrono::milliseconds(whole_of(cell, where)));
+    const long long ms = whole_of(cell, where);
+    // Floor division keeps the range check exact for times before 1970.
+    const long long secs = ms / 1000 - (ms % 1000 < 0 ? 1 : 0);
+    return epoch_plus(secs, where) + std::chrono::duration_cast<std::chrono::system_clock::duration>(
+      std::chrono::milliseconds(ms - secs * 1000)
+    );
   }
   if (format == "yyyymmdd") {
-    return day_of(static_cast<int>(whole_of(cell, where))) - seconds(offset);
+    return day_of(date_of(cell, where)) - std::chrono::seconds(offset);
   }
   if (format == "iso") {
-    int y = 0;
-    int m = 0;
-    int d = 0;
-    int hh = 0;
-    int mm = 0;
-    int ss = 0;
-    const int n = std::sscanf(cell.c_str(), "%d-%d-%d%*c%d:%d:%d", &y, &m, &d, &hh, &mm, &ss);
-    if (n < 3) {
-      throw std::invalid_argument(where + ": not an ISO date: '" + cell + "'");
-    }
-    return day_of(y * 10000 + m * 100 + d) + std::chrono::hours(hh) + std::chrono::minutes(mm) + seconds(ss) - seconds(offset);
+    return iso_of(cell, offset, where);
   }
   throw std::invalid_argument("data.time_format is unix, unix_ms, yyyymmdd or iso, not '" + format + "'");
 }
@@ -639,14 +782,17 @@ inline std::vector<BarSeries> load_csv_source(const Settings& s) {
         }
         const auto where = files[f] + ":" + std::to_string(number);
         const auto cells = split_line(line);
-        if (cells.size() <= t) {
-          throw std::invalid_argument(where + ": expected " + std::to_string(header.size()) + " cells");
+        if (cells.size() != header.size()) {
+          throw std::invalid_argument(
+            where + ": expected " + std::to_string(header.size()) + " cells, found " + std::to_string(cells.size())
+          );
         }
         const auto at = time_of(cells[t], format, offset, where);
         if (!in_range(s, at)) {
           continue;
         }
-        for (std::size_t c = 0; c < header.size() && c < cells.size(); ++c) {
+        const auto stamp = stamp_col ? stamp_of(cells[*stamp_col], where) : fixed_stamp;
+        for (std::size_t c = 0; c < header.size(); ++c) {
           if (c == t || (stamp_col && c == *stamp_col) || cells[c].empty() || cells[c] == "NaN" || cells[c] == "nan") {
             continue;
           }
@@ -658,7 +804,7 @@ inline std::vector<BarSeries> load_csv_source(const Settings& s) {
           bar.low_ = bar.close_;
           bar.volume_ = atl::Decimal64::parse("100000");
           auto& series = series_for(header[c]);
-          series.stamp_ = stamp_col ? (cells[*stamp_col] == "open" ? atl::BarStamp::OPEN : atl::BarStamp::CLOSE) : fixed_stamp;
+          set_stamp(series, stamp, where);
           if (!series.bars_.empty() && !(series.bars_.back().timestamp_ < bar.timestamp_)) {
             throw std::invalid_argument(where + ": times must increase");
           }
@@ -681,8 +827,10 @@ inline std::vector<BarSeries> load_csv_source(const Settings& s) {
       }
       const auto cells = split_line(line);
       const auto where = files[f] + ":" + std::to_string(number);
-      if (cells.size() < header.size()) {
-        throw std::invalid_argument(where + ": expected " + std::to_string(header.size()) + " cells");
+      if (cells.size() != header.size()) {
+        throw std::invalid_argument(
+          where + ": expected " + std::to_string(header.size()) + " cells, found " + std::to_string(cells.size())
+        );
       }
       if (cells[c].empty() || cells[c] == "NaN" || cells[c] == "nan") {
         continue;
@@ -699,7 +847,7 @@ inline std::vector<BarSeries> load_csv_source(const Settings& s) {
       bar.close_ = price_of(cells[c], where);
       bar.volume_ = decimal_of(cells[v].empty() ? "0" : cells[v], where);
       auto& series = series_for(sym ? cells[*sym] : file_symbols[f]);
-      series.stamp_ = stamp_col ? (cells[*stamp_col] == "open" ? atl::BarStamp::OPEN : atl::BarStamp::CLOSE) : fixed_stamp;
+      set_stamp(series, stamp_col ? stamp_of(cells[*stamp_col], where) : fixed_stamp, where);
       if (!series.bars_.empty() && !(series.bars_.back().timestamp_ < bar.timestamp_)) {
         throw std::invalid_argument(where + ": times must increase within a symbol");
       }
@@ -845,11 +993,11 @@ inline std::vector<BarSeries> load_store_source(const Settings& s) {
       const auto& cells = rows[row];
       const auto where = coordinate + " row " + std::to_string(row + 1);
       atl::Bar bar;
-      bar.timestamp_ = std::chrono::system_clock::time_point{} + std::chrono::seconds(whole_of(cells[0], where));
+      bar.timestamp_ = epoch_plus(whole_of(cells[0], where), where);
       if (!in_range(s, bar.timestamp_)) {
         continue;
       }
-      series.stamp_ = cells[1] == "open" ? atl::BarStamp::OPEN : atl::BarStamp::CLOSE;
+      set_stamp(series, stamp_of(cells[1], where), where);
       bar.open_ = price_of(cells[2], where);
       bar.high_ = price_of(cells[3], where);
       bar.low_ = price_of(cells[4], where);

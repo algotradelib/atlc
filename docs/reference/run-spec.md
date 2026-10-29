@@ -46,12 +46,12 @@ algotradelib = "/opt/algotradelib"
 A spec is TOML, limited to a subset that every TOML reader reads the same way:
 - `[table]` headers and `key = value` lines; keys are bare (letters, digits, `_`, `-`), dotted keys are allowed (`columns.open = "Open"`);
 - strings in double quotes without escapes (a backslash is refused), or in single quotes, read as written (`'C:\data\bars.csv'`);
-- decimal numbers (`100_000`, `0.00015`, `1.5e-4`), `true`, `false`, and arrays of strings or numbers on one line;
+- decimal numbers (`100_000`, `0.00015`, `1.5e-4`), `true`, `false`, and arrays of strings or numbers on one line; a value that must be whole (an `int` parameter, `slippage_ticks`) is written as an integer, since TOML reads `2.0` as a float;
 - `#` comments.
 
 Errors, each with the file and line:
 - an unknown key (including a misspelled one under `[build]`), with the tables a spec has: `[data]`, `[instruments]`, `[replay]`, `[params]`, `[build]`;
-- a key set twice, a table defined twice, or a name used both as a value and as a table;
+- a key set twice, a table defined twice, a name used both as a value and as a table, or a table made both by dotted keys and by a header (`data.file = ...` with `[data]`; TOML refuses it);
 - a value of the wrong type or outside its range, or a key that does not apply to the run (a CSV column mapping for wide tables, say);
 - what TOML has beyond the subset: escapes, quoted keys, inline tables, multi-line strings and arrays, arrays of tables, dates written bare (write `"2024-01-02"`).
 
@@ -90,17 +90,19 @@ A row is a bar with open, high and low equal to its close, unless the fill is `o
 | `data.symbol_column` | string | | instead: the column naming each row's symbol |
 | `data.layout` | `"long"` or `"wide"` | `"long"` | `long`: rows of OHLCV; `wide`: a time column, then a column of closes per symbol (its header names the symbols) |
 | `data.time` | string | `"ts"` | the time column |
-| `data.time_format` | `"unix"`, `"unix_ms"`, `"yyyymmdd"` or `"iso"` | `"unix"` | seconds or milliseconds since 1970, a yyyymmdd date, or `YYYY-MM-DD` with an optional `HH:MM[:SS]` after `T` or a space |
-| `data.timezone` | `"UTC"`, `"Z"` or `"+HH:MM"` | `"UTC"` | the fixed offset of `yyyymmdd` and `iso` times; a named zone (`Asia/Seoul`) is not read |
-| `data.stamp` | string | the `stamp` column if there is one, else `"close"` | `"open"` or `"close"` (bars stamped at their start or end), or a column holding one of them per row |
+| `data.time_format` | `"unix"`, `"unix_ms"`, `"yyyymmdd"` or `"iso"` | `"unix"` | seconds or milliseconds since 1970, a yyyymmdd date, or `YYYY-MM-DD` with an optional `HH:MM[:SS]` after `T` or a space and an optional `Z` or `+HH:MM`; a date that does not exist, a field out of range or anything after the time is refused |
+| `data.timezone` | `"UTC"`, `"Z"` or `"+HH:MM"` | `"UTC"` | the fixed offset of `yyyymmdd` times and of `iso` times that name none (a time's own `Z` or `+HH:MM` wins); a named zone (`Asia/Seoul`) is not read |
+| `data.stamp` | string | the `stamp` column if there is one, else `"close"` | `"open"` or `"close"` (bars stamped at their start or end), or a column holding one of them per row; a symbol's rows must share one stamp |
 | `data.interval` | `"1m"`, `"5m"`, `"15m"`, `"30m"`, `"1h"`, `"1d"`, `"1w"` or `"1mo"` | `"1d"` | the bars' interval |
 | `data.columns.open`, `data.columns.high`, `data.columns.low`, `data.columns.close`, `data.columns.volume` | string | `"open"`, `"high"`, `"low"`, `"close"`, `"volume"` | the long layout's columns |
 
 A long file names its symbols one way: `data.symbol` with `data.file`, `data.symbols` with `data.files` (one per file), or `data.symbol_column`.
+Every row has as many cells as the header.
 Rows outside `replay.from` and `replay.to` are dropped, a row with an empty close is skipped, a price that is not positive is refused with its line, and times must increase within a symbol.
 
 `source = "store"`: a Parquet store, laid out as `<store_root>/bars/source=SOURCE/interval=INTERVAL/symbol=SYMBOL/bars.parquet` with the columns `ts`, `stamp`, `open`, `high`, `low`, `close`, `volume` and `fetched_at`.
 The store keeps every fetched version of a bar; the replay reads, of each bar, the latest version.
+A stamp is `open` or `close`, and a series' bars share one stamp.
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
