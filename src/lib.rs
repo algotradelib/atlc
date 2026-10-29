@@ -8,6 +8,7 @@ pub mod backend;
 pub mod frontend;
 pub mod ir;
 pub mod sema;
+pub mod spec;
 
 /// The compiler's version; until the first release the language has no version of its own.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
