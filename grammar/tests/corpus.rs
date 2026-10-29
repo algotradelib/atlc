@@ -135,6 +135,9 @@ fn the_corpus() {
         counts
     });
     let [same, refused, diagnostic_only, too_deep] = counts;
+    eprintln!(
+        "same tree: {same}, refused by both: {refused}, diagnostic-only: {diagnostic_only}, nesting limit: {too_deep}"
+    );
     // The prototype's programs, the parse corpus and every UI program refused by the checker parse alike.
     assert!(same >= 140, "{counts:?}");
     assert!(refused >= 20, "{counts:?}");
@@ -192,6 +195,7 @@ fn mutants() {
         assert!(failures.is_empty(), "{}", failures.join("\n\n"));
         (count, outcomes)
     });
+    eprintln!("{count} mutants: {outcomes:?} (same tree, refused by both, diagnostic-only, nesting limit)");
     assert!(count > 10_000, "only {count} mutants");
     // Both verdicts occur often, so the comparison is not vacuous.
     assert!(
