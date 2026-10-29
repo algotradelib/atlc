@@ -19,6 +19,7 @@ pub fn parse(source: &str, file: &Path) -> Result<Vec<Entry>, String> {
     for (i, raw) in source.lines().enumerate() {
         let line = i + 1;
         let err = |m: String| format!("{}:{line}: {m}", file.display());
+        characters(raw).map_err(err)?;
         let text = strip_comment(raw).trim();
         if text.is_empty() {
             continue;
@@ -82,16 +83,42 @@ pub fn parse(source: &str, file: &Path) -> Result<Vec<Entry>, String> {
                 e.origin, e.key, other.origin
             ));
         }
-        if let Some((t, line)) = tables.iter().find(|(t, _)| *t == e.key) {
+        if let Some((t, line)) = tables.iter().find(|(t, _)| *t == e.key || t.starts_with(&prefix)) {
             return Err(format!(
-                "{}: `{}` is a value here and a table on {}:{line}",
+                "{}: `{}` is a value here and a table on {}:{line} (`[{t}]`)",
                 e.origin,
-                t,
+                e.key,
                 file.display()
             ));
         }
     }
     Ok(out)
+}
+
+/// Refuses what TOML forbids in a line: control characters other than tab anywhere, and whitespace other than spaces
+/// and tabs outside strings.
+fn characters(raw: &str) -> Result<(), String> {
+    let mut quote: Option<char> = None;
+    let mut comment = false;
+    for c in raw.chars() {
+        if (c < ' ' && c != '\t') || c == '\u{7f}' {
+            return Err(format!("a control character (U+{:04X}) is not allowed", c as u32));
+        }
+        match (quote, c) {
+            _ if comment => {}
+            (None, '"' | '\'') => quote = Some(c),
+            (Some(q), c) if c == q => quote = None,
+            (None, '#') => comment = true,
+            (None, c) if c.is_whitespace() && c != ' ' && c != '\t' => {
+                return Err(format!(
+                    "U+{:04X} is whitespace TOML does not allow outside a string: use spaces or tabs",
+                    c as u32
+                ));
+            }
+            _ => {}
+        }
+    }
+    Ok(())
 }
 
 /// The line without its comment: a `#` outside a string starts one.
@@ -312,6 +339,18 @@ mod tests {
         );
         ok("[data]\ncolumns.open = \"o\"\n[replay]\ncash = 1");
         ok("[a.b]\nx = 1\n[a]\nc.d = 1");
+        // A header under a value, in either order.
+        assert!(bad("[data]\nfile = \"x\"\n[data.file.child]\n").contains("`data.file` is a value here and a table"));
+        assert!(bad("[a]\nb = 1\n[a.b.c]\n").contains("`a.b` is a value here and a table"));
+    }
+
+    #[test]
+    fn characters_toml_forbids_are_refused() {
+        assert!(bad("[data]\nsymbol\u{a0}= \"A\"").contains("U+00A0 is whitespace"));
+        assert!(bad("[data]\nsymbol = \"A\u{1}\"").contains("control character (U+0001)"));
+        assert!(bad("a = 1 # \u{7f}").contains("control character (U+007F)"));
+        assert!(bad("a = 1\r").contains("control character (U+000D)"));
+        assert_eq!(ok("a = \"x\u{a0}y\"\t# a\u{3000}comment\r\nb = 2\n").len(), 2);
     }
 
     #[test]
