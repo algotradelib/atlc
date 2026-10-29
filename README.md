@@ -25,7 +25,7 @@ on_bar {
 ```
 
 Status: in development, before its first release.
-`atlc check` works today (add `--json` for one JSON object per diagnostic); `atlc build` and `atlc run` are planned, and the language may change without notice.
+`atlc check` and `atlc build` work today (add `--json` to `check` for one JSON object per diagnostic); `atlc run` is planned, and the language may change without notice.
 
 ```sh
 atlc check mean-reversion.atls                        # parse and check, no C++ toolchain needed
@@ -39,7 +39,7 @@ atlc run mean-reversion.toml -P lookback=30           # replay it from a run spe
 cargo install --git https://github.com/algotradelib/atlc
 ```
 
-`atlc check` and `atlc build` will need nothing else.
+`atlc check` and `atlc build` need nothing else.
 `atlc run` compiles the generated strategy, so it will also need a C++17 compiler, CMake and an installed algotradelib; see [its install guide](https://github.com/algotradelib/algotradelib#install).
 Reading bars from a Parquet store will also need DuckDB.
 If algotradelib is installed under a prefix CMake does not search, set `CMAKE_PREFIX_PATH` to that prefix, or name it in the run spec.
