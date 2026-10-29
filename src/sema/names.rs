@@ -98,7 +98,7 @@ impl Checker<'_> {
     pub(super) fn unknown(&mut self, n: &str, span: Span) {
         let mut d = Diag::new(Code::UnknownName, format!("unknown name `{}`", n), span, "not declared");
         let mut best: Option<(&str, usize)> = None;
-        let known: Vec<String> = self
+        let mut known: Vec<String> = self
             .names
             .keys()
             .cloned()
@@ -108,6 +108,8 @@ impl Checker<'_> {
                     .map(|s| s.to_string()),
             )
             .collect();
+        // Sorted, so that of several names at the same distance the suggestion is always the same one.
+        known.sort();
         for k in &known {
             let dist = edit_distance(n, k);
             if dist <= 2 && best.is_none_or(|b| dist < b.1) {
@@ -150,5 +152,73 @@ impl Checker<'_> {
             }
             seen.insert(key, span);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::testing::{errors, message, ok};
+    use super::edit_distance;
+    use crate::frontend::diag::Code;
+
+    #[test]
+    fn declarations() {
+        assert_eq!(
+            errors("params { int close = 1; } on_bar { target(1); }"),
+            [Code::BuiltInName]
+        );
+        assert_eq!(
+            errors("params { int lower = 1; } on_bar { target(1); }"),
+            [Code::BuiltInName]
+        );
+        assert_eq!(
+            errors("params { int a = 1; } state { int a = 0; } on_bar { target(1); }"),
+            [Code::DuplicateName]
+        );
+        assert_eq!(
+            errors("on_bar { int a = 1; int a = 2; target(a); }"),
+            [Code::ShadowedName]
+        );
+        // Contextual indicator words are ordinary names outside an indicator.
+        ok("params { int<lower=1> window = 3; } series { real value = sma(close, window); } on_bar { target(value); }");
+    }
+
+    #[test]
+    fn blocks_at_most_once() {
+        assert_eq!(
+            errors("on_bar { target(1); } on_bar { target(2); }"),
+            [Code::DuplicateBlock]
+        );
+        assert_eq!(
+            errors("series { } series { } on_bar { target(1); }"),
+            [Code::DuplicateBlock]
+        );
+        ok(
+            "indicator a(real x) { value real v = x; } indicator b(real x) { value real v = x; } \
+            series { real p = a(close); real q = b(close); } on_bar { target(p + q); }",
+        );
+    }
+
+    #[test]
+    fn unknown_names_suggest_the_nearest_deterministically() {
+        assert_eq!(errors("on_bar { target(clse); }"), [Code::UnknownName]);
+        let suggest = |src: &str| crate::check(src).unwrap_err()[0].notes.clone();
+        assert_eq!(suggest("on_bar { target(clse); }"), ["did you mean `close`?"]);
+        // `ab` and `bb` are both one edit from `cb`: the first in order wins, every time.
+        for _ in 0..20 {
+            assert_eq!(
+                suggest("params { int bb = 1; int ab = 1; } on_bar { target(cb); }"),
+                ["did you mean `ab`?"]
+            );
+        }
+        assert!(suggest("on_bar { target(zzzzzz); }").is_empty());
+        assert_eq!(message("on_bar { target(zzzzzz); }"), "unknown name `zzzzzz`");
+    }
+
+    #[test]
+    fn distance() {
+        assert_eq!(edit_distance("kitten", "sitting"), 3);
+        assert_eq!(edit_distance("", "abc"), 3);
+        assert_eq!(edit_distance("same", "same"), 0);
     }
 }

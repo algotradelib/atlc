@@ -193,3 +193,38 @@ impl Checker<'_> {
         HExpr { kind, ty, maybe }
     }
 }
+
+/// Helpers for the passes' unit tests.
+#[cfg(test)]
+pub(crate) mod testing {
+    use crate::frontend::diag::Code;
+    use crate::ir::Ir;
+
+    /// The checked IR of a program that must be valid.
+    pub fn ok(source: &str) -> Ir {
+        match crate::check(source) {
+            Ok(ir) => ir,
+            Err(e) => panic!(
+                "expected a valid program, got {:?}",
+                e.iter().map(|d| (d.code, &d.message)).collect::<Vec<_>>()
+            ),
+        }
+    }
+
+    /// The codes of a program's errors, in order (the program must parse).
+    pub fn errors(source: &str) -> Vec<Code> {
+        let program = crate::frontend::parse(source).expect("the program parses");
+        match super::check(&program, &super::Options { share: true }) {
+            Ok(_) => vec![],
+            Err(e) => e.iter().map(|d| d.code).collect(),
+        }
+    }
+
+    /// The first error's message.
+    pub fn message(source: &str) -> String {
+        match crate::check(source) {
+            Ok(_) => panic!("expected an error"),
+            Err(e) => e[0].message.clone(),
+        }
+    }
+}
