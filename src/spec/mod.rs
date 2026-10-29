@@ -614,7 +614,13 @@ fn check(e: &mut Entry) -> Result<(), String> {
             }
         },
         Kind::Number { min, strict } => match e.value {
-            Value::Num(_, v) if v > min || (!strict && v == min) => {}
+            Value::Num(ref t, v) if v > min || (!strict && v == min) => {
+                // The replay reads these as exact decimals, which take no exponent.
+                let Some(plain) = plain_decimal(t) else {
+                    return Err(bad("a number of at most 18 significant digits"));
+                };
+                e.value = Value::Num(plain, v);
+            }
             _ => {
                 return Err(bad(if strict {
                     "a number above 0"
@@ -670,6 +676,46 @@ fn check(e: &mut Entry) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+/// A TOML decimal number as plain decimal text with the same value (`1.5e-4` is `0.00015`, `1e5` is `100000`),
+/// computed on the digits, never through a float; `None` past 18 significant digits or 255 decimal places.
+fn plain_decimal(text: &str) -> Option<String> {
+    let (sign, body) = match text.strip_prefix('-') {
+        Some(b) => ("-", b),
+        None => ("", text),
+    };
+    let (mantissa, exponent) = match body.find(['e', 'E']) {
+        Some(k) => (&body[..k], body[k + 1..].parse::<i64>().ok()?),
+        None => (body, 0),
+    };
+    let (int, frac) = mantissa.split_once('.').unwrap_or((mantissa, ""));
+    // The value is `digits * 10^shift`.
+    let mut digits = format!("{int}{frac}");
+    let mut shift = exponent.checked_sub(i64::try_from(frac.len()).ok()?)?;
+    while digits.len() > 1 && digits.starts_with('0') {
+        digits.remove(0);
+    }
+    while shift < 0 && digits.len() > 1 && digits.ends_with('0') {
+        digits.pop();
+        shift += 1;
+    }
+    if digits == "0" {
+        return Some(format!("{sign}0").replace("-0", "0"));
+    }
+    let significant = digits.trim_end_matches('0').len();
+    if significant > 18 || i64::try_from(digits.len()).ok()? + shift.max(0) > 18 || shift < -255 {
+        return None;
+    }
+    let plain = if shift >= 0 {
+        format!("{digits}{}", "0".repeat(usize::try_from(shift).ok()?))
+    } else {
+        let places = usize::try_from(-shift).ok()?;
+        let padded = format!("{}{digits}", "0".repeat((places + 1).saturating_sub(digits.len())));
+        let (whole, fraction) = padded.split_at(padded.len() - places);
+        format!("{whole}.{fraction}")
+    };
+    Some(format!("{sign}{plain}"))
 }
 
 /// Whether a number was written as an integer: TOML reads `2.0` as a float, so an int takes no `.` or exponent.
@@ -1100,6 +1146,8 @@ mod tests {
             ("[data]\nstore = \"kis/2d/005930\"", "the interval is one of"),
             ("[data]\nstore = [\"a/1d/x\", 3]", "a string or a list of strings"),
             ("[data]\nas_of = \"2026-10-01 25:00\"", "an instant"),
+            ("[data]\nas_of = \"가나다라마\"", "an instant"),
+            ("[data]\nas_of = \"2026-10-01T05:00+가:00\"", "an instant"),
             ("[data]\ntimezone = \"Asia/Seoul\"", "a fixed offset"),
             ("[data]\ninterval = \"2h\"", "one of \"1m\""),
             ("[data]\nfiles = [\"a,b.csv\"]", "holds a comma"),
@@ -1110,6 +1158,32 @@ mod tests {
             assert!(e.contains(says), "{src}: {e}");
             assert!(e.starts_with("/specs/s.toml:"), "{e}");
         }
+    }
+
+    #[test]
+    fn decimals_lose_their_exponent_exactly() {
+        for (text, plain) in [
+            ("1.5e-4", "0.00015"),
+            ("1e5", "100000"),
+            ("1E+2", "100"),
+            ("0.00015", "0.00015"),
+            ("100000", "100000"),
+            ("1.50", "1.5"),
+            ("12.5e1", "125"),
+            ("-2.5e-1", "-0.25"),
+            ("0e7", "0"),
+            ("0.000", "0"),
+            ("123456789012345678e-18", "0.123456789012345678"),
+        ] {
+            assert_eq!(plain_decimal(text).as_deref(), Some(plain), "{text}");
+        }
+        for text in ["1e19", "1234567890123456789", "1e-256", "1e9999999999999999999"] {
+            assert_eq!(plain_decimal(text), None, "{text}");
+        }
+        let e = spec("strategy = \"m.atls\"\n[replay]\ncash = 1e5\ncommission = 1.5e-4\n").unwrap();
+        let v = |k: &str| e.iter().find(|x| x.key == k).unwrap().value.text();
+        assert_eq!(v("replay.cash"), "100000");
+        assert_eq!(v("replay.commission"), "0.00015");
     }
 
     #[test]
