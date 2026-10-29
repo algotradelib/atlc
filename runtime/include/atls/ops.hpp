@@ -1021,6 +1021,18 @@ struct OlsLlt {
   /** @brief The window's regressors, oldest first. */
   Eigen::VectorXd window_x_;
 };
+#else
+/**
+ * @brief Without Eigen there is no `--indicators naive` least squares: a strategy that needs it does not compile.
+ * @tparam Slope The slope if true, else the intercept.
+ */
+template <bool Slope>
+struct OlsLlt {
+  static_assert(
+    Slope != Slope,
+    "--indicators naive solves ols_slope and ols_intercept with Eigen: use an algotradelib built with ATL_USE_EIGEN=ON"
+  );
+};
 #endif
 
 /**
