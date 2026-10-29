@@ -20,6 +20,7 @@ Handlers: `on_start`, `on_bar`, `on_fill`, `on_stop` ([program structure](progra
 - The same program runs for every instrument the run gives (or the ones `[instruments]` selects); series and state are per instrument.
 - Cross-sectional operators combine, at one moment, every instrument that has that period's bar and is past its warm-up, over the values that are defined: `xs_mean(x)`, `xs_sum(x)`, `xs_count(x)`, `xs_rank(x)`.
   They are allowed only at the top level of a handler, never under `if` or `for`.
+  A statement's reductions are computed, over every active instrument, before the statement runs on any of them, whatever the conditions around them (`c ? xs_sum(x) : keep`, `c and xs_mean(x) > 0`): a condition cannot guard what a reduction evaluates, so an `int` overflow in its argument stops the run even where no instrument takes that arm.
 - Each top-level statement of a handler runs across every instrument before the next statement.
 - `periods` counts every period so far; `bars` counts this instrument's periods (see below).
 - Missing bars follow the program's missing-value policy ([missing values](missing-values.md)):

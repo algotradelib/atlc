@@ -205,6 +205,7 @@ fn generated_strategies() {
         "loop-edge",
         "lazy",
         "skip-value",
+        "xs-guard",
     ] {
         generate(
             &out,

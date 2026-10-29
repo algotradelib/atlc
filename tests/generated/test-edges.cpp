@@ -10,6 +10,7 @@
 #include <missing_open.hpp>
 #include <skip_value.hpp>
 #include <universe_function.hpp>
+#include <xs_guard.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -153,4 +154,14 @@ TEST_CASE("under skip, a value's condition on a missing input is undefined: neit
   // An open of 1: each condition is false.
   CHECK(target_of(small, true, 1) == std::optional<std::string>("8"));
   CHECK(target_of(unused, true, 1) == std::optional<std::string>("9"));
+}
+
+TEST_CASE("a condition does not guard what a cross-sectional reduction evaluates") {
+  // One instrument with an open of 1 takes no arm, but xs_sum(n * n) is computed before the statement.
+  atls::XsGuard strategy({t::id_of("A")});
+  atl::strategy::MinimalContext ctx;
+  atl::strategy::BarSlice slice;
+  slice.bars_ = {bar_of("A", 1, true)};
+  slice.period_end_ = slice.bars_[0].period_end_;
+  CHECK_THROWS_AS(strategy.on_bars(ctx, slice), std::overflow_error);
 }

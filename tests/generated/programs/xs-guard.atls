@@ -1,0 +1,9 @@
+# A cross-sectional reduction is computed over every active instrument before its statement runs, whatever the
+# condition around it: here n * n is evaluated, and stops the run, although no instrument takes that arm.
+universe {}
+params {
+  int n = 100000000000000;
+}
+on_bar {
+  target(open != 1 ? xs_sum(n * n) : keep);
+}
