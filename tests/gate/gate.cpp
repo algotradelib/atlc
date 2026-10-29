@@ -71,7 +71,9 @@ int main() {
       return std::string(what) + " seed " + std::to_string(seed);
     };
 
-    for (const auto& [fast, slow] : std::vector<std::pair<std::int64_t, std::int64_t>>{{5, 20}, {20, 50}, {10, 120}}) {
+    for (const auto& point : std::vector<std::pair<std::int64_t, std::int64_t>>{{5, 20}, {20, 50}, {10, 120}}) {
+      const std::int64_t fast = point.first;
+      const std::int64_t slow = point.second;
       atl::strategy::vanilla::MovingAverageCrossover::Params q;
       q.instrument_ = id;
       q.fast_ = static_cast<std::size_t>(fast);
