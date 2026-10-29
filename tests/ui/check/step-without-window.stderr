@@ -1,0 +1,14 @@
+error[step-without-window]: `enter` without a window
+ --> tests/ui/check/step-without-window.atls:3:3
+  |
+3 |   enter(v) { s = s + v; }
+  |   ^^^^^^^^^^^^^^^^^^^^^^^ nothing enters or leaves
+  = declare `window w[n];`
+
+error[step-without-window]: `leave` without a window
+ --> tests/ui/check/step-without-window.atls:4:3
+  |
+4 |   leave(v) { s = s - v; }
+  |   ^^^^^^^^^^^^^^^^^^^^^^^ nothing enters or leaves
+  = declare `window w[n];`
+

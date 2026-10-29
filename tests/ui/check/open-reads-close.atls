@@ -1,0 +1,7 @@
+universe {}
+series { real last_close = close; }
+on_open {
+  real gap = open / close - 1;
+  target(gap < -0.02 ? 100 : 0);
+}
+on_close { target(0); }

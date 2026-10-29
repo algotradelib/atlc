@@ -1,0 +1,2 @@
+series { real m = sma(close, 20, min = 5); }
+on_bar { target(close > m ? 100 : 0); }

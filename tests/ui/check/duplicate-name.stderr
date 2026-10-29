@@ -1,0 +1,8 @@
+error[duplicate-name]: `n` is declared twice
+ --> tests/ui/check/duplicate-name.atls:5:7
+  |
+2 |   int n = 1;
+  |       - first declared here
+5 |   int n = 0;
+  |       ^ second declaration
+

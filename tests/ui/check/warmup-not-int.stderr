@@ -1,0 +1,12 @@
+error[warmup-not-int]: a warm-up is a whole number of steps
+ --> tests/ui/check/warmup-not-int.atls:2:10
+  |
+2 |   warmup 1.5;
+  |          ^^^ this is `real`
+
+error[window-not-constant]: a window's length is built from numbers and int arguments with + - *
+ --> tests/ui/check/warmup-not-int.atls:2:10
+  |
+2 |   warmup 1.5;
+  |          ^^^ not that
+

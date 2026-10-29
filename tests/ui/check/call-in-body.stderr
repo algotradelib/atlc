@@ -1,0 +1,7 @@
+error[call-in-body]: `xs_mean` inside `f`
+ --> tests/ui/check/call-in-body.atls:2:27
+  |
+2 |   real f(real x) { return xs_mean(x); }
+  |                           ^^^^^^^^^^ not here
+  = functions and indicators see only their own arguments: indicators and cross-sectional values are used in a program's series and handlers
+

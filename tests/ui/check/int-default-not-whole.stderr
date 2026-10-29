@@ -1,0 +1,6 @@
+error[int-default-not-whole]: `n` is an `int` but its default is not a whole number
+ --> tests/ui/check/int-default-not-whole.atls:2:11
+  |
+2 |   int n = 2.5;
+  |           ^^^ write a whole number, or declare it `real`
+

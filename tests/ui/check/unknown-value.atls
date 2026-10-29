@@ -1,0 +1,8 @@
+indicator band(real x) {
+  value real lower_band = x - 1;
+  value real upper_band = x + 1;
+}
+series {
+  real z = band(close).middle;
+}
+on_bar { target(z); }

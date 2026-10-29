@@ -1,0 +1,14 @@
+error[min-not-applicable]: `lag` takes no `min`
+ --> tests/ui/check/min-not-applicable.atls:3:55
+  |
+3 |   real previous = lag(close, 3, missing = skip, min = 2);
+  |                                                       ^ it would have no effect
+  = under `skip`, a lag reads the value in that exact slot, which may be missing
+
+error[min-not-applicable]: `ema` takes no `min`
+ --> tests/ui/check/min-not-applicable.atls:4:54
+  |
+4 |   real smooth = ema(close, 10, missing = skip, min = 5);
+  |                                                      ^ it would have no effect
+  = under `skip`, an EMA ignores a missing value and keeps its previous output
+

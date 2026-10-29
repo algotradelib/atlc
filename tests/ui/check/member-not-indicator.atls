@@ -1,0 +1,7 @@
+functions {
+  real f(real x) { return x; }
+}
+series {
+  real z = f(close).v;
+}
+on_bar { target(z); }

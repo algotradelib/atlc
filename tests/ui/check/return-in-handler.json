@@ -1,0 +1,1 @@
+{"severity":"error","code":"return-outside-function","message":"`return` outside a function","file":"tests/ui/check/return-in-handler.atls","span":{"start":{"line":2,"column":3},"end":{"line":2,"column":12},"byte_start":11,"byte_end":20},"label":"not here","secondary":[],"notes":["handlers state targets; only functions of `functions {}` return a value"]}

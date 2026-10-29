@@ -1,0 +1,1 @@
+{"severity":"error","code":"v0-syntax","message":"`param` is v0 syntax","file":"tests/ui/syntax/v0-syntax.atls","span":{"start":{"line":1,"column":1},"end":{"line":1,"column":6},"byte_start":0,"byte_end":5},"label":"not a block","secondary":[],"notes":["v0 `param`, `let` and `target =` became `params {}`, `series {}` and `on_bar { target(...); }`"]}

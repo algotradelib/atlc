@@ -1,0 +1,8 @@
+error[not-visible]: `fast` is not visible in `u_sma`
+ --> tests/ui/check/indicator-sees-param.atls:3:12
+  |
+3 |   window w[fast];
+  |            ^^^^ not here
+  = an indicator sees only its arguments, states, window and earlier values
+  = pass `fast` as an argument
+

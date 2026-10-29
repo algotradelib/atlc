@@ -1,0 +1,7 @@
+error[missing-on-bar]: the program has no `on_bar`
+ --> tests/ui/check/missing-on-bar.atls:1:1
+  |
+1 | params {
+  | ^ nothing ever states a target
+  = add `on_bar { target(...); }`
+

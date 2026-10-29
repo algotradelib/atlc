@@ -1,0 +1,14 @@
+error[unknown-name]: unknown name `fats`
+ --> tests/ui/check/unknown-name.atls:5:23
+  |
+5 |   real a = sma(close, fats);
+  |                       ^^^^ not declared
+  = did you mean `fast`?
+
+error[unknown-name]: unknown name `clsoe`
+ --> tests/ui/check/unknown-name.atls:8:14
+  |
+8 |   target(a > clsoe ? 100 : 0);
+  |              ^^^^^ not declared
+  = did you mean `close`?
+

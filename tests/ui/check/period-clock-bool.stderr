@@ -1,0 +1,7 @@
+error[maybe-undefined]: `up` is `bool`, which is always defined, but this value may be undefined
+ --> tests/ui/check/period-clock-bool.atls:5:13
+  |
+5 |   bool up = close > last;
+  |             ^^^^^^^^^^^^ may be undefined
+  = test it first: `defined(x) ? x > 1 : false`, or assign inside `if (defined(x)) { ... }`
+

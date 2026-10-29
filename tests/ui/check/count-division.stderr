@@ -1,0 +1,7 @@
+error[count-division]: `sma`'s window cannot divide
+ --> tests/ui/check/count-division.atls:5:23
+  |
+5 |   real a = sma(close, n / 2);
+  |                       ^^^^^ `/` gives a real
+  = a count of bars is a whole number
+

@@ -1,0 +1,7 @@
+error[live-block]: a program has no `live {}` block
+ --> tests/ui/syntax/live-block.atls:3:1
+  |
+3 | live { broker = "kis"; }
+  | ^^^^ not a block
+  = live settings (broker, account, limits) belong to the run spec and the operator's configuration, never to the strategy
+

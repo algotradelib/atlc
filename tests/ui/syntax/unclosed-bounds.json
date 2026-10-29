@@ -1,0 +1,1 @@
+{"severity":"error","code":"expected-token","message":"expected `>` to close the bounds, found `fast`","file":"tests/ui/syntax/unclosed-bounds.atls","span":{"start":{"line":2,"column":15},"end":{"line":2,"column":19},"byte_start":23,"byte_end":27},"label":"expected `>`","secondary":[],"notes":[]}

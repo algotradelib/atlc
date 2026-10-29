@@ -1,0 +1,1 @@
+{"severity":"error","code":"min-out-of-range","message":"`min` must be between 1 and the window","file":"tests/ui/check/min-out-of-range.atls","span":{"start":{"line":2,"column":48},"end":{"line":2,"column":49},"byte_start":56,"byte_end":57},"label":"may be outside within the params' bounds","secondary":[],"notes":[]}

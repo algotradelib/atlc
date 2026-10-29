@@ -1,0 +1,7 @@
+error[held-needs-instrument]: whose position?
+ --> tests/ui/check/held-needs-instrument.atls:3:13
+  |
+3 |   target(y, held);
+  |             ^^^^ the program names its instruments
+  = write `y.held`
+

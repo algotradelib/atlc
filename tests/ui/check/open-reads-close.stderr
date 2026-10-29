@@ -1,0 +1,8 @@
+error[open-reads-future]: today's `close` is not known at the open
+ --> tests/ui/check/open-reads-close.atls:4:21
+  |
+4 |   real gap = open / close - 1;
+  |                     ^^^^^ would read the future
+  = in `on_open` only `open` is today's; series hold the last close's values
+  = declare `real last_close = close;` in `series {}` to read the last close's close
+

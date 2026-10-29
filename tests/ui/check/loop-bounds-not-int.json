@@ -1,0 +1,1 @@
+{"severity":"error","code":"loop-bounds-not-int","message":"a loop's bounds are whole numbers","file":"tests/ui/check/loop-bounds-not-int.atls","span":{"start":{"line":3,"column":15},"end":{"line":3,"column":18},"byte_start":45,"byte_end":48},"label":"not `int`","secondary":[],"notes":[]}

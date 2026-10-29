@@ -1,0 +1,6 @@
+warning[unused-series]: series `unused` is never read
+ --> tests/ui/check/unused-series.atls:2:8
+  |
+2 |   real unused = sma(close, 5);
+  |        ^^^^^^ not computed
+

@@ -1,0 +1,8 @@
+error[expected-token]: expected `}` to close the block, found the end of the file
+ --> tests/ui/syntax/unclosed-brace.atls:8:1
+  |
+4 | on_bar {
+  |        - this `{` is never closed
+8 | 
+  | ^ expected `}`
+

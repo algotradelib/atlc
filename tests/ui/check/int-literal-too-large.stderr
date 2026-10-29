@@ -1,0 +1,24 @@
+error[int-literal-too-large]: this `int` literal is above 9e15 in magnitude
+ --> tests/ui/check/int-literal-too-large.atls:4:14
+  |
+4 |   int over = 9000000000000001;
+  |              ^^^^^^^^^^^^^^^^ too large
+  = an `int` passes through a double on its way into the strategy, and loses precision past 2^53
+  = write a `real` with an exponent (`1e16`) if a real is meant
+
+error[int-literal-too-large]: this `int` literal is above 9e15 in magnitude
+ --> tests/ui/check/int-literal-too-large.atls:5:19
+  |
+5 |   int past_2_53 = 9007199254740993;
+  |                   ^^^^^^^^^^^^^^^^ too large
+  = an `int` passes through a double on its way into the strategy, and loses precision past 2^53
+  = write a `real` with an exponent (`1e16`) if a real is meant
+
+error[int-literal-too-large]: this `int` literal is above 9e15 in magnitude
+ --> tests/ui/check/int-literal-too-large.atls:8:19
+  |
+8 |   int negative = -9000000000000001;
+  |                   ^^^^^^^^^^^^^^^^ too large
+  = an `int` passes through a double on its way into the strategy, and loses precision past 2^53
+  = write a `real` with an exponent (`1e16`) if a real is meant
+

@@ -1,0 +1,1 @@
+{"severity":"error","code":"missing-on-bar","message":"the program has no `on_bar`","file":"tests/ui/check/missing-on-bar.atls","span":{"start":{"line":1,"column":1},"end":{"line":1,"column":1},"byte_start":0,"byte_end":0},"label":"nothing ever states a target","secondary":[],"notes":["add `on_bar { target(...); }`"]}

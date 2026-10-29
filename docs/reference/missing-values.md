@@ -4,7 +4,7 @@ A value is missing when its bar is absent or the value is NaN.
 An infinity is not missing (it comes from arithmetic overflow; a division by zero is undefined instead), and `target` refuses it.
 How a window treats a missing value is a property of the strategy, because it changes decisions.
 
-```
+```atls
 options { missing = skip; }                                 # the program's default
 series  { real ma = sma(close, 20, missing = restart); }    # one indicator's own policy
 ```

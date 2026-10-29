@@ -1,0 +1,6 @@
+error[assign-function]: cannot assign to `f`
+ --> tests/ui/check/assign-function.atls:5:3
+  |
+5 |   f = 1;
+  |   ^ a function or indicator
+

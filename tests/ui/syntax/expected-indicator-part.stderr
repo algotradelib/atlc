@@ -1,0 +1,7 @@
+error[expected-indicator-part]: expected a part of an indicator, found `return`
+ --> tests/ui/syntax/expected-indicator-part.atls:3:3
+  |
+3 |   return 1;
+  |   ^^^^^^ not a part
+  = parts: window w[n];  state real s = 0;  update { }  enter(v) { }  leave(v) { }  value real v = ...;  warmup n;
+

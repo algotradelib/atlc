@@ -1,0 +1,7 @@
+params {
+  int<lower=2> n = 10;
+}
+series {
+  real a = sma(close, n / 2);
+}
+on_bar { target(a); }

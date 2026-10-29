@@ -1,0 +1,1 @@
+{"severity":"error","code":"not-whole-number","message":"`sma`'s window is a whole number of bars","file":"tests/ui/check/not-whole-number.atls","span":{"start":{"line":2,"column":23},"end":{"line":2,"column":26},"byte_start":31,"byte_end":34},"label":"not a whole number","secondary":[],"notes":[]}

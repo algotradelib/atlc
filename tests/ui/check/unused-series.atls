@@ -1,0 +1,4 @@
+series {
+  real unused = sma(close, 5);
+}
+on_bar { target(1); }

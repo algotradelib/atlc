@@ -1,0 +1,5 @@
+universe {}
+series {
+  real m = xs_mean(close);
+}
+on_bar { target(m); }

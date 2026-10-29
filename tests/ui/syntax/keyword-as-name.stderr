@@ -1,0 +1,6 @@
+error[keyword-as-name]: `if` is a keyword and cannot be used as a parameter name
+ --> tests/ui/syntax/keyword-as-name.atls:2:7
+  |
+2 |   int if = 1;
+  |       ^^ reserved
+

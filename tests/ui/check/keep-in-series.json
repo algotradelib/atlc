@@ -1,0 +1,1 @@
+{"severity":"error","code":"keep-in-series","message":"`keep` is a handler value","file":"tests/ui/check/keep-in-series.atls","span":{"start":{"line":2,"column":12},"end":{"line":2,"column":16},"byte_start":20,"byte_end":24},"label":"not a series","secondary":[],"notes":[]}

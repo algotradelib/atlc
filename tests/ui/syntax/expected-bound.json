@@ -1,0 +1,1 @@
+{"severity":"error","code":"expected-bound","message":"expected `lower` or `upper`, found `min`","file":"tests/ui/syntax/expected-bound.atls","span":{"start":{"line":2,"column":7},"end":{"line":2,"column":10},"byte_start":15,"byte_end":18},"label":"a bound is `lower=EXPR` or `upper=EXPR`","secondary":[],"notes":[]}

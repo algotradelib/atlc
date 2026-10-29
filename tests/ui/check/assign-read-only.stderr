@@ -1,0 +1,6 @@
+error[assign-read-only]: cannot assign to `close`
+ --> tests/ui/check/assign-read-only.atls:2:3
+  |
+2 |   close = 1;
+  |   ^^^^^ read-only
+

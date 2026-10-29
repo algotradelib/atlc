@@ -1,0 +1,6 @@
+error[window-not-int]: a window's length is a whole number
+ --> tests/ui/check/window-not-int.atls:2:12
+  |
+2 |   window w[2.5];
+  |            ^^^ this is `real`
+

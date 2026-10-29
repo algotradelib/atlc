@@ -1,0 +1,7 @@
+error[xs-outside-universe]: `xs_mean` needs `universe {}`
+ --> tests/ui/check/xs-in-single.atls:2:23
+  |
+2 | on_bar { target(ret > xs_mean(ret) ? 100 : 0); }
+  |                       ^^^^^^^^^^^^ no cross-section here
+  = a cross-sectional operator combines every instrument of a universe at one moment
+

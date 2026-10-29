@@ -1,0 +1,11 @@
+params {
+  int fast = 20;
+  int<lower=2> slow = 50;
+}
+series {
+  real a = sma(close, fast);
+  real b = sma(close, slow - 5);
+}
+on_bar {
+  target(a > b ? 100 : 0);
+}

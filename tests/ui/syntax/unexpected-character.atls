@@ -1,0 +1,3 @@
+on_bar {
+  target(1 @ 2);
+}

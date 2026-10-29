@@ -1,0 +1,1 @@
+{"severity":"error","code":"argument-type","message":"`abs` needs a number","file":"tests/ui/check/argument-type.atls","span":{"start":{"line":2,"column":14},"end":{"line":2,"column":23},"byte_start":22,"byte_end":31},"label":"this is `bool`","secondary":[],"notes":[]}

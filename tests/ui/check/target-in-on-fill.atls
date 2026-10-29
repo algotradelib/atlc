@@ -1,0 +1,6 @@
+on_bar {
+  target(100);
+}
+on_fill {
+  target(0);
+}

@@ -1,0 +1,1 @@
+{"severity":"error","code":"not-an-instrument","message":"`x` is not an instrument","file":"tests/ui/check/not-an-instrument.atls","span":{"start":{"line":3,"column":10},"end":{"line":3,"column":11},"byte_start":37,"byte_end":38},"label":"not in `instruments {}`","secondary":[],"notes":[]}

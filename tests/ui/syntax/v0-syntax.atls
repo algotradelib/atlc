@@ -1,0 +1,3 @@
+param fast = 20
+param slow = 50
+target = sma(close, fast) > sma(close, slow) ? 100 : 0

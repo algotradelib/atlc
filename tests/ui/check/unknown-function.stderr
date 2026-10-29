@@ -1,0 +1,7 @@
+error[unknown-function]: unknown function `cube`
+ --> tests/ui/check/unknown-function.atls:2:10
+  |
+2 |   target(cube(close));
+  |          ^^^^ not a function
+  = functions: abs min max defined sign log sqrt round floor; indicators (series only): sma ema rsi lag ts_max ts_min ts_sum stdev zscore ols_slope ols_intercept kf_beta kf_error kf_sd; cross-sectional (universe handlers): xs_mean xs_sum xs_count xs_rank
+

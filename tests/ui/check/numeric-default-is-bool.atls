@@ -1,0 +1,4 @@
+params {
+  real r = true;
+}
+on_bar { target(r); }

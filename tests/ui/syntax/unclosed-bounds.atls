@@ -1,0 +1,6 @@
+params {
+  int<lower=1 fast = 20;
+}
+on_bar {
+  target(fast);
+}

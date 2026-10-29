@@ -1,0 +1,7 @@
+error[assign-local]: cannot assign to local `x`
+ --> tests/ui/check/assign-local.atls:3:3
+  |
+3 |   x = 2;
+  |   ^ locals are fixed once declared
+  = declare a new local, or use `state {}` for a value that changes
+

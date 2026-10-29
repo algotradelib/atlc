@@ -1,0 +1,1 @@
+{"severity":"error","code":"xs-outside-universe","message":"`xs_mean` needs `universe {}`","file":"tests/ui/check/xs-in-single.atls","span":{"start":{"line":2,"column":23},"end":{"line":2,"column":35},"byte_start":66,"byte_end":78},"label":"no cross-section here","secondary":[],"notes":["a cross-sectional operator combines every instrument of a universe at one moment"]}

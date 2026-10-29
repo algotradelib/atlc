@@ -1,0 +1,56 @@
+# Every construct the grammar has, for comparing parsers' trees.
+params {
+  int<lower=1> fast = 3;
+  int<lower=fast + 1, upper=fast * 10 - 2> slow = 20;
+  real<upper=1e3> cap = 1.5e2;
+  real<lower=-1> skew = -.5;
+  bool short = false;
+  int plain = 0;
+}
+warmup (slow + 1) * 2;
+series {
+  real a = sma(close, fast);
+  real b = ema(close, slow) / 2.0;
+  real lagged = a[1] - a[fast - 1];   // C-style comment
+  bool up = not (a < b) and true or close >= open;
+  real nested = close[1][2];
+}
+state {
+  int count = 0;
+  real last = 0.5;
+  bool armed = true;
+}
+on_start {
+  count = 0;
+}
+on_bar {
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+}
+on_fill {
+  last = fill.price;
+  count = fill.quantity[1] + -fill.price;
+}
+on_stop {
+  while (count > 0) {
+    count = count - 1;
+  }
+}

@@ -1,0 +1,1 @@
+{"severity":"error","code":"not-visible","message":"`close` is not visible in `gap`","file":"tests/ui/check/function-reads-bar.atls","span":{"start":{"line":3,"column":16},"end":{"line":3,"column":21},"byte_start":48,"byte_end":53},"label":"not here","secondary":[],"notes":["a function sees only its arguments and locals","pass `close` as an argument"]}

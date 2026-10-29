@@ -1,0 +1,6 @@
+functions {
+  real gap(real x) {
+    return x - close;
+  }
+}
+on_bar { target(gap(open) > 0 ? 100 : 0); }

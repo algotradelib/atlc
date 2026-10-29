@@ -1,0 +1,4 @@
+# Spans and expected diagnostics count bytes and columns: keep programs and expectations in LF on every OS.
+*.atls text eol=lf
+*.stderr text eol=lf
+*.json text eol=lf

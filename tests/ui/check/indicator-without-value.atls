@@ -1,0 +1,4 @@
+indicator f(real x) {
+  state real s = 0;
+}
+on_bar { target(1); }

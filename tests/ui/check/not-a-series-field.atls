@@ -1,0 +1,5 @@
+instruments { y; }
+series {
+  real h = y.held;
+}
+on_bar { target(y, h); }

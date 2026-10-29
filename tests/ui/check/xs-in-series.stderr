@@ -1,0 +1,7 @@
+error[xs-in-series]: `xs_mean` is computed in handlers
+ --> tests/ui/check/xs-in-series.atls:3:12
+  |
+3 |   real m = xs_mean(close);
+  |            ^^^^^^^^^^^^^^ not in `series {}`
+  = a cross-sectional value needs every instrument's series first; compute it at the top of `on_bar` (or `on_open`/`on_close`)
+

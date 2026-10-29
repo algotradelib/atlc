@@ -1,0 +1,8 @@
+indicator f(real x) {
+  warmup 1.5;
+  value real v = x;
+}
+series {
+  real a = f(close);
+}
+on_bar { target(a); }

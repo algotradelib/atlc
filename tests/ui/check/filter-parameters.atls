@@ -1,0 +1,7 @@
+params {
+  real delta = 0.0001;
+}
+series {
+  real b = kf_beta(close, open, delta, 0.001);
+}
+on_bar { target(b); }

@@ -1,0 +1,4 @@
+on_bar {
+  close + 1;
+  target(1);
+}

@@ -1,0 +1,4 @@
+series {
+  int n = 1;
+}
+on_bar { target(1); }

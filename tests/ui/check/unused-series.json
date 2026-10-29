@@ -1,0 +1,1 @@
+{"severity":"warning","code":"unused-series","message":"series `unused` is never read","file":"tests/ui/check/unused-series.atls","span":{"start":{"line":2,"column":8},"end":{"line":2,"column":14},"byte_start":16,"byte_end":22},"label":"not computed","secondary":[],"notes":[]}

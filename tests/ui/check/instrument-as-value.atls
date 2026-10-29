@@ -1,0 +1,4 @@
+instruments { y; }
+on_bar {
+  target(y, y);
+}

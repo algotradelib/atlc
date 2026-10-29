@@ -1,0 +1,4 @@
+indicator f(real x) {
+  value real v = x;
+  return 1;
+}

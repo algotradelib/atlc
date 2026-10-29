@@ -1,0 +1,7 @@
+error[target-names-instrument]: `target(name, shares)` needs `instruments {}`
+ --> tests/ui/check/target-names-instrument.atls:2:10
+  |
+2 |   target(y, 1);
+  |          ^ no named instruments
+  = write `target(shares);`
+

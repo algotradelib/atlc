@@ -1,0 +1,14 @@
+error[universe-lifecycle-handler]: `on_start` is not supported in `universe {}` programs
+ --> tests/ui/check/universe-lifecycle-handler.atls:6:1
+  |
+6 | on_start {
+  | ^^^^^^^^ not here yet
+  = a universe runs its handlers per instrument; start and stop callbacks per instrument are not built yet
+
+error[universe-lifecycle-handler]: `on_stop` is not supported in `universe {}` programs
+  --> tests/ui/check/universe-lifecycle-handler.atls:13:1
+   |
+13 | on_stop {
+   | ^^^^^^^ not here yet
+   = a universe runs its handlers per instrument; start and stop callbacks per instrument are not built yet
+

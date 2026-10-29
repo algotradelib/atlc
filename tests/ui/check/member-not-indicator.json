@@ -1,0 +1,1 @@
+{"severity":"error","code":"member-not-indicator","message":"`.v` reads a value of a user indicator","file":"tests/ui/check/member-not-indicator.atls","span":{"start":{"line":5,"column":12},"end":{"line":5,"column":22},"byte_start":65,"byte_end":75},"label":"not one","secondary":[],"notes":["write `name(args).value` for an indicator with several values"]}

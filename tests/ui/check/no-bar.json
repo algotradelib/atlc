@@ -1,0 +1,1 @@
+{"severity":"error","code":"no-bar","message":"`close` has no bar to read in `on_start`","file":"tests/ui/check/no-bar.atls","span":{"start":{"line":5,"column":11},"end":{"line":5,"column":16},"byte_start":49,"byte_end":54},"label":"no bar here","secondary":[],"notes":[]}

@@ -1,0 +1,7 @@
+error[default-not-literal]: a parameter's default is a number
+ --> tests/ui/check/default-not-literal.atls:2:11
+  |
+2 |   int n = 1 + 1;
+  |           ^^^^^ not a literal
+  = defaults are literals; bounds may refer to earlier params
+

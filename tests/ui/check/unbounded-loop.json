@@ -1,0 +1,1 @@
+{"severity":"error","code":"while-loop","message":"`while` loops are not allowed","file":"tests/ui/check/unbounded-loop.atls","span":{"start":{"line":5,"column":3},"end":{"line":5,"column":8},"byte_start":34,"byte_end":39},"label":"may never end","secondary":[],"notes":["every handler must finish: use `for (i in FROM:TO)` with bounds made of numbers and params"]}

@@ -1,0 +1,1 @@
+params { int<lower=0> q = 1; } on_bar { target(q > 0 ? q : 0); } # no newline at end

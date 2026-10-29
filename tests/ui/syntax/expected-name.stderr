@@ -1,0 +1,6 @@
+error[expected-name]: expected an instrument name, found a number
+ --> tests/ui/syntax/expected-name.atls:2:3
+  |
+2 |   1;
+  |   ^ expected an instrument name
+

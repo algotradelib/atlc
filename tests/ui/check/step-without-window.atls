@@ -1,0 +1,7 @@
+indicator f(real x) {
+  state real s = 0;
+  enter(v) { s = s + v; }
+  leave(v) { s = s - v; }
+  value real total = s;
+}
+on_bar { target(1); }

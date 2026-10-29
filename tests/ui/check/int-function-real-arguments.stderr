@@ -1,0 +1,7 @@
+error[int-function-real-arguments]: a function returning `int` takes `int` arguments only
+ --> tests/ui/check/int-function-real-arguments.atls:2:7
+  |
+2 |   int f(real x) { return 1; }
+  |       ^ here
+  = an undefined real argument would make an undefined `int`; return `real` and use `round` or `floor`
+

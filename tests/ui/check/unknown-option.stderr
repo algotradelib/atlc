@@ -1,0 +1,7 @@
+error[unknown-option]: unknown option `fill`
+ --> tests/ui/check/unknown-option.atls:2:3
+  |
+2 |   fill = next;
+  |   ^^^^ not an option
+  = options: missing = restart | skip | poison
+

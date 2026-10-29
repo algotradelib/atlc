@@ -1,0 +1,1 @@
+{"severity":"error","code":"target-needs-instrument","message":"which instrument's target?","file":"tests/ui/check/target-needs-instrument.atls","span":{"start":{"line":3,"column":10},"end":{"line":3,"column":34},"byte_start":70,"byte_end":94},"label":"the program names its instruments","secondary":[],"notes":["write `target(y, shares);`"]}

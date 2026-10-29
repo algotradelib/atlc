@@ -1,0 +1,4 @@
+indicator f(real x) {
+  window w[3];
+  value real v = w.size;
+}

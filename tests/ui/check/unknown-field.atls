@@ -1,0 +1,7 @@
+state {
+  real f = 0;
+}
+on_bar { target(1); }
+on_fill {
+  f = fill.time;
+}

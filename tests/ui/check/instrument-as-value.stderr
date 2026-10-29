@@ -1,0 +1,7 @@
+error[instrument-as-value]: `y` is an instrument
+ --> tests/ui/check/instrument-as-value.atls:3:13
+  |
+3 |   target(y, y);
+  |             ^ read one of its fields
+  = write `y.close` or `y.held`
+

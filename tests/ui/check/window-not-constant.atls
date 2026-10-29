@@ -1,0 +1,8 @@
+indicator f(real x, int n) {
+  window w[abs(n)];
+  value real v = x;
+}
+series {
+  real a = f(close, 3);
+}
+on_bar { target(a); }

@@ -1,0 +1,7 @@
+params {
+  int n = 1;
+}
+state {
+  int n = 0;
+}
+on_bar { target(1); }

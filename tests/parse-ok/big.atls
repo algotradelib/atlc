@@ -1,0 +1,4536 @@
+# Every construct the grammar has, for comparing parsers' trees.
+params {
+  int<lower=1> fast = 3;
+  int<lower=fast + 1, upper=fast * 10 - 2> slow = 20;
+  real<upper=1e3> cap = 1.5e2;
+  real<lower=-1> skew = -.5;
+  bool short = false;
+  int plain = 0;
+}
+warmup (slow + 1) * 2;
+series {
+  real s0 = sma(close, 1) * 2 - ema(close, fast)[0];
+  real s1 = sma(close, 2) * 2 - ema(close, fast)[1];
+  real s2 = sma(close, 3) * 2 - ema(close, fast)[2];
+  real s3 = sma(close, 4) * 2 - ema(close, fast)[3];
+  real s4 = sma(close, 5) * 2 - ema(close, fast)[4];
+  real s5 = sma(close, 6) * 2 - ema(close, fast)[0];
+  real s6 = sma(close, 7) * 2 - ema(close, fast)[1];
+  real s7 = sma(close, 8) * 2 - ema(close, fast)[2];
+  real s8 = sma(close, 9) * 2 - ema(close, fast)[3];
+  real s9 = sma(close, 10) * 2 - ema(close, fast)[4];
+  real s10 = sma(close, 11) * 2 - ema(close, fast)[0];
+  real s11 = sma(close, 12) * 2 - ema(close, fast)[1];
+  real s12 = sma(close, 13) * 2 - ema(close, fast)[2];
+  real s13 = sma(close, 14) * 2 - ema(close, fast)[3];
+  real s14 = sma(close, 15) * 2 - ema(close, fast)[4];
+  real s15 = sma(close, 16) * 2 - ema(close, fast)[0];
+  real s16 = sma(close, 17) * 2 - ema(close, fast)[1];
+  real s17 = sma(close, 18) * 2 - ema(close, fast)[2];
+  real s18 = sma(close, 19) * 2 - ema(close, fast)[3];
+  real s19 = sma(close, 20) * 2 - ema(close, fast)[4];
+  real s20 = sma(close, 21) * 2 - ema(close, fast)[0];
+  real s21 = sma(close, 22) * 2 - ema(close, fast)[1];
+  real s22 = sma(close, 23) * 2 - ema(close, fast)[2];
+  real s23 = sma(close, 24) * 2 - ema(close, fast)[3];
+  real s24 = sma(close, 25) * 2 - ema(close, fast)[4];
+  real s25 = sma(close, 26) * 2 - ema(close, fast)[0];
+  real s26 = sma(close, 27) * 2 - ema(close, fast)[1];
+  real s27 = sma(close, 28) * 2 - ema(close, fast)[2];
+  real s28 = sma(close, 29) * 2 - ema(close, fast)[3];
+  real s29 = sma(close, 30) * 2 - ema(close, fast)[4];
+  real s30 = sma(close, 31) * 2 - ema(close, fast)[0];
+  real s31 = sma(close, 32) * 2 - ema(close, fast)[1];
+  real s32 = sma(close, 33) * 2 - ema(close, fast)[2];
+  real s33 = sma(close, 34) * 2 - ema(close, fast)[3];
+  real s34 = sma(close, 35) * 2 - ema(close, fast)[4];
+  real s35 = sma(close, 36) * 2 - ema(close, fast)[0];
+  real s36 = sma(close, 37) * 2 - ema(close, fast)[1];
+  real s37 = sma(close, 38) * 2 - ema(close, fast)[2];
+  real s38 = sma(close, 39) * 2 - ema(close, fast)[3];
+  real s39 = sma(close, 40) * 2 - ema(close, fast)[4];
+  real s40 = sma(close, 41) * 2 - ema(close, fast)[0];
+  real s41 = sma(close, 42) * 2 - ema(close, fast)[1];
+  real s42 = sma(close, 43) * 2 - ema(close, fast)[2];
+  real s43 = sma(close, 44) * 2 - ema(close, fast)[3];
+  real s44 = sma(close, 45) * 2 - ema(close, fast)[4];
+  real s45 = sma(close, 46) * 2 - ema(close, fast)[0];
+  real s46 = sma(close, 47) * 2 - ema(close, fast)[1];
+  real s47 = sma(close, 48) * 2 - ema(close, fast)[2];
+  real s48 = sma(close, 49) * 2 - ema(close, fast)[3];
+  real s49 = sma(close, 50) * 2 - ema(close, fast)[4];
+  real s50 = sma(close, 1) * 2 - ema(close, fast)[0];
+  real s51 = sma(close, 2) * 2 - ema(close, fast)[1];
+  real s52 = sma(close, 3) * 2 - ema(close, fast)[2];
+  real s53 = sma(close, 4) * 2 - ema(close, fast)[3];
+  real s54 = sma(close, 5) * 2 - ema(close, fast)[4];
+  real s55 = sma(close, 6) * 2 - ema(close, fast)[0];
+  real s56 = sma(close, 7) * 2 - ema(close, fast)[1];
+  real s57 = sma(close, 8) * 2 - ema(close, fast)[2];
+  real s58 = sma(close, 9) * 2 - ema(close, fast)[3];
+  real s59 = sma(close, 10) * 2 - ema(close, fast)[4];
+  real s60 = sma(close, 11) * 2 - ema(close, fast)[0];
+  real s61 = sma(close, 12) * 2 - ema(close, fast)[1];
+  real s62 = sma(close, 13) * 2 - ema(close, fast)[2];
+  real s63 = sma(close, 14) * 2 - ema(close, fast)[3];
+  real s64 = sma(close, 15) * 2 - ema(close, fast)[4];
+  real s65 = sma(close, 16) * 2 - ema(close, fast)[0];
+  real s66 = sma(close, 17) * 2 - ema(close, fast)[1];
+  real s67 = sma(close, 18) * 2 - ema(close, fast)[2];
+  real s68 = sma(close, 19) * 2 - ema(close, fast)[3];
+  real s69 = sma(close, 20) * 2 - ema(close, fast)[4];
+  real s70 = sma(close, 21) * 2 - ema(close, fast)[0];
+  real s71 = sma(close, 22) * 2 - ema(close, fast)[1];
+  real s72 = sma(close, 23) * 2 - ema(close, fast)[2];
+  real s73 = sma(close, 24) * 2 - ema(close, fast)[3];
+  real s74 = sma(close, 25) * 2 - ema(close, fast)[4];
+  real s75 = sma(close, 26) * 2 - ema(close, fast)[0];
+  real s76 = sma(close, 27) * 2 - ema(close, fast)[1];
+  real s77 = sma(close, 28) * 2 - ema(close, fast)[2];
+  real s78 = sma(close, 29) * 2 - ema(close, fast)[3];
+  real s79 = sma(close, 30) * 2 - ema(close, fast)[4];
+  real s80 = sma(close, 31) * 2 - ema(close, fast)[0];
+  real s81 = sma(close, 32) * 2 - ema(close, fast)[1];
+  real s82 = sma(close, 33) * 2 - ema(close, fast)[2];
+  real s83 = sma(close, 34) * 2 - ema(close, fast)[3];
+  real s84 = sma(close, 35) * 2 - ema(close, fast)[4];
+  real s85 = sma(close, 36) * 2 - ema(close, fast)[0];
+  real s86 = sma(close, 37) * 2 - ema(close, fast)[1];
+  real s87 = sma(close, 38) * 2 - ema(close, fast)[2];
+  real s88 = sma(close, 39) * 2 - ema(close, fast)[3];
+  real s89 = sma(close, 40) * 2 - ema(close, fast)[4];
+  real s90 = sma(close, 41) * 2 - ema(close, fast)[0];
+  real s91 = sma(close, 42) * 2 - ema(close, fast)[1];
+  real s92 = sma(close, 43) * 2 - ema(close, fast)[2];
+  real s93 = sma(close, 44) * 2 - ema(close, fast)[3];
+  real s94 = sma(close, 45) * 2 - ema(close, fast)[4];
+  real s95 = sma(close, 46) * 2 - ema(close, fast)[0];
+  real s96 = sma(close, 47) * 2 - ema(close, fast)[1];
+  real s97 = sma(close, 48) * 2 - ema(close, fast)[2];
+  real s98 = sma(close, 49) * 2 - ema(close, fast)[3];
+  real s99 = sma(close, 50) * 2 - ema(close, fast)[4];
+  real s100 = sma(close, 1) * 2 - ema(close, fast)[0];
+  real s101 = sma(close, 2) * 2 - ema(close, fast)[1];
+  real s102 = sma(close, 3) * 2 - ema(close, fast)[2];
+  real s103 = sma(close, 4) * 2 - ema(close, fast)[3];
+  real s104 = sma(close, 5) * 2 - ema(close, fast)[4];
+  real s105 = sma(close, 6) * 2 - ema(close, fast)[0];
+  real s106 = sma(close, 7) * 2 - ema(close, fast)[1];
+  real s107 = sma(close, 8) * 2 - ema(close, fast)[2];
+  real s108 = sma(close, 9) * 2 - ema(close, fast)[3];
+  real s109 = sma(close, 10) * 2 - ema(close, fast)[4];
+  real s110 = sma(close, 11) * 2 - ema(close, fast)[0];
+  real s111 = sma(close, 12) * 2 - ema(close, fast)[1];
+  real s112 = sma(close, 13) * 2 - ema(close, fast)[2];
+  real s113 = sma(close, 14) * 2 - ema(close, fast)[3];
+  real s114 = sma(close, 15) * 2 - ema(close, fast)[4];
+  real s115 = sma(close, 16) * 2 - ema(close, fast)[0];
+  real s116 = sma(close, 17) * 2 - ema(close, fast)[1];
+  real s117 = sma(close, 18) * 2 - ema(close, fast)[2];
+  real s118 = sma(close, 19) * 2 - ema(close, fast)[3];
+  real s119 = sma(close, 20) * 2 - ema(close, fast)[4];
+  real s120 = sma(close, 21) * 2 - ema(close, fast)[0];
+  real s121 = sma(close, 22) * 2 - ema(close, fast)[1];
+  real s122 = sma(close, 23) * 2 - ema(close, fast)[2];
+  real s123 = sma(close, 24) * 2 - ema(close, fast)[3];
+  real s124 = sma(close, 25) * 2 - ema(close, fast)[4];
+  real s125 = sma(close, 26) * 2 - ema(close, fast)[0];
+  real s126 = sma(close, 27) * 2 - ema(close, fast)[1];
+  real s127 = sma(close, 28) * 2 - ema(close, fast)[2];
+  real s128 = sma(close, 29) * 2 - ema(close, fast)[3];
+  real s129 = sma(close, 30) * 2 - ema(close, fast)[4];
+  real s130 = sma(close, 31) * 2 - ema(close, fast)[0];
+  real s131 = sma(close, 32) * 2 - ema(close, fast)[1];
+  real s132 = sma(close, 33) * 2 - ema(close, fast)[2];
+  real s133 = sma(close, 34) * 2 - ema(close, fast)[3];
+  real s134 = sma(close, 35) * 2 - ema(close, fast)[4];
+  real s135 = sma(close, 36) * 2 - ema(close, fast)[0];
+  real s136 = sma(close, 37) * 2 - ema(close, fast)[1];
+  real s137 = sma(close, 38) * 2 - ema(close, fast)[2];
+  real s138 = sma(close, 39) * 2 - ema(close, fast)[3];
+  real s139 = sma(close, 40) * 2 - ema(close, fast)[4];
+  real s140 = sma(close, 41) * 2 - ema(close, fast)[0];
+  real s141 = sma(close, 42) * 2 - ema(close, fast)[1];
+  real s142 = sma(close, 43) * 2 - ema(close, fast)[2];
+  real s143 = sma(close, 44) * 2 - ema(close, fast)[3];
+  real s144 = sma(close, 45) * 2 - ema(close, fast)[4];
+  real s145 = sma(close, 46) * 2 - ema(close, fast)[0];
+  real s146 = sma(close, 47) * 2 - ema(close, fast)[1];
+  real s147 = sma(close, 48) * 2 - ema(close, fast)[2];
+  real s148 = sma(close, 49) * 2 - ema(close, fast)[3];
+  real s149 = sma(close, 50) * 2 - ema(close, fast)[4];
+  real s150 = sma(close, 1) * 2 - ema(close, fast)[0];
+  real s151 = sma(close, 2) * 2 - ema(close, fast)[1];
+  real s152 = sma(close, 3) * 2 - ema(close, fast)[2];
+  real s153 = sma(close, 4) * 2 - ema(close, fast)[3];
+  real s154 = sma(close, 5) * 2 - ema(close, fast)[4];
+  real s155 = sma(close, 6) * 2 - ema(close, fast)[0];
+  real s156 = sma(close, 7) * 2 - ema(close, fast)[1];
+  real s157 = sma(close, 8) * 2 - ema(close, fast)[2];
+  real s158 = sma(close, 9) * 2 - ema(close, fast)[3];
+  real s159 = sma(close, 10) * 2 - ema(close, fast)[4];
+  real s160 = sma(close, 11) * 2 - ema(close, fast)[0];
+  real s161 = sma(close, 12) * 2 - ema(close, fast)[1];
+  real s162 = sma(close, 13) * 2 - ema(close, fast)[2];
+  real s163 = sma(close, 14) * 2 - ema(close, fast)[3];
+  real s164 = sma(close, 15) * 2 - ema(close, fast)[4];
+  real s165 = sma(close, 16) * 2 - ema(close, fast)[0];
+  real s166 = sma(close, 17) * 2 - ema(close, fast)[1];
+  real s167 = sma(close, 18) * 2 - ema(close, fast)[2];
+  real s168 = sma(close, 19) * 2 - ema(close, fast)[3];
+  real s169 = sma(close, 20) * 2 - ema(close, fast)[4];
+  real s170 = sma(close, 21) * 2 - ema(close, fast)[0];
+  real s171 = sma(close, 22) * 2 - ema(close, fast)[1];
+  real s172 = sma(close, 23) * 2 - ema(close, fast)[2];
+  real s173 = sma(close, 24) * 2 - ema(close, fast)[3];
+  real s174 = sma(close, 25) * 2 - ema(close, fast)[4];
+  real s175 = sma(close, 26) * 2 - ema(close, fast)[0];
+  real s176 = sma(close, 27) * 2 - ema(close, fast)[1];
+  real s177 = sma(close, 28) * 2 - ema(close, fast)[2];
+  real s178 = sma(close, 29) * 2 - ema(close, fast)[3];
+  real s179 = sma(close, 30) * 2 - ema(close, fast)[4];
+  real s180 = sma(close, 31) * 2 - ema(close, fast)[0];
+  real s181 = sma(close, 32) * 2 - ema(close, fast)[1];
+  real s182 = sma(close, 33) * 2 - ema(close, fast)[2];
+  real s183 = sma(close, 34) * 2 - ema(close, fast)[3];
+  real s184 = sma(close, 35) * 2 - ema(close, fast)[4];
+  real s185 = sma(close, 36) * 2 - ema(close, fast)[0];
+  real s186 = sma(close, 37) * 2 - ema(close, fast)[1];
+  real s187 = sma(close, 38) * 2 - ema(close, fast)[2];
+  real s188 = sma(close, 39) * 2 - ema(close, fast)[3];
+  real s189 = sma(close, 40) * 2 - ema(close, fast)[4];
+  real s190 = sma(close, 41) * 2 - ema(close, fast)[0];
+  real s191 = sma(close, 42) * 2 - ema(close, fast)[1];
+  real s192 = sma(close, 43) * 2 - ema(close, fast)[2];
+  real s193 = sma(close, 44) * 2 - ema(close, fast)[3];
+  real s194 = sma(close, 45) * 2 - ema(close, fast)[4];
+  real s195 = sma(close, 46) * 2 - ema(close, fast)[0];
+  real s196 = sma(close, 47) * 2 - ema(close, fast)[1];
+  real s197 = sma(close, 48) * 2 - ema(close, fast)[2];
+  real s198 = sma(close, 49) * 2 - ema(close, fast)[3];
+  real s199 = sma(close, 50) * 2 - ema(close, fast)[4];
+  real s200 = sma(close, 1) * 2 - ema(close, fast)[0];
+  real s201 = sma(close, 2) * 2 - ema(close, fast)[1];
+  real s202 = sma(close, 3) * 2 - ema(close, fast)[2];
+  real s203 = sma(close, 4) * 2 - ema(close, fast)[3];
+  real s204 = sma(close, 5) * 2 - ema(close, fast)[4];
+  real s205 = sma(close, 6) * 2 - ema(close, fast)[0];
+  real s206 = sma(close, 7) * 2 - ema(close, fast)[1];
+  real s207 = sma(close, 8) * 2 - ema(close, fast)[2];
+  real s208 = sma(close, 9) * 2 - ema(close, fast)[3];
+  real s209 = sma(close, 10) * 2 - ema(close, fast)[4];
+  real s210 = sma(close, 11) * 2 - ema(close, fast)[0];
+  real s211 = sma(close, 12) * 2 - ema(close, fast)[1];
+  real s212 = sma(close, 13) * 2 - ema(close, fast)[2];
+  real s213 = sma(close, 14) * 2 - ema(close, fast)[3];
+  real s214 = sma(close, 15) * 2 - ema(close, fast)[4];
+  real s215 = sma(close, 16) * 2 - ema(close, fast)[0];
+  real s216 = sma(close, 17) * 2 - ema(close, fast)[1];
+  real s217 = sma(close, 18) * 2 - ema(close, fast)[2];
+  real s218 = sma(close, 19) * 2 - ema(close, fast)[3];
+  real s219 = sma(close, 20) * 2 - ema(close, fast)[4];
+  real s220 = sma(close, 21) * 2 - ema(close, fast)[0];
+  real s221 = sma(close, 22) * 2 - ema(close, fast)[1];
+  real s222 = sma(close, 23) * 2 - ema(close, fast)[2];
+  real s223 = sma(close, 24) * 2 - ema(close, fast)[3];
+  real s224 = sma(close, 25) * 2 - ema(close, fast)[4];
+  real s225 = sma(close, 26) * 2 - ema(close, fast)[0];
+  real s226 = sma(close, 27) * 2 - ema(close, fast)[1];
+  real s227 = sma(close, 28) * 2 - ema(close, fast)[2];
+  real s228 = sma(close, 29) * 2 - ema(close, fast)[3];
+  real s229 = sma(close, 30) * 2 - ema(close, fast)[4];
+  real s230 = sma(close, 31) * 2 - ema(close, fast)[0];
+  real s231 = sma(close, 32) * 2 - ema(close, fast)[1];
+  real s232 = sma(close, 33) * 2 - ema(close, fast)[2];
+  real s233 = sma(close, 34) * 2 - ema(close, fast)[3];
+  real s234 = sma(close, 35) * 2 - ema(close, fast)[4];
+  real s235 = sma(close, 36) * 2 - ema(close, fast)[0];
+  real s236 = sma(close, 37) * 2 - ema(close, fast)[1];
+  real s237 = sma(close, 38) * 2 - ema(close, fast)[2];
+  real s238 = sma(close, 39) * 2 - ema(close, fast)[3];
+  real s239 = sma(close, 40) * 2 - ema(close, fast)[4];
+  real s240 = sma(close, 41) * 2 - ema(close, fast)[0];
+  real s241 = sma(close, 42) * 2 - ema(close, fast)[1];
+  real s242 = sma(close, 43) * 2 - ema(close, fast)[2];
+  real s243 = sma(close, 44) * 2 - ema(close, fast)[3];
+  real s244 = sma(close, 45) * 2 - ema(close, fast)[4];
+  real s245 = sma(close, 46) * 2 - ema(close, fast)[0];
+  real s246 = sma(close, 47) * 2 - ema(close, fast)[1];
+  real s247 = sma(close, 48) * 2 - ema(close, fast)[2];
+  real s248 = sma(close, 49) * 2 - ema(close, fast)[3];
+  real s249 = sma(close, 50) * 2 - ema(close, fast)[4];
+  real s250 = sma(close, 1) * 2 - ema(close, fast)[0];
+  real s251 = sma(close, 2) * 2 - ema(close, fast)[1];
+  real s252 = sma(close, 3) * 2 - ema(close, fast)[2];
+  real s253 = sma(close, 4) * 2 - ema(close, fast)[3];
+  real s254 = sma(close, 5) * 2 - ema(close, fast)[4];
+  real s255 = sma(close, 6) * 2 - ema(close, fast)[0];
+  real s256 = sma(close, 7) * 2 - ema(close, fast)[1];
+  real s257 = sma(close, 8) * 2 - ema(close, fast)[2];
+  real s258 = sma(close, 9) * 2 - ema(close, fast)[3];
+  real s259 = sma(close, 10) * 2 - ema(close, fast)[4];
+  real s260 = sma(close, 11) * 2 - ema(close, fast)[0];
+  real s261 = sma(close, 12) * 2 - ema(close, fast)[1];
+  real s262 = sma(close, 13) * 2 - ema(close, fast)[2];
+  real s263 = sma(close, 14) * 2 - ema(close, fast)[3];
+  real s264 = sma(close, 15) * 2 - ema(close, fast)[4];
+  real s265 = sma(close, 16) * 2 - ema(close, fast)[0];
+  real s266 = sma(close, 17) * 2 - ema(close, fast)[1];
+  real s267 = sma(close, 18) * 2 - ema(close, fast)[2];
+  real s268 = sma(close, 19) * 2 - ema(close, fast)[3];
+  real s269 = sma(close, 20) * 2 - ema(close, fast)[4];
+  real s270 = sma(close, 21) * 2 - ema(close, fast)[0];
+  real s271 = sma(close, 22) * 2 - ema(close, fast)[1];
+  real s272 = sma(close, 23) * 2 - ema(close, fast)[2];
+  real s273 = sma(close, 24) * 2 - ema(close, fast)[3];
+  real s274 = sma(close, 25) * 2 - ema(close, fast)[4];
+  real s275 = sma(close, 26) * 2 - ema(close, fast)[0];
+  real s276 = sma(close, 27) * 2 - ema(close, fast)[1];
+  real s277 = sma(close, 28) * 2 - ema(close, fast)[2];
+  real s278 = sma(close, 29) * 2 - ema(close, fast)[3];
+  real s279 = sma(close, 30) * 2 - ema(close, fast)[4];
+  real s280 = sma(close, 31) * 2 - ema(close, fast)[0];
+  real s281 = sma(close, 32) * 2 - ema(close, fast)[1];
+  real s282 = sma(close, 33) * 2 - ema(close, fast)[2];
+  real s283 = sma(close, 34) * 2 - ema(close, fast)[3];
+  real s284 = sma(close, 35) * 2 - ema(close, fast)[4];
+  real s285 = sma(close, 36) * 2 - ema(close, fast)[0];
+  real s286 = sma(close, 37) * 2 - ema(close, fast)[1];
+  real s287 = sma(close, 38) * 2 - ema(close, fast)[2];
+  real s288 = sma(close, 39) * 2 - ema(close, fast)[3];
+  real s289 = sma(close, 40) * 2 - ema(close, fast)[4];
+  real s290 = sma(close, 41) * 2 - ema(close, fast)[0];
+  real s291 = sma(close, 42) * 2 - ema(close, fast)[1];
+  real s292 = sma(close, 43) * 2 - ema(close, fast)[2];
+  real s293 = sma(close, 44) * 2 - ema(close, fast)[3];
+  real s294 = sma(close, 45) * 2 - ema(close, fast)[4];
+  real s295 = sma(close, 46) * 2 - ema(close, fast)[0];
+  real s296 = sma(close, 47) * 2 - ema(close, fast)[1];
+  real s297 = sma(close, 48) * 2 - ema(close, fast)[2];
+  real s298 = sma(close, 49) * 2 - ema(close, fast)[3];
+  real s299 = sma(close, 50) * 2 - ema(close, fast)[4];
+  real s300 = sma(close, 1) * 2 - ema(close, fast)[0];
+  real s301 = sma(close, 2) * 2 - ema(close, fast)[1];
+  real s302 = sma(close, 3) * 2 - ema(close, fast)[2];
+  real s303 = sma(close, 4) * 2 - ema(close, fast)[3];
+  real s304 = sma(close, 5) * 2 - ema(close, fast)[4];
+  real s305 = sma(close, 6) * 2 - ema(close, fast)[0];
+  real s306 = sma(close, 7) * 2 - ema(close, fast)[1];
+  real s307 = sma(close, 8) * 2 - ema(close, fast)[2];
+  real s308 = sma(close, 9) * 2 - ema(close, fast)[3];
+  real s309 = sma(close, 10) * 2 - ema(close, fast)[4];
+  real s310 = sma(close, 11) * 2 - ema(close, fast)[0];
+  real s311 = sma(close, 12) * 2 - ema(close, fast)[1];
+  real s312 = sma(close, 13) * 2 - ema(close, fast)[2];
+  real s313 = sma(close, 14) * 2 - ema(close, fast)[3];
+  real s314 = sma(close, 15) * 2 - ema(close, fast)[4];
+  real s315 = sma(close, 16) * 2 - ema(close, fast)[0];
+  real s316 = sma(close, 17) * 2 - ema(close, fast)[1];
+  real s317 = sma(close, 18) * 2 - ema(close, fast)[2];
+  real s318 = sma(close, 19) * 2 - ema(close, fast)[3];
+  real s319 = sma(close, 20) * 2 - ema(close, fast)[4];
+  real s320 = sma(close, 21) * 2 - ema(close, fast)[0];
+  real s321 = sma(close, 22) * 2 - ema(close, fast)[1];
+  real s322 = sma(close, 23) * 2 - ema(close, fast)[2];
+  real s323 = sma(close, 24) * 2 - ema(close, fast)[3];
+  real s324 = sma(close, 25) * 2 - ema(close, fast)[4];
+  real s325 = sma(close, 26) * 2 - ema(close, fast)[0];
+  real s326 = sma(close, 27) * 2 - ema(close, fast)[1];
+  real s327 = sma(close, 28) * 2 - ema(close, fast)[2];
+  real s328 = sma(close, 29) * 2 - ema(close, fast)[3];
+  real s329 = sma(close, 30) * 2 - ema(close, fast)[4];
+  real s330 = sma(close, 31) * 2 - ema(close, fast)[0];
+  real s331 = sma(close, 32) * 2 - ema(close, fast)[1];
+  real s332 = sma(close, 33) * 2 - ema(close, fast)[2];
+  real s333 = sma(close, 34) * 2 - ema(close, fast)[3];
+  real s334 = sma(close, 35) * 2 - ema(close, fast)[4];
+  real s335 = sma(close, 36) * 2 - ema(close, fast)[0];
+  real s336 = sma(close, 37) * 2 - ema(close, fast)[1];
+  real s337 = sma(close, 38) * 2 - ema(close, fast)[2];
+  real s338 = sma(close, 39) * 2 - ema(close, fast)[3];
+  real s339 = sma(close, 40) * 2 - ema(close, fast)[4];
+  real s340 = sma(close, 41) * 2 - ema(close, fast)[0];
+  real s341 = sma(close, 42) * 2 - ema(close, fast)[1];
+  real s342 = sma(close, 43) * 2 - ema(close, fast)[2];
+  real s343 = sma(close, 44) * 2 - ema(close, fast)[3];
+  real s344 = sma(close, 45) * 2 - ema(close, fast)[4];
+  real s345 = sma(close, 46) * 2 - ema(close, fast)[0];
+  real s346 = sma(close, 47) * 2 - ema(close, fast)[1];
+  real s347 = sma(close, 48) * 2 - ema(close, fast)[2];
+  real s348 = sma(close, 49) * 2 - ema(close, fast)[3];
+  real s349 = sma(close, 50) * 2 - ema(close, fast)[4];
+  real s350 = sma(close, 1) * 2 - ema(close, fast)[0];
+  real s351 = sma(close, 2) * 2 - ema(close, fast)[1];
+  real s352 = sma(close, 3) * 2 - ema(close, fast)[2];
+  real s353 = sma(close, 4) * 2 - ema(close, fast)[3];
+  real s354 = sma(close, 5) * 2 - ema(close, fast)[4];
+  real s355 = sma(close, 6) * 2 - ema(close, fast)[0];
+  real s356 = sma(close, 7) * 2 - ema(close, fast)[1];
+  real s357 = sma(close, 8) * 2 - ema(close, fast)[2];
+  real s358 = sma(close, 9) * 2 - ema(close, fast)[3];
+  real s359 = sma(close, 10) * 2 - ema(close, fast)[4];
+  real s360 = sma(close, 11) * 2 - ema(close, fast)[0];
+  real s361 = sma(close, 12) * 2 - ema(close, fast)[1];
+  real s362 = sma(close, 13) * 2 - ema(close, fast)[2];
+  real s363 = sma(close, 14) * 2 - ema(close, fast)[3];
+  real s364 = sma(close, 15) * 2 - ema(close, fast)[4];
+  real s365 = sma(close, 16) * 2 - ema(close, fast)[0];
+  real s366 = sma(close, 17) * 2 - ema(close, fast)[1];
+  real s367 = sma(close, 18) * 2 - ema(close, fast)[2];
+  real s368 = sma(close, 19) * 2 - ema(close, fast)[3];
+  real s369 = sma(close, 20) * 2 - ema(close, fast)[4];
+  real s370 = sma(close, 21) * 2 - ema(close, fast)[0];
+  real s371 = sma(close, 22) * 2 - ema(close, fast)[1];
+  real s372 = sma(close, 23) * 2 - ema(close, fast)[2];
+  real s373 = sma(close, 24) * 2 - ema(close, fast)[3];
+  real s374 = sma(close, 25) * 2 - ema(close, fast)[4];
+  real s375 = sma(close, 26) * 2 - ema(close, fast)[0];
+  real s376 = sma(close, 27) * 2 - ema(close, fast)[1];
+  real s377 = sma(close, 28) * 2 - ema(close, fast)[2];
+  real s378 = sma(close, 29) * 2 - ema(close, fast)[3];
+  real s379 = sma(close, 30) * 2 - ema(close, fast)[4];
+  real s380 = sma(close, 31) * 2 - ema(close, fast)[0];
+  real s381 = sma(close, 32) * 2 - ema(close, fast)[1];
+  real s382 = sma(close, 33) * 2 - ema(close, fast)[2];
+  real s383 = sma(close, 34) * 2 - ema(close, fast)[3];
+  real s384 = sma(close, 35) * 2 - ema(close, fast)[4];
+  real s385 = sma(close, 36) * 2 - ema(close, fast)[0];
+  real s386 = sma(close, 37) * 2 - ema(close, fast)[1];
+  real s387 = sma(close, 38) * 2 - ema(close, fast)[2];
+  real s388 = sma(close, 39) * 2 - ema(close, fast)[3];
+  real s389 = sma(close, 40) * 2 - ema(close, fast)[4];
+  real s390 = sma(close, 41) * 2 - ema(close, fast)[0];
+  real s391 = sma(close, 42) * 2 - ema(close, fast)[1];
+  real s392 = sma(close, 43) * 2 - ema(close, fast)[2];
+  real s393 = sma(close, 44) * 2 - ema(close, fast)[3];
+  real s394 = sma(close, 45) * 2 - ema(close, fast)[4];
+  real s395 = sma(close, 46) * 2 - ema(close, fast)[0];
+  real s396 = sma(close, 47) * 2 - ema(close, fast)[1];
+  real s397 = sma(close, 48) * 2 - ema(close, fast)[2];
+  real s398 = sma(close, 49) * 2 - ema(close, fast)[3];
+  real s399 = sma(close, 50) * 2 - ema(close, fast)[4];
+  real s400 = sma(close, 1) * 2 - ema(close, fast)[0];
+  real s401 = sma(close, 2) * 2 - ema(close, fast)[1];
+  real s402 = sma(close, 3) * 2 - ema(close, fast)[2];
+  real s403 = sma(close, 4) * 2 - ema(close, fast)[3];
+  real s404 = sma(close, 5) * 2 - ema(close, fast)[4];
+  real s405 = sma(close, 6) * 2 - ema(close, fast)[0];
+  real s406 = sma(close, 7) * 2 - ema(close, fast)[1];
+  real s407 = sma(close, 8) * 2 - ema(close, fast)[2];
+  real s408 = sma(close, 9) * 2 - ema(close, fast)[3];
+  real s409 = sma(close, 10) * 2 - ema(close, fast)[4];
+  real s410 = sma(close, 11) * 2 - ema(close, fast)[0];
+  real s411 = sma(close, 12) * 2 - ema(close, fast)[1];
+  real s412 = sma(close, 13) * 2 - ema(close, fast)[2];
+  real s413 = sma(close, 14) * 2 - ema(close, fast)[3];
+  real s414 = sma(close, 15) * 2 - ema(close, fast)[4];
+  real s415 = sma(close, 16) * 2 - ema(close, fast)[0];
+  real s416 = sma(close, 17) * 2 - ema(close, fast)[1];
+  real s417 = sma(close, 18) * 2 - ema(close, fast)[2];
+  real s418 = sma(close, 19) * 2 - ema(close, fast)[3];
+  real s419 = sma(close, 20) * 2 - ema(close, fast)[4];
+  real s420 = sma(close, 21) * 2 - ema(close, fast)[0];
+  real s421 = sma(close, 22) * 2 - ema(close, fast)[1];
+  real s422 = sma(close, 23) * 2 - ema(close, fast)[2];
+  real s423 = sma(close, 24) * 2 - ema(close, fast)[3];
+  real s424 = sma(close, 25) * 2 - ema(close, fast)[4];
+  real s425 = sma(close, 26) * 2 - ema(close, fast)[0];
+  real s426 = sma(close, 27) * 2 - ema(close, fast)[1];
+  real s427 = sma(close, 28) * 2 - ema(close, fast)[2];
+  real s428 = sma(close, 29) * 2 - ema(close, fast)[3];
+  real s429 = sma(close, 30) * 2 - ema(close, fast)[4];
+  real s430 = sma(close, 31) * 2 - ema(close, fast)[0];
+  real s431 = sma(close, 32) * 2 - ema(close, fast)[1];
+  real s432 = sma(close, 33) * 2 - ema(close, fast)[2];
+  real s433 = sma(close, 34) * 2 - ema(close, fast)[3];
+  real s434 = sma(close, 35) * 2 - ema(close, fast)[4];
+  real s435 = sma(close, 36) * 2 - ema(close, fast)[0];
+  real s436 = sma(close, 37) * 2 - ema(close, fast)[1];
+  real s437 = sma(close, 38) * 2 - ema(close, fast)[2];
+  real s438 = sma(close, 39) * 2 - ema(close, fast)[3];
+  real s439 = sma(close, 40) * 2 - ema(close, fast)[4];
+  real s440 = sma(close, 41) * 2 - ema(close, fast)[0];
+  real s441 = sma(close, 42) * 2 - ema(close, fast)[1];
+  real s442 = sma(close, 43) * 2 - ema(close, fast)[2];
+  real s443 = sma(close, 44) * 2 - ema(close, fast)[3];
+  real s444 = sma(close, 45) * 2 - ema(close, fast)[4];
+  real s445 = sma(close, 46) * 2 - ema(close, fast)[0];
+  real s446 = sma(close, 47) * 2 - ema(close, fast)[1];
+  real s447 = sma(close, 48) * 2 - ema(close, fast)[2];
+  real s448 = sma(close, 49) * 2 - ema(close, fast)[3];
+  real s449 = sma(close, 50) * 2 - ema(close, fast)[4];
+  real s450 = sma(close, 1) * 2 - ema(close, fast)[0];
+  real s451 = sma(close, 2) * 2 - ema(close, fast)[1];
+  real s452 = sma(close, 3) * 2 - ema(close, fast)[2];
+  real s453 = sma(close, 4) * 2 - ema(close, fast)[3];
+  real s454 = sma(close, 5) * 2 - ema(close, fast)[4];
+  real s455 = sma(close, 6) * 2 - ema(close, fast)[0];
+  real s456 = sma(close, 7) * 2 - ema(close, fast)[1];
+  real s457 = sma(close, 8) * 2 - ema(close, fast)[2];
+  real s458 = sma(close, 9) * 2 - ema(close, fast)[3];
+  real s459 = sma(close, 10) * 2 - ema(close, fast)[4];
+  real s460 = sma(close, 11) * 2 - ema(close, fast)[0];
+  real s461 = sma(close, 12) * 2 - ema(close, fast)[1];
+  real s462 = sma(close, 13) * 2 - ema(close, fast)[2];
+  real s463 = sma(close, 14) * 2 - ema(close, fast)[3];
+  real s464 = sma(close, 15) * 2 - ema(close, fast)[4];
+  real s465 = sma(close, 16) * 2 - ema(close, fast)[0];
+  real s466 = sma(close, 17) * 2 - ema(close, fast)[1];
+  real s467 = sma(close, 18) * 2 - ema(close, fast)[2];
+  real s468 = sma(close, 19) * 2 - ema(close, fast)[3];
+  real s469 = sma(close, 20) * 2 - ema(close, fast)[4];
+  real s470 = sma(close, 21) * 2 - ema(close, fast)[0];
+  real s471 = sma(close, 22) * 2 - ema(close, fast)[1];
+  real s472 = sma(close, 23) * 2 - ema(close, fast)[2];
+  real s473 = sma(close, 24) * 2 - ema(close, fast)[3];
+  real s474 = sma(close, 25) * 2 - ema(close, fast)[4];
+  real s475 = sma(close, 26) * 2 - ema(close, fast)[0];
+  real s476 = sma(close, 27) * 2 - ema(close, fast)[1];
+  real s477 = sma(close, 28) * 2 - ema(close, fast)[2];
+  real s478 = sma(close, 29) * 2 - ema(close, fast)[3];
+  real s479 = sma(close, 30) * 2 - ema(close, fast)[4];
+  real s480 = sma(close, 31) * 2 - ema(close, fast)[0];
+  real s481 = sma(close, 32) * 2 - ema(close, fast)[1];
+  real s482 = sma(close, 33) * 2 - ema(close, fast)[2];
+  real s483 = sma(close, 34) * 2 - ema(close, fast)[3];
+  real s484 = sma(close, 35) * 2 - ema(close, fast)[4];
+  real s485 = sma(close, 36) * 2 - ema(close, fast)[0];
+  real s486 = sma(close, 37) * 2 - ema(close, fast)[1];
+  real s487 = sma(close, 38) * 2 - ema(close, fast)[2];
+  real s488 = sma(close, 39) * 2 - ema(close, fast)[3];
+  real s489 = sma(close, 40) * 2 - ema(close, fast)[4];
+  real s490 = sma(close, 41) * 2 - ema(close, fast)[0];
+  real s491 = sma(close, 42) * 2 - ema(close, fast)[1];
+  real s492 = sma(close, 43) * 2 - ema(close, fast)[2];
+  real s493 = sma(close, 44) * 2 - ema(close, fast)[3];
+  real s494 = sma(close, 45) * 2 - ema(close, fast)[4];
+  real s495 = sma(close, 46) * 2 - ema(close, fast)[0];
+  real s496 = sma(close, 47) * 2 - ema(close, fast)[1];
+  real s497 = sma(close, 48) * 2 - ema(close, fast)[2];
+  real s498 = sma(close, 49) * 2 - ema(close, fast)[3];
+  real s499 = sma(close, 50) * 2 - ema(close, fast)[4];
+  real a = sma(close, fast);
+  real b = ema(close, slow) / 2.0;
+  real lagged = a[1] - a[fast - 1];   // C-style comment
+  bool up = not (a < b) and true or close >= open;
+  real nested = close[1][2];
+}
+state {
+  int count = 0;
+  real last = 0.5;
+  bool armed = true;
+}
+on_start {
+  count = 0;
+}
+on_bar {
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+  real x = -a + - -b * 3;
+  int k = held != 0 ? 1 : held == 0 ? 2 : 3;
+  for (i in 1:fast + 1) {
+    count = count + i;
+  }
+  if (up and not armed) {
+    target(quantity());
+  } else if (close <= b or (a > b and close > a)) {
+    target(0);
+  } else if (not not armed) {
+    armed = false;
+  } else {
+    log(x, k, -1);
+  }
+  if (x > 0) {
+    noop();
+  }
+  last = .25 * (1 - last) + 1e-3 + 2E+2 / 4;
+  target;
+  f(target);
+}
+on_fill {
+  last = fill.price;
+  count = fill.quantity[1] + -fill.price;
+}
+on_stop {
+  while (count > 0) {
+    count = count - 1;
+  }
+}

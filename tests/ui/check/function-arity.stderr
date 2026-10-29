@@ -1,0 +1,6 @@
+error[function-arity]: `abs` takes 1 argument(s)
+ --> tests/ui/check/function-arity.atls:2:10
+  |
+2 |   target(abs(close, 1));
+  |          ^^^^^^^^^^^^^ 2 given
+

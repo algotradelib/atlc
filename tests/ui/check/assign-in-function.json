@@ -1,0 +1,1 @@
+{"severity":"error","code":"assign-in-function","message":"cannot assign to `x` in `f`","file":"tests/ui/check/assign-in-function.atls","span":{"start":{"line":3,"column":5},"end":{"line":3,"column":6},"byte_start":35,"byte_end":36},"label":"not a state of this indicator","secondary":[],"notes":["a function is pure: it declares locals and returns a value"]}

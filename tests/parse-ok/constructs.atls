@@ -1,0 +1,64 @@
+# Every construct the grammar has; parsed only (dump-ast), not checked.
+// a C++-style comment
+params {
+  int<lower=1> fast = 20;            # trailing comment
+  int<lower=fast + 1> slow = 50;     // bounds stop before comparisons
+  real<lower=-1, upper=fast * 2 - 1> band = 0.5;
+  real<upper=10, lower=.5> scale = 1e3;
+  real<lower=(fast > 3 ? 1 : 0)> paren = 2E-3;
+  bool flag = true;
+  int plain = -3;
+}
+warmup slow + fast * 2;
+series {
+  real a = sma(close, fast);
+  real b = ema(close[1], slow) - a[2][1];
+  real c = -a + - -b / 2.5 * (close - open);
+  real lower = 1.;
+  bool up = not not (a > b) and a >= b or not a <= b;
+}
+state {
+  int n = 0;
+  real last = 0;
+  bool seen = false;
+}
+on_start {
+}
+on_bar {
+  int k = 3;
+  real x = a[k] + a[k + 1] * close[n - 1];
+  n = n + 1;
+  if (a > b) {
+    target(100);
+  } else if (a == b) {
+    if (flag) {
+      target(50);
+    } else {
+      target(fast > slow ? slow : fast);
+    }
+  } else if (a != b and not up) {
+    target(0);
+  } else {
+    target(-quantity);
+  }
+  for (i in 1:k + 2) {
+    last = last + a[i];
+  }
+  for (j in -k:n * 2) {
+    seen = true;
+  }
+  while (n < 10) {
+    n = n + 1;
+  }
+  log(a, b, c);
+  f();
+  target;
+  target + 1;
+  (target(1));
+  x = up ? a ? 1 : 2 : b > 0 ? 3 : 4;
+}
+on_fill {
+  last = fill.price;
+  seen = fill.quantity > 0 and target.x == 1;
+}
+on_stop {}

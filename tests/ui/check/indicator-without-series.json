@@ -1,0 +1,1 @@
+{"severity":"error","code":"indicator-without-series","message":"`f` takes no series","file":"tests/ui/check/indicator-without-series.atls","span":{"start":{"line":1,"column":11},"end":{"line":1,"column":12},"byte_start":10,"byte_end":11},"label":"no `real` argument","secondary":[],"notes":["an indicator follows at least one series; a computation on fixed values is a function"]}

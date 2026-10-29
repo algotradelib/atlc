@@ -1,0 +1,6 @@
+error[unknown-value]: `band` has no value `middle`
+ --> tests/ui/check/unknown-value.atls:6:24
+  |
+6 |   real z = band(close).middle;
+  |                        ^^^^^^ values: lower_band, upper_band
+

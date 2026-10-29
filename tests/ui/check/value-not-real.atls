@@ -1,0 +1,4 @@
+indicator f(real x) {
+  value int v = 1;
+}
+on_bar { target(1); }

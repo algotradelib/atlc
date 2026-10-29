@@ -1,0 +1,4 @@
+params {
+  int<upper=10> n = 20;
+}
+on_bar { target(n); }

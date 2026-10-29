@@ -1,0 +1,1 @@
+params{int<lower=0,upper=10>n=5;real<lower=0.1>r=.1;}series{real s=sma(close,n)+r*2-(1);}on_bar{if(s>close){target(n);}else{target(-n);}}

@@ -1,0 +1,7 @@
+error[user-indicator-in-handler]: a user indicator is read in `series {}`
+ --> tests/ui/check/user-indicator-in-handler.atls:6:10
+  |
+6 |   target(band(close).upper_band);
+  |          ^^^^^^^^^^^^^^^^^^^^^^ not here
+  = an indicator keeps the history of its input, so it must see every bar; under an `if` it would skip bars and change meaning
+

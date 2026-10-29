@@ -1,0 +1,2 @@
+series { real ret = close / close[1] - 1; }
+on_bar { target(ret > xs_mean(ret) ? 100 : 0); }

@@ -1,0 +1,1 @@
+{"severity":"error","code":"no-fields","message":"`close` has no fields","file":"tests/ui/check/no-fields.atls","span":{"start":{"line":2,"column":10},"end":{"line":2,"column":21},"byte_start":18,"byte_end":29},"label":"only `fill.*` has fields","secondary":[],"notes":[]}

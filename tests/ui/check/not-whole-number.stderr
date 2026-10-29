@@ -1,0 +1,6 @@
+error[not-whole-number]: `sma`'s window is a whole number of bars
+ --> tests/ui/check/not-whole-number.atls:2:23
+  |
+2 |   real a = sma(close, 2.5);
+  |                       ^^^ not a whole number
+

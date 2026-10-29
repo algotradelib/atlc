@@ -1,0 +1,16 @@
+error[instruments-and-universe]: a program is either `instruments {}` or `universe {}`
+ --> tests/ui/check/instruments-and-universe.atls:2:1
+  |
+1 | instruments { y; }
+  | ------------------ first
+2 | universe {}
+  | ^^^^^^^^^^^ second
+  = named instruments are read as `y.close`; a universe runs the same code for every instrument
+
+error[target-names-instrument]: `target(name, shares)` needs `instruments {}`
+ --> tests/ui/check/instruments-and-universe.atls:3:17
+  |
+3 | on_bar { target(y, 1); }
+  |                 ^ no named instruments
+  = write `target(shares);`
+

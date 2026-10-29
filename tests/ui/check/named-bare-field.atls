@@ -1,0 +1,3 @@
+instruments { y; x; }
+series { real spread = close - x.close; }
+on_bar { target(y, spread > 0 ? -100 : 100); }

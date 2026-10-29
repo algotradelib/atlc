@@ -1,0 +1,10 @@
+# 9e15 is the largest magnitude; 9007199254740993 is 2^53 + 1, which a double cannot hold.
+params {
+  int at_limit = 9000000000000000;
+  int over = 9000000000000001;
+  int past_2_53 = 9007199254740993;
+}
+on_bar {
+  int negative = -9000000000000001;
+  target(at_limit + over + past_2_53 + negative);
+}

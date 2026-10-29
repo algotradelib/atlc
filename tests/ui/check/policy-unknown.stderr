@@ -1,0 +1,7 @@
+error[unknown-policy]: `drop` is not a missing-value policy
+ --> tests/ui/check/policy-unknown.atls:1:21
+  |
+1 | options { missing = drop; }
+  |                     ^^^^ expected restart, skip or poison
+  = restart: the window starts again after a missing value; skip: a missing value is left out of the window's result; poison: undefined for good from the first missing value
+

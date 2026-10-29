@@ -1,0 +1,7 @@
+error[ambiguous-value]: `band` has several values
+ --> tests/ui/check/ambiguous-value.atls:6:12
+  |
+6 |   real z = band(close);
+  |            ^^^^^^^^^^^ which one?
+  = write `band(...).lower_band`
+

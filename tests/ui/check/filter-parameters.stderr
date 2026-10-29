@@ -1,0 +1,7 @@
+error[filter-parameters]: the filter needs delta in [0, 1) and ve >= 0
+ --> tests/ui/check/filter-parameters.atls:5:12
+  |
+5 |   real b = kf_beta(close, open, delta, 0.001);
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ may be outside within the params' bounds
+  = bound the params, e.g. `real<lower=0, upper=1> delta = 0.0001;`
+

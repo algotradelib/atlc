@@ -1,0 +1,7 @@
+error[window-below-two]: `stdev`'s window may be below 2
+ --> tests/ui/check/window-below-two.atls:2:25
+  |
+2 |   real a = stdev(close, 1);
+  |                         ^ a deviation needs two values
+  = raise the params' lower bounds so the window is at least 2
+

@@ -1,0 +1,7 @@
+error[assign-in-function]: cannot assign to `x` in `f`
+ --> tests/ui/check/assign-in-function.atls:3:5
+  |
+3 |     x = 1;
+  |     ^ not a state of this indicator
+  = a function is pure: it declares locals and returns a value
+

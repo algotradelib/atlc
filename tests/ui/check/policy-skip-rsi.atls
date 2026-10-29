@@ -1,0 +1,2 @@
+series { real r = rsi(close, 3, missing = skip); }
+on_bar { target(r < 20 ? 100 : 0); }

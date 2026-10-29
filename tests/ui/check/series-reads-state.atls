@@ -1,0 +1,10 @@
+state {
+  real peak = 0;
+}
+series {
+  real drawdown = close / peak;
+}
+on_bar {
+  peak = max(peak, close);
+  target(drawdown > 0.9 ? 100 : 0);
+}

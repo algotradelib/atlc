@@ -1,0 +1,12 @@
+error[expected-token]: expected `;` after the parameter, found `}`
+ --> tests/ui/syntax/two-errors.atls:2:25
+  |
+2 |   int<lower=1> fast = 20
+  |                         ^ add `;` here
+
+error[expected-expression]: expected an expression, found `;`
+ --> tests/ui/syntax/two-errors.atls:6:21
+  |
+6 |   real b = (close + ;
+  |                     ^ expected an expression
+

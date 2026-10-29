@@ -1,0 +1,7 @@
+error[default-below-bound]: the default of `slow` (10) is below its lower bound
+ --> tests/ui/check/bound-violated.atls:3:30
+  |
+3 |   int<lower=fast + 1> slow = 10;
+  |                              ^^ must be at least 21
+  |             -------- `fast + 1` is 21 with the defaults
+

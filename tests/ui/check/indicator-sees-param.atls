@@ -1,0 +1,10 @@
+params { int<lower=1> fast = 20; }
+indicator u_sma(real x, int n) {
+  window w[fast];
+  state real s = 0;
+  enter(v) { s = s + v; }
+  leave(v) { s = s - v; }
+  value real mean = s / n;
+}
+series { real m = u_sma(close, fast); }
+on_bar { target(close > m ? 100 : 0); }

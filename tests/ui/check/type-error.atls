@@ -1,0 +1,8 @@
+series {
+  bool up = close - close[1];
+}
+on_bar {
+  if (close) {
+    target(100);
+  }
+}

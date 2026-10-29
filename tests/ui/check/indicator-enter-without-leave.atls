@@ -1,0 +1,8 @@
+indicator u_sum(real x, int n) {
+  window w[n];
+  state real s = 0;
+  enter(v) { s = s + v; }
+  value real total = s;
+}
+series { real m = u_sum(close, 20); }
+on_bar { target(m > 0 ? 100 : 0); }

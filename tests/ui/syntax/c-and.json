@@ -1,0 +1,1 @@
+{"severity":"error","code":"c-style-operator","message":"use `and`","file":"tests/ui/syntax/c-and.atls","span":{"start":{"line":5,"column":17},"end":{"line":5,"column":19},"byte_start":62,"byte_end":64},"label":"write `and`","secondary":[],"notes":[]}

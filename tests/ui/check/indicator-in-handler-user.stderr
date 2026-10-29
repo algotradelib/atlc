@@ -1,0 +1,8 @@
+error[indicator-in-handler]: indicator `u_sma` called inside `on_bar`
+ --> tests/ui/check/indicator-in-handler-user.atls:8:25
+  |
+8 | on_bar { target(close > u_sma(close, 20) ? 100 : 0); }
+  |                         ^^^^^^^^^^^^^^^^ indicators are computed in `series {}`
+  = an indicator keeps the history of its input, so it must see every bar; under an `if` it would skip bars and change meaning
+  = declare `real x = u_sma(close, 20);` in `series {}` and read `x` here
+

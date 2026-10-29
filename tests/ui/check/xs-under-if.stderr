@@ -1,0 +1,8 @@
+error[xs-nested]: `xs_mean` inside `if` or `for`
+ --> tests/ui/check/xs-under-if.atls:5:18
+  |
+5 |     target(ret - xs_mean(ret) > 0 ? 100 : 0);
+  |                  ^^^^^^^^^^^^ must see every instrument
+  = a cross-sectional value combines every instrument, so it cannot depend on one instrument's branch
+  = declare `real m = xs_mean(ret);` at the top of `on_bar` and read `m` here
+

@@ -1,0 +1,1 @@
+{"severity":"error","code":"not-constant","message":"a loop bound must be fixed before the run","file":"tests/ui/check/loop-bound-not-fixed.atls","span":{"start":{"line":5,"column":15},"end":{"line":5,"column":19},"byte_start":51,"byte_end":55},"label":"`held` changes every bar","secondary":[],"notes":["use numbers and params only"]}

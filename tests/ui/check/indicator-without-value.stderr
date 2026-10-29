@@ -1,0 +1,7 @@
+error[indicator-without-value]: `f` reports nothing
+ --> tests/ui/check/indicator-without-value.atls:1:11
+  |
+1 | indicator f(real x) {
+  |           ^ no `value`
+  = add `value real v = ...;`
+

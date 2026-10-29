@@ -1,0 +1,6 @@
+error[argument-type]: `abs` needs a number
+ --> tests/ui/check/argument-type.atls:2:14
+  |
+2 |   target(abs(close > 1));
+  |              ^^^^^^^^^ this is `bool`
+

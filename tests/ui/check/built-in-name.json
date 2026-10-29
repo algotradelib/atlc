@@ -1,0 +1,1 @@
+{"severity":"error","code":"built-in-name","message":"`close` is a built-in name","file":"tests/ui/check/built-in-name.atls","span":{"start":{"line":2,"column":7},"end":{"line":2,"column":12},"byte_start":15,"byte_end":20},"label":"choose another name","secondary":[],"notes":[]}

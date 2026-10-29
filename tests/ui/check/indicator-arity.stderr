@@ -1,0 +1,6 @@
+error[indicator-arity]: `sma` takes (series, window)
+ --> tests/ui/check/indicator-arity.atls:2:12
+  |
+2 |   real a = sma(close);
+  |            ^^^^^^^^^^ 1 argument(s)
+

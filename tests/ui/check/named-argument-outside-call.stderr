@@ -1,0 +1,6 @@
+error[named-argument-outside-call]: `x = ...` outside a call's arguments
+ --> tests/ui/check/named-argument-outside-call.atls:3:18
+  |
+3 |   target(xs_mean(x = close));
+  |                  ^^^^^^^^^ not an expression
+

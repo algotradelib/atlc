@@ -1,0 +1,8 @@
+error[duplicate-block]: a second `on_bar`
+ --> tests/ui/check/duplicate-block.atls:2:1
+  |
+1 | on_bar { target(1); }
+  | ------ first here
+2 | on_bar { target(0); }
+  | ^^^^^^ second
+

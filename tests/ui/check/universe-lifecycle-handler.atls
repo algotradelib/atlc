@@ -1,0 +1,15 @@
+# Refused since the prototype, which accepted these in a universe but generated nothing for them.
+universe {}
+state {
+  int days = 0;
+}
+on_start {
+  days = 0;
+}
+on_bar {
+  days = days + 1;
+  target(1);
+}
+on_stop {
+  days = 0;
+}

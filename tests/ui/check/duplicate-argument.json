@@ -1,0 +1,1 @@
+{"severity":"error","code":"duplicate-argument","message":"argument `x` twice","file":"tests/ui/check/duplicate-argument.atls","span":{"start":{"line":2,"column":23},"end":{"line":2,"column":24},"byte_start":34,"byte_end":35},"label":"second","secondary":[],"notes":[]}

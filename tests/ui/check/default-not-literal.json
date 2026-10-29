@@ -1,0 +1,1 @@
+{"severity":"error","code":"default-not-literal","message":"a parameter's default is a number","file":"tests/ui/check/default-not-literal.atls","span":{"start":{"line":2,"column":11},"end":{"line":2,"column":16},"byte_start":19,"byte_end":24},"label":"not a literal","secondary":[],"notes":["defaults are literals; bounds may refer to earlier params"]}

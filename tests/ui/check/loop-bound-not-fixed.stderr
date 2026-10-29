@@ -1,0 +1,7 @@
+error[not-constant]: a loop bound must be fixed before the run
+ --> tests/ui/check/loop-bound-not-fixed.atls:5:15
+  |
+5 |   for (i in 1:held) {
+  |               ^^^^ `held` changes every bar
+  = use numbers and params only
+

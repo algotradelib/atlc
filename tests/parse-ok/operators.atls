@@ -1,0 +1,12 @@
+// precedence and associativity
+on_bar {
+  real a = 1 - 2 - 3;
+  real b = 1 / 2 / 3 * 4;
+  real c = 1 + 2 * 3 - 4 / 5;
+  bool d = 1 < 2 and 3 > 4 or 5 <= 6 and not 7 >= 8;
+  bool e = a == b or a != c;
+  real f = d ? e ? 1 : 2 : 3;
+  real g = (d ? 1 : 2) + (((3)));
+  real h = -(a + b)[2];
+  real i = max(min(a, b), abs(-c), 0.0, 1., 007);
+}

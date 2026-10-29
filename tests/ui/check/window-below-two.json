@@ -1,0 +1,1 @@
+{"severity":"error","code":"window-below-two","message":"`stdev`'s window may be below 2","file":"tests/ui/check/window-below-two.atls","span":{"start":{"line":2,"column":25},"end":{"line":2,"column":26},"byte_start":33,"byte_end":34},"label":"a deviation needs two values","secondary":[],"notes":["raise the params' lower bounds so the window is at least 2"]}

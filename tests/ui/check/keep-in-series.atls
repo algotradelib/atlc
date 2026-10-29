@@ -1,0 +1,4 @@
+series {
+  real k = keep;
+}
+on_bar { target(k); }

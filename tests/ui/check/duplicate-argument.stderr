@@ -1,0 +1,6 @@
+error[duplicate-argument]: argument `x` twice
+ --> tests/ui/check/duplicate-argument.atls:2:23
+  |
+2 |   real f(real x, real x) { return x; }
+  |                       ^ second
+

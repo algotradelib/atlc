@@ -1,0 +1,7 @@
+error[enter-leave-pair]: `enter` and `leave` come together
+ --> tests/ui/check/indicator-enter-without-leave.atls:1:11
+  |
+1 | indicator u_sum(real x, int n) {
+  |           ^^^^^ only one of them
+  = whatever `enter` adds for a value, `leave` takes back when that value leaves the window
+

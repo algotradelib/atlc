@@ -1,0 +1,6 @@
+error[numeric-default-is-bool]: `r` is `real` but its default is a bool
+ --> tests/ui/check/numeric-default-is-bool.atls:2:12
+  |
+2 |   real r = true;
+  |            ^^^^ not a number
+

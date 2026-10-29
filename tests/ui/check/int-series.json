@@ -1,0 +1,1 @@
+{"severity":"error","code":"int-series","message":"a series is `real` or `bool`","file":"tests/ui/check/int-series.atls","span":{"start":{"line":2,"column":3},"end":{"line":2,"column":6},"byte_start":11,"byte_end":14},"label":"write `real`","secondary":[],"notes":["bar values are reals; whole-number series are not supported"]}

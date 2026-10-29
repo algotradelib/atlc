@@ -1,0 +1,8 @@
+error[not-visible]: `close` is not visible in `gap`
+ --> tests/ui/check/function-reads-bar.atls:3:16
+  |
+3 |     return x - close;
+  |                ^^^^^ not here
+  = a function sees only its arguments and locals
+  = pass `close` as an argument
+

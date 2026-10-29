@@ -1,0 +1,7 @@
+error[while-loop]: `while` loops are not allowed
+ --> tests/ui/check/unbounded-loop.atls:5:3
+  |
+5 |   while (n < 10) {
+  |   ^^^^^ may never end
+  = every handler must finish: use `for (i in FROM:TO)` with bounds made of numbers and params
+

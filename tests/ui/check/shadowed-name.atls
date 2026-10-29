@@ -1,0 +1,7 @@
+on_bar {
+  real x = 1;
+  if (close > 1) {
+    real x = 2;
+    target(x);
+  }
+}

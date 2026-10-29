@@ -1,0 +1,44 @@
+# Kalman-filter mean reversion (Chan 2013, Example 3.3): the hedge of y on x drifts as a random
+# walk; enter when the forecast error leaves one deviation, on either side.
+instruments {
+  y;
+  x;
+}
+params {
+  real<lower=0, upper=1> delta = 0.0001;
+  real<lower=0> ve = 0.001;
+  int<lower=0> scale = 1000;
+}
+series {
+  real e = kf_error(y.close, x.close, delta, ve);
+  real sd = kf_sd(y.close, x.close, delta, ve);
+  real hedge = kf_beta(y.close, x.close, delta, ve);
+}
+state {
+  bool long = false;
+  bool short = false;
+}
+on_bar {
+  if (e < -sd) {
+    long = true;
+  } else if (e > -sd) {
+    long = false;
+  }
+  if (e > sd) {
+    short = true;
+  } else if (e < sd) {
+    short = false;
+  }
+  real units = (long ? 1 : 0) - (short ? 1 : 0);
+  target(y, units * scale);
+  target(x, round(-hedge * units * scale));
+}
+# One file to share: a run spec overrides any of these.
+replay {
+  data.file = "../../../../docs/epchan/book2/PythonCodesAndData/inputData_EWA_EWC.csv";
+  instruments.y = "EWC";
+  instruments.x = "EWA";
+  replay.cash = 100000;
+  replay.fill = "open-prev-close";
+  replay.shorts = true;
+}

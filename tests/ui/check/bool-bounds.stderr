@@ -1,0 +1,6 @@
+error[bool-bounds]: a `bool` has no bounds
+ --> tests/ui/check/bool-bounds.atls:2:3
+  |
+2 |   bool<lower=0> b = true;
+  |   ^^^^ remove the bounds
+

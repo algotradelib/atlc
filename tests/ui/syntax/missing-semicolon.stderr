@@ -1,0 +1,6 @@
+error[expected-token]: expected `;` after the parameter, found `int`
+ --> tests/ui/syntax/missing-semicolon.atls:2:25
+  |
+2 |   int<lower=1> fast = 20
+  |                         ^ add `;` here
+

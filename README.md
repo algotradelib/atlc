@@ -4,7 +4,7 @@ The compiler for atls, a short strategy language for [algotradelib](https://gith
 You write a strategy in a few checked blocks; `atlc` turns it into a C++ strategy for the library's runner.
 In the prototype, compiled strategies ran as fast in a backtest as the same strategies written by hand in C++.
 
-```
+```atls
 # sma.atls: long while the fast average is above the slow one.
 params {
   int<lower=1> fast = 20;

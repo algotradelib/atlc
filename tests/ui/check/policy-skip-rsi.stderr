@@ -1,0 +1,7 @@
+error[skip-unsupported]: `rsi` has no `skip` rule yet
+ --> tests/ui/check/policy-skip-rsi.atls:1:19
+  |
+1 | series { real r = rsi(close, 3, missing = skip); }
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ restart or poison only
+  = write `missing = restart` or `missing = poison` in the call
+

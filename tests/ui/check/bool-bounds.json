@@ -1,0 +1,1 @@
+{"severity":"error","code":"bool-bounds","message":"a `bool` has no bounds","file":"tests/ui/check/bool-bounds.atls","span":{"start":{"line":2,"column":3},"end":{"line":2,"column":7},"byte_start":11,"byte_end":15},"label":"remove the bounds","secondary":[],"notes":[]}

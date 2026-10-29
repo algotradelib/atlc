@@ -1,0 +1,14 @@
+error[look-ahead]: `lag(close, -1)` would read a future bar
+ --> tests/ui/check/look-ahead.atls:2:30
+  |
+2 |   real tomorrow = lag(close, -1);
+  |                              ^^ a negative lag looks ahead
+  = a strategy only sees bars up to the current one; a lag is at least 1
+
+error[look-ahead]: `open[-1]` would read a future bar
+ --> tests/ui/check/look-ahead.atls:3:25
+  |
+3 |   real next_open = open[-1];
+  |                         ^^ a negative lag looks ahead
+  = a strategy only sees bars up to the current one; a lag is at least 1
+

@@ -1,0 +1,6 @@
+error[expected-literal]: expected a number, a string or a bool, found `close`
+ --> tests/ui/syntax/expected-literal.atls:2:10
+  |
+2 |   cash = close;
+  |          ^^^^^ a setting's value is a literal
+

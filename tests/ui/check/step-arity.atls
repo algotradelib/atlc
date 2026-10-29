@@ -1,0 +1,8 @@
+indicator f(real x, real y) {
+  window w[3];
+  state real s = 0;
+  enter(a) { s = s + a; }
+  leave(a) { s = s - a; }
+  value real total = s;
+}
+on_bar { target(1); }

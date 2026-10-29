@@ -1,0 +1,7 @@
+error[ternary-arms]: type mismatch: the two arms of `?:` differ
+ --> tests/ui/check/ternary-arms.atls:2:26
+  |
+2 |   target(close > 1 ? 1 : true);
+  |                          ^^^^ this is `bool`
+  |                      - this is `int`
+

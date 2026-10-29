@@ -1,0 +1,18 @@
+# Intraday linear long-short (Chan 2013, Example 4.4): at the open, weight every stock by minus
+# its return from the last close to the open, less the mean; `capital` dollars gross; out at the close.
+universe {}
+params {
+  real<lower=0> capital = 1000000000;
+}
+series {
+  real last_close = close;
+}
+on_open {
+  real r = open / last_close - 1;
+  real d = -(r - xs_mean(r));
+  real w = d / xs_sum(abs(d));
+  target(round(w / open * capital));
+}
+on_close {
+  target(0);
+}

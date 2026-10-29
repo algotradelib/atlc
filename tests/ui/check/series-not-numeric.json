@@ -1,0 +1,1 @@
+{"severity":"error","code":"series-not-numeric","message":"`sma` needs a real series","file":"tests/ui/check/series-not-numeric.atls","span":{"start":{"line":2,"column":16},"end":{"line":2,"column":25},"byte_start":24,"byte_end":33},"label":"this is `bool`","secondary":[],"notes":["write `c ? 1 : 0` to count a condition"]}

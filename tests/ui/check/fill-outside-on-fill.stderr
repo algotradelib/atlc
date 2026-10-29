@@ -1,0 +1,6 @@
+error[fill-outside-on-fill]: `fill` is read in `on_fill`, not in `on_bar`
+ --> tests/ui/check/fill-outside-on-fill.atls:2:10
+  |
+2 |   target(fill.price);
+  |          ^^^^ no fill here
+

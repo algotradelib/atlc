@@ -1,0 +1,4 @@
+series {
+  real a = abs(close, missing = skip);
+}
+on_bar { target(a); }

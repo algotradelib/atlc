@@ -1,0 +1,1 @@
+{"severity":"error","code":"expected-literal","message":"expected a number, a string or a bool, found `close`","file":"tests/ui/syntax/expected-literal.atls","span":{"start":{"line":2,"column":10},"end":{"line":2,"column":15},"byte_start":18,"byte_end":23},"label":"a setting's value is a literal","secondary":[],"notes":[]}

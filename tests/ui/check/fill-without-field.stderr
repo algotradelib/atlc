@@ -1,0 +1,6 @@
+error[fill-without-field]: `fill` has fields
+ --> tests/ui/check/fill-without-field.atls:6:7
+  |
+6 |   f = fill;
+  |       ^^^^ write `fill.price`, `fill.quantity` or `fill.buy`
+

@@ -1,0 +1,8 @@
+series {
+  real a = sma(close, 5);
+}
+on_bar {
+  if (a > close && held == 0) {
+    target(100);
+  }
+}

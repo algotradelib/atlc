@@ -1,0 +1,6 @@
+error[bool-default-not-bool]: `b` is a `bool`; its default is `true` or `false`
+ --> tests/ui/check/bool-default-not-bool.atls:2:12
+  |
+2 |   bool b = 1;
+  |            ^ not a bool
+

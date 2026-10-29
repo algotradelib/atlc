@@ -1,0 +1,7 @@
+error[indicator-bool-argument]: an indicator's arguments are `real` (series) or `int` (fixed)
+ --> tests/ui/check/indicator-bool-argument.atls:1:26
+  |
+1 | indicator f(real x, bool b) {
+  |                          ^ a `bool`
+  = pass a condition as a series: `c ? 1 : 0`
+

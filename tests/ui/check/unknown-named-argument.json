@@ -1,0 +1,1 @@
+{"severity":"error","code":"unknown-named-argument","message":"`sma` takes no argument `window`","file":"tests/ui/check/unknown-named-argument.atls","span":{"start":{"line":2,"column":26},"end":{"line":2,"column":32},"byte_start":34,"byte_end":40},"label":"unknown argument","secondary":[],"notes":["named arguments: missing = restart | skip | poison, and min = N with skip"]}

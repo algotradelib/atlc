@@ -2,7 +2,7 @@
 
 ## `functions {}`
 
-```
+```atls
 functions {
   real clip(real z, real cap) {
     return min(max(z, -cap), cap);
@@ -18,7 +18,7 @@ functions {
 
 ## `indicator`
 
-```
+```atls
 indicator mean_sd(real x, int n) {
   window w[n];
   state real s = 0;

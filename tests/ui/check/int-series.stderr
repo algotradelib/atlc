@@ -1,0 +1,7 @@
+error[int-series]: a series is `real` or `bool`
+ --> tests/ui/check/int-series.atls:2:3
+  |
+2 |   int n = 1;
+  |   ^^^ write `real`
+  = bar values are reals; whole-number series are not supported
+

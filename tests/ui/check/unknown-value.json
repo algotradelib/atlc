@@ -1,0 +1,1 @@
+{"severity":"error","code":"unknown-value","message":"`band` has no value `middle`","file":"tests/ui/check/unknown-value.atls","span":{"start":{"line":6,"column":24},"end":{"line":6,"column":30},"byte_start":125,"byte_end":131},"label":"values: lower_band, upper_band","secondary":[],"notes":[]}

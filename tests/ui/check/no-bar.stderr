@@ -1,0 +1,6 @@
+error[no-bar]: `close` has no bar to read in `on_start`
+ --> tests/ui/check/no-bar.atls:5:11
+  |
+5 |   first = close;
+  |           ^^^^^ no bar here
+

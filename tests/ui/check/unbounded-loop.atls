@@ -1,0 +1,9 @@
+state {
+  int n = 0;
+}
+on_bar {
+  while (n < 10) {
+    n = n + 1;
+  }
+  target(n);
+}

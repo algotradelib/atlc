@@ -1,0 +1,1 @@
+{"severity":"error","code":"not-a-series-field","message":"`y.held` is not a series","file":"tests/ui/check/not-a-series-field.atls","span":{"start":{"line":3,"column":14},"end":{"line":3,"column":18},"byte_start":41,"byte_end":45},"label":"fields: open, high, low, close, volume","secondary":[],"notes":["an instrument's position, `y.held`, is read in handlers"]}

@@ -1,0 +1,1 @@
+{"severity":"error","code":"assign-instrument","message":"cannot assign to instrument `y`","file":"tests/ui/check/assign-instrument.atls","span":{"start":{"line":3,"column":3},"end":{"line":3,"column":4},"byte_start":30,"byte_end":31},"label":"instruments are inputs","secondary":[],"notes":[]}

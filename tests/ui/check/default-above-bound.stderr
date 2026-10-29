@@ -1,0 +1,7 @@
+error[default-above-bound]: the default of `n` (20) is above its upper bound
+ --> tests/ui/check/default-above-bound.atls:2:21
+  |
+2 |   int<upper=10> n = 20;
+  |                     ^^ must be at most 10
+  |             -- `10` is 10 with the defaults
+

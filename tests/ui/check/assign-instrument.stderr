@@ -1,0 +1,6 @@
+error[assign-instrument]: cannot assign to instrument `y`
+ --> tests/ui/check/assign-instrument.atls:3:3
+  |
+3 |   y = 1;
+  |   ^ instruments are inputs
+

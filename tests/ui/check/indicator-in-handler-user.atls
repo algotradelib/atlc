@@ -1,0 +1,8 @@
+indicator u_sma(real x, int n) {
+  window w[n];
+  state real s = 0;
+  enter(v) { s = s + v; }
+  leave(v) { s = s - v; }
+  value real mean = s / n;
+}
+on_bar { target(close > u_sma(close, 20) ? 100 : 0); }

@@ -1,0 +1,3 @@
+instruments { y; x; }
+series { real r = y.close / x.close; }
+on_bar { target(r > 1 ? 100 : 0); }

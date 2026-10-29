@@ -1,0 +1,6 @@
+error[c-style-operator]: use `and`
+ --> tests/ui/syntax/c-and.atls:5:17
+  |
+5 |   if (a > close && held == 0) {
+  |                 ^^ write `and`
+

@@ -1,0 +1,7 @@
+error[fields-in-series]: `fill` is not available in `series {}`
+ --> tests/ui/check/fields-in-series.atls:2:12
+  |
+2 |   real p = fill.price;
+  |            ^^^^^^^^^^ no fields here
+  = `fill.*` is read in `on_fill`
+

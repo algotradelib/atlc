@@ -1,0 +1,14 @@
+# Time-series momentum (Chan 2013, Example 6.1): hold the sum of the signs of the last
+# `holddays - 1` lookback returns, `scale` dollars a unit. Before that many returns exist,
+# the sum covers those there are.
+params {
+  int<lower=1> lookback = 250;
+  int<lower=2> holddays = 25;
+  real<lower=0> scale = 10000000;
+}
+series {
+  real units = ts_sum(sign(close - close[lookback]), holddays - 1, 1);
+}
+on_bar {
+  target(round(units * scale / close));
+}

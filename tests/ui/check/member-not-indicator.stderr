@@ -1,0 +1,7 @@
+error[member-not-indicator]: `.v` reads a value of a user indicator
+ --> tests/ui/check/member-not-indicator.atls:5:12
+  |
+5 |   real z = f(close).v;
+  |            ^^^^^^^^^^ not one
+  = write `name(args).value` for an indicator with several values
+

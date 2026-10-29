@@ -1,0 +1,6 @@
+error[unexpected-character]: unexpected character `@`
+ --> tests/ui/syntax/unexpected-character.atls:2:12
+  |
+2 |   target(1 @ 2);
+  |            ^ not part of the language
+

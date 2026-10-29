@@ -1,0 +1,6 @@
+error[min-out-of-range]: `min` must be between 1 and the window
+ --> tests/ui/check/min-out-of-range.atls:2:48
+  |
+2 |   real a = sma(close, 5, missing = skip, min = 6);
+  |                                                ^ may be outside within the params' bounds
+

@@ -1,0 +1,1 @@
+{"severity":"error","code":"assign-function","message":"cannot assign to `f`","file":"tests/ui/check/assign-function.atls","span":{"start":{"line":5,"column":3},"end":{"line":5,"column":4},"byte_start":56,"byte_end":57},"label":"a function or indicator","secondary":[],"notes":[]}

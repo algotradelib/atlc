@@ -1,0 +1,7 @@
+error[missing-return]: `clip` may end without returning
+ --> tests/ui/check/function-no-return.atls:2:8
+  |
+2 |   real clip(real z, real cap) {
+  |        ^^^^ every path must end in `return`
+  = end the body with `return x;`, or end both branches of the last `if`/`else` with one
+

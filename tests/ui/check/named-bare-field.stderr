@@ -1,0 +1,7 @@
+error[bare-field]: which instrument's `close`?
+ --> tests/ui/check/named-bare-field.atls:2:24
+  |
+2 | series { real spread = close - x.close; }
+  |                        ^^^^^ the program names its instruments
+  = write `y.close`
+

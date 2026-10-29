@@ -1,0 +1,6 @@
+error[const-param-not-int]: `sma`'s window is built from `int` params
+ --> tests/ui/check/const-param-not-int.atls:5:23
+  |
+5 |   real a = sma(close, n);
+  |                       ^ `n` is `real`
+

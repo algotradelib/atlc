@@ -1,0 +1,7 @@
+error[series-not-numeric]: `sma` needs a real series
+ --> tests/ui/check/series-not-numeric.atls:2:16
+  |
+2 |   real a = sma(close > 1, 5);
+  |                ^^^^^^^^^ this is `bool`
+  = write `c ? 1 : 0` to count a condition
+

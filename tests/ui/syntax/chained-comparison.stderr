@@ -1,0 +1,8 @@
+error[chained-comparison]: comparisons do not chain
+ --> tests/ui/syntax/chained-comparison.atls:6:17
+  |
+6 |   if (a < close < b) {
+  |                 ^ a second comparison
+  |       --------- this is already a comparison
+  = write `a < b and b < c`
+

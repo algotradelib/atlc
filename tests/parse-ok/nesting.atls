@@ -1,0 +1,6 @@
+on_bar {
+  if (a) { if (b) { if (c) { target(1); } else { target(2); } } else if (d) { target(3); } }
+  else { for (i in 0:2) { if (i == 1) { target(i); } else { while (false) { x = (((1))); } } } }
+  y = -(a + b) * -c[0] / (d - e[f[1] + 2]);
+  z = a or b and c or not d;
+}

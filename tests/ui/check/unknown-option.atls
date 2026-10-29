@@ -1,0 +1,4 @@
+options {
+  fill = next;
+}
+on_bar { target(1); }

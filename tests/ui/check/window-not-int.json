@@ -1,0 +1,1 @@
+{"severity":"error","code":"window-not-int","message":"a window's length is a whole number","file":"tests/ui/check/window-not-int.atls","span":{"start":{"line":2,"column":12},"end":{"line":2,"column":15},"byte_start":33,"byte_end":36},"label":"this is `real`","secondary":[],"notes":[]}

@@ -1,0 +1,9 @@
+state {
+  real total = 0;
+}
+on_bar {
+  for (i in 1:held) {
+    total = total + i;
+  }
+  target(total);
+}

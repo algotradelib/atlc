@@ -1,0 +1,6 @@
+error[target-not-numeric]: a target is a number of shares
+ --> tests/ui/check/target-not-numeric.atls:2:10
+  |
+2 |   target(close > 1);
+  |          ^^^^^^^^^ this is `bool`
+

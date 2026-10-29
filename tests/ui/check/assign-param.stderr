@@ -1,0 +1,9 @@
+error[assign-param]: cannot assign to parameter `quantity`
+ --> tests/ui/check/assign-param.atls:9:5
+  |
+2 |   int<lower=0> quantity = 100;
+  |                -------- declared in `params {}`
+9 |     quantity = 50;
+  |     ^^^^^^^^ params are fixed for a whole run
+  = a value that changes during the run belongs in `state {}`
+

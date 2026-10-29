@@ -1,0 +1,10 @@
+series {
+  real move = close / close[1];
+}
+state {
+  bool up = false;
+}
+on_bar {
+  up = move > 1;
+  target(up ? 100 : 0);
+}

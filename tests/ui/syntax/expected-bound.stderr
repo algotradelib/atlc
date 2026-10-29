@@ -1,0 +1,6 @@
+error[expected-bound]: expected `lower` or `upper`, found `min`
+ --> tests/ui/syntax/expected-bound.atls:2:7
+  |
+2 |   int<min=1> n = 2;
+  |       ^^^ a bound is `lower=EXPR` or `upper=EXPR`
+

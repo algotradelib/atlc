@@ -1,0 +1,6 @@
+error[target-as-value]: `target` is a statement
+ --> tests/ui/check/target-as-value.atls:2:12
+  |
+2 |   real x = target(1);
+  |            ^^^^^^^^^ write `target(x);` on its own in `on_bar`
+

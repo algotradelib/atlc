@@ -1,0 +1,6 @@
+error[unclosed-string]: this string is never closed
+ --> tests/ui/syntax/unclosed-string.atls:2:12
+  |
+2 |   market = "krx;
+  |            ^^^^^ add `"`
+

@@ -1,0 +1,13 @@
+error[value-not-real]: an indicator's values are `real`
+ --> tests/ui/check/value-not-real.atls:2:9
+  |
+2 |   value int v = 1;
+  |         ^^^ write `real`
+
+error[indicator-without-value]: `f` reports nothing
+ --> tests/ui/check/value-not-real.atls:1:11
+  |
+1 | indicator f(real x) {
+  |           ^ no `value`
+  = add `value real v = ...;`
+

@@ -1,0 +1,7 @@
+error[v0-syntax]: `param` is v0 syntax
+ --> tests/ui/syntax/v0-syntax.atls:1:1
+  |
+1 | param fast = 20
+  | ^^^^^ not a block
+  = v0 `param`, `let` and `target =` became `params {}`, `series {}` and `on_bar { target(...); }`
+

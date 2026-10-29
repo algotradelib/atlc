@@ -1,0 +1,1 @@
+{"severity":"error","code":"duplicate-window","message":"a second window","file":"tests/ui/check/duplicate-window.atls","span":{"start":{"line":3,"column":3},"end":{"line":3,"column":15},"byte_start":39,"byte_end":51},"label":"one window per indicator","secondary":[],"notes":["the window holds every series argument, so one is enough"]}

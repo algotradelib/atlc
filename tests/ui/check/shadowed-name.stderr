@@ -1,0 +1,6 @@
+error[shadowed-name]: `x` is already a name
+ --> tests/ui/check/shadowed-name.atls:4:10
+  |
+4 |     real x = 2;
+  |          ^ choose another name
+

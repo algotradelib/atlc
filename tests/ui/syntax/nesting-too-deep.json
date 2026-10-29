@@ -1,0 +1,1 @@
+{"severity":"error","code":"nesting-too-deep","message":"expressions nest deeper than 256 levels","file":"tests/ui/syntax/nesting-too-deep.atls","span":{"start":{"line":2,"column":266},"end":{"line":2,"column":267},"byte_start":274,"byte_end":275},"label":"too deep","secondary":[],"notes":[]}

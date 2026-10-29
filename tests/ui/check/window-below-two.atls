@@ -1,0 +1,4 @@
+series {
+  real a = stdev(close, 1);
+}
+on_bar { target(a); }

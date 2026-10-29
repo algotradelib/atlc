@@ -1,0 +1,3 @@
+instruments { y; }
+universe {}
+on_bar { target(y, 1); }

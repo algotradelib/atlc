@@ -1,0 +1,7 @@
+error[not-a-series-field]: `y.held` is not a series
+ --> tests/ui/check/not-a-series-field.atls:3:14
+  |
+3 |   real h = y.held;
+  |              ^^^^ fields: open, high, low, close, volume
+  = an instrument's position, `y.held`, is read in handlers
+

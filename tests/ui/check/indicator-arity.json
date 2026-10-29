@@ -1,0 +1,1 @@
+{"severity":"error","code":"indicator-arity","message":"`sma` takes (series, window)","file":"tests/ui/check/indicator-arity.atls","span":{"start":{"line":2,"column":12},"end":{"line":2,"column":22},"byte_start":20,"byte_end":30},"label":"1 argument(s)","secondary":[],"notes":[]}

@@ -1,0 +1,6 @@
+error[built-in-name]: `close` is a built-in name
+ --> tests/ui/check/built-in-name.atls:2:7
+  |
+2 |   int close = 1;
+  |       ^^^^^ choose another name
+

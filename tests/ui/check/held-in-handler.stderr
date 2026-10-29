@@ -1,0 +1,6 @@
+error[held-in-handler]: `held` is read in `on_bar`, not in `on_fill`
+ --> tests/ui/check/held-in-handler.atls:6:7
+  |
+6 |   h = held;
+  |       ^^^^ not here
+

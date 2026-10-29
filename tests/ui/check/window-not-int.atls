@@ -1,0 +1,5 @@
+indicator f(real x) {
+  window w[2.5];
+  value real v = x;
+}
+on_bar { target(1); }

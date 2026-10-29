@@ -1,0 +1,4 @@
+params {
+  int n = 1 + 1;
+}
+on_bar { target(1); }

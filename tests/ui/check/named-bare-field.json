@@ -1,0 +1,1 @@
+{"severity":"error","code":"bare-field","message":"which instrument's `close`?","file":"tests/ui/check/named-bare-field.atls","span":{"start":{"line":2,"column":24},"end":{"line":2,"column":29},"byte_start":45,"byte_end":50},"label":"the program names its instruments","secondary":[],"notes":["write `y.close`"]}

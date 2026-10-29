@@ -1,0 +1,1 @@
+{"severity":"error","code":"shadowed-name","message":"`x` is already a name","file":"tests/ui/check/shadowed-name.atls","span":{"start":{"line":4,"column":10},"end":{"line":4,"column":11},"byte_start":51,"byte_end":52},"label":"choose another name","secondary":[],"notes":[]}

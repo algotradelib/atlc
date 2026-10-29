@@ -1,0 +1,7 @@
+functions {
+  real f(real x) { return x; }
+}
+on_bar {
+  f = 1;
+  target(1);
+}

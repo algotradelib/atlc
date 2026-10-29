@@ -1,0 +1,1 @@
+{"severity":"error","code":"numeric-default-is-bool","message":"`r` is `real` but its default is a bool","file":"tests/ui/check/numeric-default-is-bool.atls","span":{"start":{"line":2,"column":12},"end":{"line":2,"column":16},"byte_start":20,"byte_end":24},"label":"not a number","secondary":[],"notes":[]}

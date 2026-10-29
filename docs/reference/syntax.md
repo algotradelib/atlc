@@ -19,7 +19,7 @@ EBNF: `'x'` is a literal, `A*` zero or more, `A?` optional, `|` a choice.
 This is the grammar of valid programs.
 The parser also accepts a few forms only to report a better error later (an expression used as a statement, `while`); those are diagnostics, not part of the language.
 
-```
+```ebnf
 program    = item* ;
 item       = 'params' '{' param* '}'
            | 'series' '{' decl* '}'

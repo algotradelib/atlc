@@ -1,0 +1,6 @@
+error[unknown-field]: `fill` has no field `time`
+ --> tests/ui/check/unknown-field.atls:6:12
+  |
+6 |   f = fill.time;
+  |            ^^^^ fields: price, quantity, buy
+

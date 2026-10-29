@@ -1,0 +1,6 @@
+error[assign-in-expression]: `=` assigns; compare with `==`
+ --> tests/ui/syntax/assign-in-condition.atls:2:12
+  |
+2 |   if (held = 0) {
+  |            ^ write `==`
+

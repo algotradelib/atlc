@@ -1,0 +1,20 @@
+# atl-cli's TrendPullback: buy an RSI pullback above the trend average, exit on recovery or trend loss.
+params {
+  int<lower=1> trend = 100;
+  int<lower=1> fast = 3;
+  real<lower=0, upper=100> entry = 20;
+  real<lower=0, upper=100> exit = 70;
+  int<lower=0> quantity = 100;
+}
+warmup trend + 1;
+series {
+  real average = sma(close, trend);
+  real level = rsi(close, fast);
+}
+on_bar {
+  if (held == 0 and close > average and level < entry) {
+    target(quantity);
+  } else if (held != 0 and (level > exit or close < average)) {
+    target(0);
+  }
+}

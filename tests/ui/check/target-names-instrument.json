@@ -1,0 +1,1 @@
+{"severity":"error","code":"target-names-instrument","message":"`target(name, shares)` needs `instruments {}`","file":"tests/ui/check/target-names-instrument.atls","span":{"start":{"line":2,"column":10},"end":{"line":2,"column":11},"byte_start":18,"byte_end":19},"label":"no named instruments","secondary":[],"notes":["write `target(shares);`"]}

@@ -1,0 +1,56 @@
+# A z-score reversion with an EMA trend filter, user indicators (prelude.atls): buy below -2 deviations while
+# above the EMA, out above 0.
+params {
+  int<lower=2> n = 60;
+  int<lower=1> trend = 200;
+  int<lower=0> quantity = 500;
+}
+# stdev(x, n) and zscore(x, n): running sums of the values and their squares, sample deviation.
+indicator u_dev(real x, int n) {
+  window w[n];
+  state real s = 0;
+  state real q = 0;
+  enter(v) {
+    s = s + v;
+    q = q + v * v;
+  }
+  leave(v) {
+    s = s - v;
+    q = q - v * v;
+  }
+  value real sd = sqrt((q - s * s / n) / (n - 1));
+  value real z = sd > 0 ? (x - s / n) / sd : keep;
+}
+
+# ema(x, n): seeded with the mean of the first n values, then alpha = 2 / (n + 1); no window.
+indicator u_ema(real x, int n) {
+  state int seen = 0;
+  state real sum = 0;
+  state real e = 0;
+  update {
+    seen = seen + 1;
+    if (seen <= n) {
+      sum = sum + x;
+      if (seen == n) {
+        e = sum / n;
+      }
+    } else {
+      e = 2.0 / (n + 1.0) * x + (1 - 2.0 / (n + 1.0)) * e;
+    }
+  }
+  warmup n;
+  value real ema = e;
+}
+
+series {
+  real z = u_dev(close, n).z;
+  real sd = u_dev(close, n).sd;
+  real level = u_ema(close, trend);
+}
+on_bar {
+  if (held == 0 and z < -2 and close > level and sd > 0) {
+    target(quantity);
+  } else if (held != 0 and z > 0) {
+    target(0);
+  }
+}

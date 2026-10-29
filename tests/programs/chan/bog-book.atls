@@ -1,0 +1,36 @@
+# Buy on gap under the book's rules (Chan 2013, Example 4.1, `bog.m`): a missing value is left out of
+# each window (`smartMovingAvg`, `smartMovingStd`), the deviation is the population one over the
+# returns that exist in the last 90 days, and both are as of yesterday.
+# Sized as the book's figure in whole shares: capital / top / open, to the nearest share.
+universe {}
+options { missing = skip; }
+params {
+  int<lower=1> top = 10;
+  int<lower=1> lookback = 20;
+  int<lower=1> window = 90;
+  real<lower=0> entry = 1;
+  real<lower=0> capital = 1000000000;
+}
+series {
+  real ret = close / close[1] - 1;
+  real sd = stdev_pop(ret, window);
+  real ma = sma(close, lookback);
+  real last_low = low;
+}
+state {
+  bool bought = false;
+}
+on_open {
+  bool down = defined(sd) and defined(ma) and defined(last_low) ? open < last_low * (1 - entry * sd) and open > ma : false;
+  real rank = xs_rank(down ? (open - last_low) / last_low : keep);
+  if (rank <= top) {
+    target(round(capital / top / open));
+    bought = true;
+  }
+}
+on_close {
+  if (bought) {
+    target(0);
+    bought = false;
+  }
+}

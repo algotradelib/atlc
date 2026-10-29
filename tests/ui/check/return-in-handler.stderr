@@ -1,0 +1,7 @@
+error[return-outside-function]: `return` outside a function
+ --> tests/ui/check/return-in-handler.atls:2:3
+  |
+2 |   return 1;
+  |   ^^^^^^^^^ not here
+  = handlers state targets; only functions of `functions {}` return a value
+

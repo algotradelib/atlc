@@ -1,0 +1,1 @@
+{"severity":"error","code":"int-default-not-whole","message":"`n` is an `int` but its default is not a whole number","file":"tests/ui/check/int-default-not-whole.atls","span":{"start":{"line":2,"column":11},"end":{"line":2,"column":14},"byte_start":19,"byte_end":22},"label":"write a whole number, or declare it `real`","secondary":[],"notes":[]}

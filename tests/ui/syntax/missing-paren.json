@@ -1,0 +1,1 @@
+{"severity":"error","code":"expected-token","message":"expected `)` to close `sma(`, found `;`","file":"tests/ui/syntax/missing-paren.atls","span":{"start":{"line":2,"column":24},"end":{"line":2,"column":25},"byte_start":32,"byte_end":33},"label":"expected `)`","secondary":[],"notes":[]}

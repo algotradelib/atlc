@@ -1,0 +1,7 @@
+error[bars-outside-universe]: `bars` is read in a universe's handlers
+ --> tests/ui/check/bars-outside-universe.atls:2:10
+  |
+2 |   target(bars);
+  |          ^^^^ not here
+  = `bars` counts this instrument's bars, `periods` every period; `bars == periods` while it has missed none
+

@@ -1,0 +1,7 @@
+universe {}
+series { real ret = close / close[1] - 1; }
+on_bar {
+  if (ret > 0) {
+    target(ret - xs_mean(ret) > 0 ? 100 : 0);
+  }
+}

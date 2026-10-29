@@ -1,0 +1,1 @@
+{"severity":"error","code":"target-as-value","message":"`target` is a statement","file":"tests/ui/check/target-as-value.atls","span":{"start":{"line":2,"column":12},"end":{"line":2,"column":21},"byte_start":20,"byte_end":29},"label":"write `target(x);` on its own in `on_bar`","secondary":[],"notes":[]}

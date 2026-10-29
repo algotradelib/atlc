@@ -1,0 +1,6 @@
+error[no-fields]: `close` has no fields
+ --> tests/ui/check/no-fields.atls:2:10
+  |
+2 |   target(close.price);
+  |          ^^^^^^^^^^^ only `fill.*` has fields
+

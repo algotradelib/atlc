@@ -1,0 +1,6 @@
+error[expected-setting]: expected a setting name, found a number
+ --> tests/ui/syntax/expected-setting.atls:2:3
+  |
+2 |   1 = 2;
+  |   ^ e.g. `cash = 100000;`
+

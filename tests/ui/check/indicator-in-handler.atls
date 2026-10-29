@@ -1,0 +1,8 @@
+params {
+  int<lower=1> fast = 20;
+}
+on_bar {
+  if (held == 0) {
+    target(close > sma(close, fast) ? 100 : 0);
+  }
+}

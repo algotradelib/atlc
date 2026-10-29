@@ -1,0 +1,6 @@
+error[keep-in-series]: `keep` is a handler value
+ --> tests/ui/check/keep-in-series.atls:2:12
+  |
+2 |   real k = keep;
+  |            ^^^^ not a series
+

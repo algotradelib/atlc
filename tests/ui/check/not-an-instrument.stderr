@@ -1,0 +1,6 @@
+error[not-an-instrument]: `x` is not an instrument
+ --> tests/ui/check/not-an-instrument.atls:3:10
+  |
+3 |   target(x, 1);
+  |          ^ not in `instruments {}`
+

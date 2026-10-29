@@ -1,0 +1,12 @@
+error[step-arity]: `enter` names 1 value(s); the window holds 2
+ --> tests/ui/check/step-arity.atls:4:3
+  |
+4 |   enter(a) { s = s + a; }
+  |   ^^^^^^^^^^^^^^^^^^^^^^^ one name per series argument
+
+error[step-arity]: `leave` names 1 value(s); the window holds 2
+ --> tests/ui/check/step-arity.atls:5:3
+  |
+5 |   leave(a) { s = s - a; }
+  |   ^^^^^^^^^^^^^^^^^^^^^^^ one name per series argument
+

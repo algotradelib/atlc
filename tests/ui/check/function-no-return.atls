@@ -1,0 +1,8 @@
+functions {
+  real clip(real z, real cap) {
+    if (z > cap) {
+      return cap;
+    }
+  }
+}
+on_bar { target(clip(close, 5)); }

@@ -1,0 +1,7 @@
+universe {}
+options { missing = skip; }
+series { real last = close[1]; }
+on_bar {
+  bool up = close > last;
+  target(up ? 100 : 0);
+}

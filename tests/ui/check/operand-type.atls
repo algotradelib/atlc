@@ -1,0 +1,4 @@
+on_bar {
+  bool b = not close;
+  target(1);
+}

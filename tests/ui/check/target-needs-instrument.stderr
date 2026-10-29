@@ -1,0 +1,7 @@
+error[target-needs-instrument]: which instrument's target?
+ --> tests/ui/check/target-needs-instrument.atls:3:10
+  |
+3 | on_bar { target(r > 1 ? 100 : 0); }
+  |          ^^^^^^^^^^^^^^^^^^^^^^^^ the program names its instruments
+  = write `target(y, shares);`
+

@@ -1,0 +1,6 @@
+error[window-not-constant]: a window's length is built from numbers and int arguments with + - *
+ --> tests/ui/check/window-not-constant.atls:2:12
+  |
+2 |   window w[abs(n)];
+  |            ^^^^^^ not that
+

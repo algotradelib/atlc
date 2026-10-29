@@ -1,0 +1,7 @@
+state {
+  real first = 0;
+}
+on_start {
+  first = close;
+}
+on_bar { target(1); }

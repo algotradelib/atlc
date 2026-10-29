@@ -1,0 +1,4 @@
+series {
+  real a = sma(close > 1, 5);
+}
+on_bar { target(a); }

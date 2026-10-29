@@ -1,0 +1,1 @@
+{"severity":"error","code":"fill-outside-on-fill","message":"`fill` is read in `on_fill`, not in `on_bar`","file":"tests/ui/check/fill-outside-on-fill.atls","span":{"start":{"line":2,"column":10},"end":{"line":2,"column":14},"byte_start":18,"byte_end":22},"label":"no fill here","secondary":[],"notes":[]}

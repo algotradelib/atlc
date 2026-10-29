@@ -1,0 +1,1 @@
+{"severity":"error","code":"count-division","message":"`sma`'s window cannot divide","file":"tests/ui/check/count-division.atls","span":{"start":{"line":5,"column":23},"end":{"line":5,"column":28},"byte_start":65,"byte_end":70},"label":"`/` gives a real","secondary":[],"notes":["a count of bars is a whole number"]}

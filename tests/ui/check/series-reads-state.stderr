@@ -1,0 +1,9 @@
+error[series-reads-state]: series cannot read state `peak`
+ --> tests/ui/check/series-reads-state.atls:5:27
+  |
+2 |   real peak = 0;
+  |        ---- declared in `state {}`
+5 |   real drawdown = close / peak;
+  |                           ^^^^ state is written by handlers
+  = series are computed from bars and params only, before any handler runs
+

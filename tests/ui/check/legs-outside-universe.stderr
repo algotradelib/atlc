@@ -1,0 +1,7 @@
+error[legs-outside-universe]: `on_open`/`on_close` are supported in `universe {}` programs only
+ --> tests/ui/check/legs-outside-universe.atls:1:1
+  |
+1 | on_open {
+  | ^^^^^^^ not here yet
+  = add `universe {}`; a single-instrument program with legs is not built yet
+

@@ -1,0 +1,1 @@
+{"severity":"error","code":"function-arity","message":"`abs` takes 1 argument(s)","file":"tests/ui/check/function-arity.atls","span":{"start":{"line":2,"column":10},"end":{"line":2,"column":23},"byte_start":18,"byte_end":31},"label":"2 given","secondary":[],"notes":[]}

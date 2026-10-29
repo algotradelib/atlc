@@ -1,0 +1,7 @@
+error[operand-type]: type mismatch: `not` needs a `bool`
+ --> tests/ui/check/operand-type.atls:2:12
+  |
+2 |   bool b = not close;
+  |            ^^^^^^^^^ operand is `real`
+  = compare first, e.g. `not (x > 0)`
+

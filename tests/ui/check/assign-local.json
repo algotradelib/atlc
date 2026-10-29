@@ -1,0 +1,1 @@
+{"severity":"error","code":"assign-local","message":"cannot assign to local `x`","file":"tests/ui/check/assign-local.atls","span":{"start":{"line":3,"column":3},"end":{"line":3,"column":4},"byte_start":25,"byte_end":26},"label":"locals are fixed once declared","secondary":[],"notes":["declare a new local, or use `state {}` for a value that changes"]}

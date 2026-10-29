@@ -1,0 +1,24 @@
+# programs/sma.atls with the user indicator u_sma (prelude.atls) in place of the built-in.
+params {
+  int<lower=1> fast = 20;
+  int<lower=fast + 1> slow = 50;
+  int<lower=0> quantity = 100;
+}
+warmup slow + 1;
+
+# sma(x, n): a running sum over the window.
+indicator u_sma(real x, int n) {
+  window w[n];
+  state real s = 0;
+  enter(v) { s = s + v; }
+  leave(v) { s = s - v; }
+  value real mean = s / n;
+}
+
+series {
+  real fast_avg = u_sma(close, fast);
+  real slow_avg = u_sma(close, slow);
+}
+on_bar {
+  target(fast_avg > slow_avg ? quantity : 0);
+}

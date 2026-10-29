@@ -1,0 +1,6 @@
+# Refused since the prototype, which accepted `min` on lag and ema and ignored it.
+series {
+  real previous = lag(close, 3, missing = skip, min = 2);
+  real smooth = ema(close, 10, missing = skip, min = 5);
+}
+on_bar { target(previous + smooth); }

@@ -1,0 +1,1 @@
+{"severity":"error","code":"held-in-handler","message":"`held` is read in `on_bar`, not in `on_fill`","file":"tests/ui/check/held-in-handler.atls","span":{"start":{"line":6,"column":7},"end":{"line":6,"column":11},"byte_start":62,"byte_end":66},"label":"not here","secondary":[],"notes":[]}

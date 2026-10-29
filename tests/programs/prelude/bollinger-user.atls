@@ -1,0 +1,81 @@
+# programs/chan/bollinger.atls with the user indicators u_ols and u_dev (prelude.atls): Bollinger bands on a pair (Chan 2013, Example 3.2): the spread of y over its rolling hedge
+# on x; enter beyond `entry` deviations, leave when the z-score crosses `exit`.
+instruments {
+  y;
+  x;
+}
+params {
+  int<lower=2> lookback = 20;
+  real entry = 1;
+  real<upper=entry> exit = 0;
+  int<lower=0> scale = 1000;
+}
+# ols_slope(y, x, n) and ols_intercept(y, x, n): least squares with an intercept from running sums.
+indicator u_ols(real y, real x, int n) {
+  window w[n];
+  state real sx = 0;
+  state real sy = 0;
+  state real sxx = 0;
+  state real sxy = 0;
+  enter(a, b) {
+    sx = sx + b;
+    sy = sy + a;
+    sxx = sxx + b * b;
+    sxy = sxy + b * a;
+  }
+  leave(a, b) {
+    sx = sx - b;
+    sy = sy - a;
+    sxx = sxx - b * b;
+    sxy = sxy - b * a;
+  }
+  value real d = n * sxx - sx * sx;
+  value real slope = d != 0 ? (n * sxy - sx * sy) / d : keep;
+  value real intercept = (sy - slope * sx) / n;
+}
+
+# stdev(x, n) and zscore(x, n): running sums of the values and their squares, sample deviation.
+indicator u_dev(real x, int n) {
+  window w[n];
+  state real s = 0;
+  state real q = 0;
+  enter(v) {
+    s = s + v;
+    q = q + v * v;
+  }
+  leave(v) {
+    s = s - v;
+    q = q - v * v;
+  }
+  value real sd = sqrt((q - s * s / n) / (n - 1));
+  value real z = sd > 0 ? (x - s / n) / sd : keep;
+}
+
+series {
+  real hedge = u_ols(y.close, x.close, lookback).slope;
+  real spread = y.close - hedge * x.close;
+  real z = u_dev(spread, lookback).z;
+}
+state {
+  bool long = false;
+  bool short = false;
+}
+# The reference starts one bar after the z-score is first defined.
+warmup 2 * lookback;
+on_bar {
+  if (defined(z)) {
+    if (z < -entry) {
+      long = true;
+    } else if (z > -exit) {
+      long = false;
+    }
+    if (z > entry) {
+      short = true;
+    } else if (z < exit) {
+      short = false;
+    }
+  }
+  real units = (long ? 1 : 0) - (short ? 1 : 0);
+  target(y, units * scale);
+  target(x, round(-hedge * units * scale));
+}

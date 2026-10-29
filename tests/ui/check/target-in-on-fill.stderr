@@ -1,0 +1,7 @@
+error[target-in-handler]: `target` in `on_fill`
+ --> tests/ui/check/target-in-on-fill.atls:5:3
+  |
+5 |   target(0);
+  |   ^^^^^^^^^^ targets are stated in `on_bar` (or `on_open`, `on_close`) only
+  = record what you need in `state {}` and act on the next bar
+

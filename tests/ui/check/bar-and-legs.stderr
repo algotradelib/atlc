@@ -1,0 +1,9 @@
+error[bar-and-legs]: `on_bar` and `on_open`/`on_close` in one program
+ --> tests/ui/check/bar-and-legs.atls:2:1
+  |
+2 | on_bar { target(1); }
+  | ^^^^^^ `on_bar`
+3 | on_close { target(0); }
+  | -------- a session leg
+  = a program sees every bar (`on_bar`) or each day as an open and a close (`on_open`, `on_close`), not both
+

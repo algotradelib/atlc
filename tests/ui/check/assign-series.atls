@@ -1,0 +1,7 @@
+series {
+  real average = sma(close, 20);
+}
+on_bar {
+  average = close;
+  target(close > average ? 100 : 0);
+}

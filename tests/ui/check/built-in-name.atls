@@ -1,0 +1,4 @@
+params {
+  int close = 1;
+}
+on_bar { target(1); }

@@ -1,0 +1,1 @@
+{"severity":"error","code":"window-not-constant","message":"a window's length is built from numbers and int arguments with + - *","file":"tests/ui/check/window-not-constant.atls","span":{"start":{"line":2,"column":12},"end":{"line":2,"column":18},"byte_start":40,"byte_end":46},"label":"not that","secondary":[],"notes":[]}

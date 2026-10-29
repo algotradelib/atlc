@@ -1,0 +1,6 @@
+error[expected-type]: expected a type (`int`, `real` or `bool`), found `n`
+ --> tests/ui/syntax/expected-type.atls:2:3
+  |
+2 |   n = 1;
+  |   ^ a declaration starts with its type
+

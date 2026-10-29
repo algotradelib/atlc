@@ -1,0 +1,7 @@
+error[indicator-without-series]: `f` takes no series
+ --> tests/ui/check/indicator-without-series.atls:1:11
+  |
+1 | indicator f(int n) {
+  |           ^ no `real` argument
+  = an indicator follows at least one series; a computation on fixed values is a function
+

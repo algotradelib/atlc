@@ -1,0 +1,39 @@
+# Buy on gap (Chan 2013, Example 4.1): at the open, buy the `top` stocks that gapped down the
+# most below the last low, by more than `entry` deviations of their daily returns, while still
+# above their moving average; `capital / top` dollars each; out at the close.
+# A missing value is left out of each window, as the operator's C++ does since aa3fb2c (2026-10-29),
+# with the sample deviation over the returns that exist, a running sum, and the first decision on day window + 1.
+universe {}
+options { missing = skip; }
+params {
+  int<lower=1> top = 10;
+  int<lower=1> lookback = 20;
+  int<lower=2> window = 90;
+  real<lower=0> entry = 1;
+  real<lower=0> capital = 1000000000;
+}
+series {
+  real ret = close / close[1] - 1;
+  real sd = stdev(ret, window);
+  real ma = sma(close, lookback);
+  real last_low = low;
+}
+state {
+  bool bought = false;
+}
+on_open {
+  bool down = defined(sd) and defined(ma) and defined(last_low) ? open < last_low * (1 - entry * sd) and open > ma : false;
+  real rank = xs_rank(down ? open / last_low - 1 : keep);
+  if (rank <= top) {
+    target(floor(capital / top / open));
+    bought = true;
+  }
+}
+on_close {
+  # Only what was bought: restating zero for every stock every day costs the engine more than the
+  # strategy does, and reading `held` costs a portfolio lookup per stock.
+  if (bought) {
+    target(0);
+    bought = false;
+  }
+}

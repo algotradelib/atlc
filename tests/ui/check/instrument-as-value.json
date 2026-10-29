@@ -1,0 +1,1 @@
+{"severity":"error","code":"instrument-as-value","message":"`y` is an instrument","file":"tests/ui/check/instrument-as-value.atls","span":{"start":{"line":3,"column":13},"end":{"line":3,"column":14},"byte_start":40,"byte_end":41},"label":"read one of its fields","secondary":[],"notes":["write `y.close` or `y.held`"]}

@@ -1,0 +1,7 @@
+error[duplicate-window]: a second window
+ --> tests/ui/check/duplicate-window.atls:3:3
+  |
+3 |   window u[4];
+  |   ^^^^^^^^^^^^ one window per indicator
+  = the window holds every series argument, so one is enough
+

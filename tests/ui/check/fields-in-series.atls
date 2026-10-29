@@ -1,0 +1,4 @@
+series {
+  real p = fill.price;
+}
+on_bar { target(p); }

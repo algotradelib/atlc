@@ -1,0 +1,7 @@
+error[expression-statement]: this statement does nothing
+ --> tests/ui/check/expression-statement.atls:2:3
+  |
+2 |   close + 1;
+  |   ^^^^^^^^^ its value is unused
+  = a handler assigns state, declares locals, branches, loops, or states `target(...)`
+

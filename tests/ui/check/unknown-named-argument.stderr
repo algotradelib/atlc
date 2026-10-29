@@ -1,0 +1,7 @@
+error[unknown-named-argument]: `sma` takes no argument `window`
+ --> tests/ui/check/unknown-named-argument.atls:2:26
+  |
+2 |   real a = sma(close, 5, window = 2);
+  |                          ^^^^^^ unknown argument
+  = named arguments: missing = restart | skip | poison, and min = N with skip
+

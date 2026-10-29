@@ -1,0 +1,21 @@
+error[field-in-body]: `w.size` is not available in `f`
+ --> tests/ui/check/field-in-body.atls:3:18
+  |
+3 |   value real v = w.size;
+  |                  ^^^^^^ not here
+  = an indicator reads its window as `w.count`; nothing else has fields here
+
+error[indicator-without-value]: `f` reports nothing
+ --> tests/ui/check/field-in-body.atls:1:11
+  |
+1 | indicator f(real x) {
+  |           ^ no `value`
+  = add `value real v = ...;`
+
+error[missing-on-bar]: the program has no `on_bar`
+ --> tests/ui/check/field-in-body.atls:1:1
+  |
+1 | indicator f(real x) {
+  | ^ nothing ever states a target
+  = add `on_bar { target(...); }`
+

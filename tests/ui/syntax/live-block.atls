@@ -1,0 +1,3 @@
+series { real avg = sma(close, 20); }
+on_bar { target(close > avg ? 100 : 0); }
+live { broker = "kis"; }

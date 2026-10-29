@@ -1,0 +1,1 @@
+{"severity":"error","code":"target-not-numeric","message":"a target is a number of shares","file":"tests/ui/check/target-not-numeric.atls","span":{"start":{"line":2,"column":10},"end":{"line":2,"column":19},"byte_start":18,"byte_end":27},"label":"this is `bool`","secondary":[],"notes":[]}

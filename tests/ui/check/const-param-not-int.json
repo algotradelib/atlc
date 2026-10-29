@@ -1,0 +1,1 @@
+{"severity":"error","code":"const-param-not-int","message":"`sma`'s window is built from `int` params","file":"tests/ui/check/const-param-not-int.atls","span":{"start":{"line":5,"column":23},"end":{"line":5,"column":24},"byte_start":65,"byte_end":66},"label":"`n` is `real`","secondary":[],"notes":[]}

@@ -1,0 +1,6 @@
+error[expected-token]: expected `)` to close `sma(`, found `;`
+ --> tests/ui/syntax/missing-paren.atls:2:24
+  |
+2 |   real a = sma(close, 5;
+  |                        ^ expected `)`
+

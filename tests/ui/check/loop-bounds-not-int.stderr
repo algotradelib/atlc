@@ -1,0 +1,6 @@
+error[loop-bounds-not-int]: a loop's bounds are whole numbers
+ --> tests/ui/check/loop-bounds-not-int.atls:3:15
+  |
+3 |     for (i in 1:x) { }
+  |               ^^^ not `int`
+

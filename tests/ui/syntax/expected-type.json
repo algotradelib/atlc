@@ -1,0 +1,1 @@
+{"severity":"error","code":"expected-type","message":"expected a type (`int`, `real` or `bool`), found `n`","file":"tests/ui/syntax/expected-type.atls","span":{"start":{"line":2,"column":3},"end":{"line":2,"column":4},"byte_start":11,"byte_end":12},"label":"a declaration starts with its type","secondary":[],"notes":[]}

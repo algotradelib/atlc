@@ -1,0 +1,6 @@
+error[expected-token]: expected `>` to close the bounds, found `fast`
+ --> tests/ui/syntax/unclosed-bounds.atls:2:15
+  |
+2 |   int<lower=1 fast = 20;
+  |               ^^^^ expected `>`
+

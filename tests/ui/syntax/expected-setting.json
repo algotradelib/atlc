@@ -1,0 +1,1 @@
+{"severity":"error","code":"expected-setting","message":"expected a setting name, found a number","file":"tests/ui/syntax/expected-setting.atls","span":{"start":{"line":2,"column":3},"end":{"line":2,"column":4},"byte_start":11,"byte_end":12},"label":"e.g. `cash = 100000;`","secondary":[],"notes":[]}

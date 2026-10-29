@@ -1,0 +1,1 @@
+{"severity":"error","code":"operand-type","message":"type mismatch: `not` needs a `bool`","file":"tests/ui/check/operand-type.atls","span":{"start":{"line":2,"column":12},"end":{"line":2,"column":21},"byte_start":20,"byte_end":29},"label":"operand is `real`","secondary":[],"notes":["compare first, e.g. `not (x > 0)`"]}

@@ -1,0 +1,8 @@
+error[function-as-value]: `f` is called with arguments
+ --> tests/ui/check/function-as-value.atls:4:17
+  |
+2 |   real f(real x) { return x; }
+  |        - declared here
+4 | on_bar { target(f); }
+  |                 ^ not a value
+

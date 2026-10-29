@@ -1,0 +1,13 @@
+error[type-mismatch]: type mismatch: `up` is `bool` but the value is `real`
+ --> tests/ui/check/type-error.atls:2:13
+  |
+2 |   bool up = close - close[1];
+  |             ^^^^^^^^^^^^^^^^ this is `real`
+
+error[condition-not-bool]: type mismatch: a condition must be `bool`
+ --> tests/ui/check/type-error.atls:5:7
+  |
+5 |   if (close) {
+  |       ^^^^^ this is `real`
+  = compare it, e.g. `x != 0`
+

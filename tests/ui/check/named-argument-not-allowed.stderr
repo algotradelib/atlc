@@ -1,0 +1,7 @@
+error[named-argument-not-allowed]: `abs` takes no named argument
+ --> tests/ui/check/named-argument-not-allowed.atls:2:23
+  |
+2 |   real a = abs(close, missing = skip);
+  |                       ^^^^^^^ not here
+  = only indicators over one series take `missing = ...` (sma ema lag ts_sum stdev stdev_pop zscore, and rsi ts_max ts_min with restart or poison)
+

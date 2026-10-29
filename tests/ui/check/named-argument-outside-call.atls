@@ -1,0 +1,4 @@
+universe {}
+on_bar {
+  target(xs_mean(x = close));
+}

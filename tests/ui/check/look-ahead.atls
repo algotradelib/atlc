@@ -1,0 +1,7 @@
+series {
+  real tomorrow = lag(close, -1);
+  real next_open = open[-1];
+}
+on_bar {
+  target(tomorrow > close ? 100 : 0);
+}

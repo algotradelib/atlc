@@ -1,0 +1,7 @@
+error[min-without-skip]: `min` applies to `missing = skip` only
+ --> tests/ui/check/policy-min-restart.atls:1:40
+  |
+1 | series { real m = sma(close, 20, min = 5); }
+  |                                        ^ not used
+  = restart and poison need a full window of values
+

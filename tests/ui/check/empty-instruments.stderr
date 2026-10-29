@@ -1,0 +1,14 @@
+error[empty-instruments]: `instruments {}` names no instrument
+ --> tests/ui/check/empty-instruments.atls:1:1
+  |
+1 | instruments {}
+  | ^^^^^^^^^^^^^^ empty
+  = write `instruments { y; x; }`
+
+error[target-needs-instrument]: which instrument's target?
+ --> tests/ui/check/empty-instruments.atls:2:10
+  |
+2 | on_bar { target(1); }
+  |          ^^^^^^^^^^ the program names its instruments
+  = write `target(, shares);`
+

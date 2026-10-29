@@ -1,0 +1,5 @@
+on_bar {
+  real x = 1;
+  x = 2;
+  target(x);
+}

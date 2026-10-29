@@ -1,0 +1,5 @@
+on_bar {
+  if (held = 0) {
+    target(100);
+  }
+}

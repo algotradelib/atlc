@@ -1,0 +1,1 @@
+{"severity":"error","code":"not-visible","message":"`fast` is not visible in `u_sma`","file":"tests/ui/check/indicator-sees-param.atls","span":{"start":{"line":3,"column":12},"end":{"line":3,"column":16},"byte_start":79,"byte_end":83},"label":"not here","secondary":[],"notes":["an indicator sees only its arguments, states, window and earlier values","pass `fast` as an argument"]}

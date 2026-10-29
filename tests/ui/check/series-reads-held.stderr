@@ -1,0 +1,7 @@
+error[series-reads-held]: series cannot read `held`
+ --> tests/ui/check/series-reads-held.atls:2:12
+  |
+2 |   real h = held;
+  |            ^^^^ the position is read in handlers
+  = series are computed from bars and params only
+

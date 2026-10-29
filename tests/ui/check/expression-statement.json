@@ -1,0 +1,1 @@
+{"severity":"error","code":"expression-statement","message":"this statement does nothing","file":"tests/ui/check/expression-statement.atls","span":{"start":{"line":2,"column":3},"end":{"line":2,"column":12},"byte_start":11,"byte_end":20},"label":"its value is unused","secondary":[],"notes":["a handler assigns state, declares locals, branches, loops, or states `target(...)`"]}

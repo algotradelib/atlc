@@ -1,0 +1,26 @@
+# Six averages and a 50-bar channel: buy when the close is above five of the six averages and at the
+# channel's top, sell when it is above at most one or at the channel's bottom. Eight indicators over
+# three inputs, to see what sharing and window algorithms cost when there are many.
+params {
+  int<lower=0> quantity = 100;
+  int<lower=1> channel = 50;
+}
+series {
+  real a5 = sma(close, 5);
+  real a10 = sma(close, 10);
+  real a20 = sma(close, 20);
+  real a50 = sma(close, 50);
+  real a100 = sma(close, 100);
+  real a200 = sma(close, 200);
+  real top = ts_max(high, channel);
+  real bottom = ts_min(low, channel);
+}
+on_bar {
+  int above = (close > a5 ? 1 : 0) + (close > a10 ? 1 : 0) + (close > a20 ? 1 : 0)
+    + (close > a50 ? 1 : 0) + (close > a100 ? 1 : 0) + (close > a200 ? 1 : 0);
+  if (above >= 5 and close >= top) {
+    target(quantity);
+  } else if (above <= 1 or close <= bottom) {
+    target(0);
+  }
+}

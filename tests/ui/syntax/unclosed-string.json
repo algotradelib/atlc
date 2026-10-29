@@ -1,0 +1,1 @@
+{"severity":"error","code":"unclosed-string","message":"this string is never closed","file":"tests/ui/syntax/unclosed-string.atls","span":{"start":{"line":2,"column":12},"end":{"line":2,"column":17},"byte_start":20,"byte_end":25},"label":"add `\"`","secondary":[],"notes":[]}
