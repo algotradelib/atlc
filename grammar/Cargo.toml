@@ -2,7 +2,7 @@
 name = "atlc-grammar"
 version = "0.0.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.89"
 description = "The atls grammar of docs/reference/syntax.md for LALRPOP, checked against atlc's hand-written parser"
 license = "MIT"
 publish = false

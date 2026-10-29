@@ -1,9 +1,8 @@
 //! The build cache of `atlc run`: where entries live, their key, the fingerprint of what CMake found, and a lock
 //! so that two runs never build one entry at once.
 
-use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 
 /// The cache's directory: `ATLC_CACHE_DIR`, else the platform's cache location (`~/Library/Caches/atlc` on macOS,
 /// `%LOCALAPPDATA%\atlc\cache` on Windows, `$XDG_CACHE_HOME/atlc` or `~/.cache/atlc` elsewhere).
@@ -86,50 +85,36 @@ fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-/// An entry's lock: a file created exclusively beside it, removed when dropped.
+/// An entry's lock: an OS lock on a file beside the entry, held until dropped. The system releases it when the
+/// run that holds it ends, so a run that died leaves nothing to clean up; the file itself stays.
 pub struct Lock {
-    path: PathBuf,
+    _file: std::fs::File,
 }
 
 impl Lock {
-    /// Takes the lock of `entry`, waiting while another run holds it; a lock older than an hour is left by a run
-    /// that died, and is taken over.
+    /// Takes the lock of `entry`, waiting while another run holds it.
     pub fn take(entry: &Path) -> Result<Lock, String> {
         let mut path = entry.as_os_str().to_owned();
         path.push(".lock");
         let path = PathBuf::from(path);
-        let mut said = false;
-        loop {
-            match std::fs::OpenOptions::new().write(true).create_new(true).open(&path) {
-                Ok(mut f) => {
-                    let _ = writeln!(f, "{}", std::process::id());
-                    return Ok(Lock { path });
-                }
-                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-                    let stale = std::fs::metadata(&path)
-                        .and_then(|m| m.modified())
-                        .ok()
-                        .and_then(|t| t.elapsed().ok())
-                        .is_some_and(|age| age > Duration::from_secs(3600));
-                    if stale {
-                        let _ = std::fs::remove_file(&path);
-                        continue;
-                    }
-                    if !said {
-                        eprintln!("atlc: waiting for another atlc building {}", entry.display());
-                        said = true;
-                    }
-                    std::thread::sleep(Duration::from_millis(200));
-                }
-                Err(e) => return Err(format!("cannot create {}: {e}", path.display())),
+        let file = std::fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(&path)
+            .map_err(|e| format!("cannot open {}: {e}", path.display()))?;
+        match file.try_lock() {
+            Ok(()) => {}
+            Err(std::fs::TryLockError::WouldBlock) => {
+                eprintln!("atlc: waiting for another atlc building {}", entry.display());
+                file.lock()
+                    .map_err(|e| format!("cannot lock {}: {e}", path.display()))?;
+            }
+            Err(std::fs::TryLockError::Error(e)) => {
+                return Err(format!("cannot lock {}: {e}", path.display()));
             }
         }
-    }
-}
-
-impl Drop for Lock {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_file(&self.path);
+        Ok(Lock { _file: file })
     }
 }
 
@@ -164,7 +149,8 @@ mod tests {
             .write(true)
             .open(dir.join("sub/a.hpp"))
             .unwrap();
-        f.set_modified(SystemTime::UNIX_EPOCH + Duration::from_secs(1)).unwrap();
+        f.set_modified(SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1))
+            .unwrap();
         let touched = fingerprint(std::slice::from_ref(&dir), std::slice::from_ref(&single));
         assert_ne!(before, touched);
         std::fs::write(dir.join("b.hpp"), "").unwrap();
@@ -182,10 +168,11 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("atlc-lock-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let entry = dir.join("e");
+        let other = || std::fs::File::options().write(true).open(dir.join("e.lock")).unwrap();
         let lock = Lock::take(&entry).unwrap();
-        assert!(dir.join("e.lock").exists());
+        assert!(matches!(other().try_lock(), Err(std::fs::TryLockError::WouldBlock)));
         drop(lock);
-        assert!(!dir.join("e.lock").exists());
+        assert!(other().try_lock().is_ok());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

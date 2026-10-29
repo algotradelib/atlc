@@ -2,7 +2,7 @@
 name = "atlc"
 version = "0.0.0-9000"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.89"
 description = "Compiler for atls, a strategy language for algotradelib, transpiled to C++"
 license = "MIT"
 repository = "https://github.com/algotradelib/atlc"
