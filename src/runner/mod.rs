@@ -213,6 +213,12 @@ impl Project {
         eprintln!("atlc: building the strategy in {}", self.dir.display());
         let started = Instant::now();
         let log = self.dir.join("build.log");
+        // CMake's file API lists every CMake file the configure reads (a toolchain file and what it includes, the
+        // package files of algotradelib and its dependencies, CMake's own modules), for the fingerprint.
+        let query = build.join(".cmake/api/v1/query");
+        std::fs::create_dir_all(&query).map_err(|e| format!("cannot create {}: {e}", query.display()))?;
+        std::fs::write(query.join("cmakeFiles-v1"), "")
+            .map_err(|e| format!("cannot write {}: {e}", query.display()))?;
         let mut configure = Command::new("cmake");
         configure
             .arg("-S")
@@ -244,7 +250,15 @@ impl Project {
                 log.display()
             ));
         }
-        let (roots, files) = found(&build.join("atlc-found.txt"));
+        let (roots, mut files) = found(&build.join("atlc-found.txt"));
+        let inputs = cmake_inputs(&build.join(".cmake/api/v1/reply"));
+        if inputs.is_empty() {
+            return Err(format!(
+                "CMake wrote no list of the files it read (its file API) in {}",
+                build.display()
+            ));
+        }
+        files.extend(inputs);
         let join = |paths: &[PathBuf]| {
             paths
                 .iter()
@@ -355,6 +369,93 @@ fn found(path: &Path) -> (Vec<PathBuf>, Vec<PathBuf>) {
         }
     }
     (roots, files)
+}
+
+/// The CMake files a configure read, from the file API's `cmakeFiles-v1` reply in `reply`: each input's absolute
+/// path, without those CMake generated in the build tree (relative paths are the project's own, already in the key).
+fn cmake_inputs(reply: &Path) -> Vec<PathBuf> {
+    let Some(text) = std::fs::read_dir(reply).ok().and_then(|dir| {
+        dir.flatten()
+            .find(|e| e.file_name().to_string_lossy().starts_with("cmakeFiles-v1-"))
+            .and_then(|e| std::fs::read_to_string(e.path()).ok())
+    }) else {
+        return vec![];
+    };
+    let mut out = vec![];
+    let Some(start) = text.find("\"inputs\"") else {
+        return out;
+    };
+    let mut rest = &text[start..];
+    // Each input is a flat object: `{ "path" : "...", "isGenerated" : true, ... }`.
+    while let Some(open) = rest.find(['{', ']']) {
+        if rest[open..].starts_with(']') {
+            break;
+        }
+        let Some(len) = json_object_len(&rest[open..]) else {
+            break;
+        };
+        let object = &rest[open..open + len];
+        let generated = object
+            .split_whitespace()
+            .collect::<String>()
+            .contains("\"isGenerated\":true");
+        if let Some(path) = json_string_after(object, "\"path\"") {
+            let path = PathBuf::from(path);
+            if path.is_absolute() && !generated {
+                out.push(path);
+            }
+        }
+        rest = &rest[open + len..];
+    }
+    out
+}
+
+/// The length of the JSON object at the start of `text`, through its closing brace (braces in strings skipped).
+fn json_object_len(text: &str) -> Option<usize> {
+    let (mut depth, mut in_string, mut escaped) = (0usize, false, false);
+    for (i, c) in text.char_indices() {
+        match c {
+            _ if escaped => escaped = false,
+            '\\' if in_string => escaped = true,
+            '"' => in_string = !in_string,
+            '{' if !in_string => depth += 1,
+            '}' if !in_string => {
+                depth = depth.checked_sub(1)?;
+                if depth == 0 {
+                    return Some(i + 1);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+/// The JSON string value after the key `key` in `object`, unescaped.
+fn json_string_after(object: &str, key: &str) -> Option<String> {
+    let after = &object[object.find(key)? + key.len()..];
+    let after = after.trim_start().strip_prefix(':')?.trim_start().strip_prefix('"')?;
+    let mut out = String::new();
+    let mut chars = after.chars();
+    while let Some(c) = chars.next() {
+        match c {
+            '"' => return Some(out),
+            '\\' => match chars.next()? {
+                'n' => out.push('\n'),
+                't' => out.push('\t'),
+                'r' => out.push('\r'),
+                'b' => out.push('\u{8}'),
+                'f' => out.push('\u{c}'),
+                'u' => {
+                    let hex: String = chars.by_ref().take(4).collect();
+                    out.push(char::from_u32(u32::from_str_radix(&hex, 16).ok()?)?);
+                }
+                other => out.push(other),
+            },
+            c => out.push(c),
+        }
+    }
+    None
 }
 
 /// A path as CMake reads it: forward slashes.
@@ -620,6 +721,33 @@ mod tests {
             ]
         );
         assert_eq!(files, vec![PathBuf::from("/usr/bin/c++")]);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn the_file_api_reply_gives_the_cmake_inputs() {
+        let dir = std::env::temp_dir().join(format!("atlc-api-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        assert!(cmake_inputs(&dir).is_empty());
+        std::fs::write(
+            dir.join("cmakeFiles-v1-0a1b.json"),
+            "{\n  \"inputs\" :\n  [\n    { \"path\" : \"CMakeLists.txt\" },\n                 { \"isGenerated\" : true, \"path\" : \"/b/CMakeFiles/4.1/CMakeCXXCompiler.cmake\" },\n    \
+             { \"isExternal\" : true, \"path\" : \"/t/my {tool}\\\"chain\\\\.cmake\" },\n    \
+             { \"isCMake\" : true, \"isExternal\" : true, \"path\" : \"/c/Modules/Find\\u0041.cmake\" }\n  ],\n  \
+             \"paths\" : { \"build\" : \"/b\", \"source\" : \"/s\" }\n}\n",
+        )
+        .unwrap();
+        // Windows reads `/t/...` as relative; the paths here are Unix ones.
+        if !cfg!(windows) {
+            assert_eq!(
+                cmake_inputs(&dir),
+                [
+                    PathBuf::from("/t/my {tool}\"chain\\.cmake"),
+                    PathBuf::from("/c/Modules/FindA.cmake")
+                ]
+            );
+        }
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
