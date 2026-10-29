@@ -35,6 +35,25 @@ fn int_op(op: BinOp) -> &'static str {
     }
 }
 
+/// A condition without the parentheses around the whole of it, for `if (...)`.
+fn bare(code: &str) -> &str {
+    let Some(inner) = code.strip_prefix('(').and_then(|c| c.strip_suffix(')')) else {
+        return code;
+    };
+    let mut depth = 0i32;
+    for ch in inner.chars() {
+        depth += match ch {
+            '(' => 1,
+            ')' => -1,
+            _ => 0,
+        };
+        if depth < 0 {
+            return code;
+        }
+    }
+    inner
+}
+
 fn checked(v: &V) -> String {
     match (v.ty, v.repr) {
         (Ty::Bool, Repr::Plain) => format!("({} ? 1.0 : 0.0)", v.code),
@@ -801,7 +820,7 @@ impl<'a> Printer<'a> {
                 HStmt::If { cond, then, els } => {
                     let c = self.hexpr(cond);
                     if c.repr == Repr::Plain {
-                        self.line(indent, &format!("if ({}) {{", c.code));
+                        self.line(indent, &format!("if ({}) {{", bare(&c.code)));
                         self.stmts(then, indent + 1);
                         if !els.is_empty() {
                             self.line(indent, "} else {");
@@ -1442,7 +1461,13 @@ impl<'a> Printer<'a> {
             1,
             "/** Sets one parameter by name and checks the bounds again; an unknown name throws. */",
         );
-        self.line(1, "void set(std::string_view name, double value) {");
+        // A program without parameters only refuses the name.
+        let value = if ir.params.is_empty() {
+            "[[maybe_unused]] double value"
+        } else {
+            "double value"
+        };
+        self.line(1, &format!("void set(std::string_view name, {value}) {{"));
         let mut first = true;
         for p in &ir.params {
             let conv = match p.ty {

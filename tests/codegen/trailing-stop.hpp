@@ -92,11 +92,11 @@ struct TrailingStop {
     atls::ops::Target target;
     if (st_in_trade_) {
       st_peak_ = std::max<double>(st_peak_, f_close);
-      if ((f_close < (st_peak_ * (1 - params_.trail_)))) {
+      if (f_close < (st_peak_ * (1 - params_.trail_))) {
         target.state(static_cast<std::int64_t>(0));
       }
     } else {
-      if ((f_close > s_breakout)) {
+      if (f_close > s_breakout) {
         target.state(static_cast<std::int64_t>(params_.quantity_));
       }
     }
