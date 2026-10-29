@@ -7,6 +7,7 @@
 pub mod backend;
 pub mod frontend;
 pub mod ir;
+pub mod runner;
 pub mod sema;
 pub mod spec;
 

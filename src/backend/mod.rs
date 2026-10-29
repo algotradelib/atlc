@@ -55,6 +55,28 @@ pub struct Options {
     pub drop_history: bool,
 }
 
+/// The strategy struct's name for a file stem: the stem in CamelCase (`mean-reversion` gives `MeanReversion`), or why
+/// it cannot name one (it must start with a letter, and must not make `Params` or `Lane`).
+pub fn struct_name(stem: &str) -> Result<String, String> {
+    let name: String = stem
+        .split(|c: char| !c.is_ascii_alphanumeric())
+        .filter(|s| !s.is_empty())
+        .map(|s| {
+            let mut c = s.chars();
+            c.next()
+                .map(|f| f.to_ascii_uppercase().to_string() + c.as_str())
+                .unwrap_or_default()
+        })
+        .collect();
+    if !name.starts_with(|c: char| c.is_ascii_alphabetic()) || name == "Params" || name == "Lane" {
+        return Err(format!(
+            "cannot name the strategy struct after `{stem}`: the file name must start with a letter, and must not make \
+             `Params` or `Lane`"
+        ));
+    }
+    Ok(name)
+}
+
 /// The C++ header of a checked program.
 pub fn print(ir: &Ir, options: &Options) -> String {
     cpp::print(ir, options)

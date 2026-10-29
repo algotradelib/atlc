@@ -12,7 +12,8 @@ commands:
   build FILE.atls [-o OUT.hpp] [--indicators incremental|naive|exact] [--share on|off] [--history drop|keep]
                               write the C++ strategy (to standard output without -o)
   build --emit-runtime DIR    write the runtime headers the strategies include into DIR/atls/
-  run SPEC.toml [-P k=v]      replay a strategy from a run spec and print the report as JSON (not implemented yet)
+  run SPEC.toml [-P name=value]... [--fills FILE]
+                              replay a strategy from a run spec and print the report as JSON
   --version                   print the compiler's version";
 
 /// The checking thread's stack. The parser refuses programs nested deeper than 256 levels; checking the
@@ -27,11 +28,15 @@ fn main() -> ExitCode {
             println!("atlc {}", atlc::VERSION);
             ExitCode::SUCCESS
         }
-        Some(command @ ("check" | "build")) => {
+        Some(command @ ("check" | "build" | "run")) => {
             // The parser, the checker and the printer recurse over the syntax tree: give them room for the deepest
             // program the parser accepts, in any build (the stack is reserved, not committed).
             let rest = args[1..].to_vec();
-            let run = if command == "check" { check } else { build };
+            let run = match command {
+                "check" => check,
+                "build" => build,
+                _ => run,
+            };
             let worker = std::thread::Builder::new()
                 .stack_size(STACK_BYTES)
                 .spawn(move || run(&rest));
@@ -42,10 +47,6 @@ fn main() -> ExitCode {
                     ExitCode::from(101)
                 }
             }
-        }
-        Some("run") => {
-            eprintln!("atlc: `{}` is not implemented yet", args[0]);
-            ExitCode::from(2)
         }
         _ => usage(),
     }
@@ -156,14 +157,13 @@ fn build(args: &[String]) -> ExitCode {
         .file_stem()
         .map(|s| s.to_string_lossy().into_owned())
         .unwrap_or_default();
-    let name = struct_name(&stem);
-    if !name.starts_with(|c: char| c.is_ascii_alphabetic()) || name == "Params" || name == "Lane" {
-        eprintln!(
-            "atlc build: cannot name the strategy struct after `{stem}`: the file name must start with a letter, and must \
-             not make `Params` or `Lane`"
-        );
-        return ExitCode::from(2);
-    }
+    let name = match backend::struct_name(&stem) {
+        Ok(name) => name,
+        Err(m) => {
+            eprintln!("atlc build: {m}");
+            return ExitCode::from(2);
+        }
+    };
     let source = match std::fs::read_to_string(file) {
         Ok(s) => s,
         Err(e) => {
@@ -229,15 +229,67 @@ fn on_off(value: &str, yes: &str, no: &str) -> Option<bool> {
     }
 }
 
-/// The struct a file's strategy is named: its stem in CamelCase (`mean-reversion` gives `MeanReversion`).
-fn struct_name(stem: &str) -> String {
-    stem.split(|c: char| !c.is_ascii_alphanumeric())
-        .filter(|s| !s.is_empty())
-        .map(|s| {
-            let mut c = s.chars();
-            c.next()
-                .map(|f| f.to_ascii_uppercase().to_string() + c.as_str())
-                .unwrap_or_default()
-        })
-        .collect()
+/// `atlc run SPEC [-P name=value]... [--fills FILE]`: exit 0 after printing the report, 1 when the program has
+/// errors, 2 on a usage, spec or file error, 3 when the build fails, 4 when the replay fails.
+fn run(args: &[String]) -> ExitCode {
+    let mut spec: Option<&str> = None;
+    let mut fills: Option<&str> = None;
+    let mut cli = vec![];
+    let mut i = 0;
+    while i < args.len() {
+        let a = args[i].as_str();
+        if matches!(a, "-P" | "--fills") {
+            i += 1;
+            let Some(value) = args.get(i) else {
+                eprintln!("atlc run: `{a}` needs a value");
+                return usage();
+            };
+            if a == "--fills" {
+                if fills.replace(value).is_some() {
+                    eprintln!("atlc run: `--fills` is given twice");
+                    return usage();
+                }
+            } else {
+                match atlc::spec::from_command_line(value) {
+                    Ok(e) if cli.iter().any(|c: &atlc::spec::Entry| c.key == e.key) => {
+                        eprintln!("atlc run: `{}` is given twice", e.key);
+                        return usage();
+                    }
+                    Ok(e) => cli.push(e),
+                    Err(m) => {
+                        eprintln!("atlc run: {m}");
+                        return usage();
+                    }
+                }
+            }
+        } else if matches!(a, "-h" | "--help") {
+            return usage();
+        } else if a.starts_with('-') && a.len() > 1 {
+            eprintln!("atlc run: unknown option `{a}`");
+            return usage();
+        } else if spec.replace(a).is_some() {
+            eprintln!("atlc run: expected one run spec");
+            return usage();
+        }
+        i += 1;
+    }
+    let Some(spec) = spec else {
+        eprintln!("atlc run: expected a run spec");
+        return usage();
+    };
+    match atlc::runner::run(std::path::Path::new(spec), cli, fills.map(std::path::PathBuf::from)) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(f) => {
+            match &f {
+                atlc::runner::Failure::Spec(messages) => {
+                    for m in messages {
+                        eprintln!("atlc run: {m}");
+                    }
+                }
+                atlc::runner::Failure::Build(m) => eprintln!("atlc run: {m}"),
+                atlc::runner::Failure::Program | atlc::runner::Failure::Replay => {}
+            }
+            ExitCode::from(f.code())
+        }
+    }
 }
