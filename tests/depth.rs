@@ -1,17 +1,22 @@
 //! Deep programs through the built binary: refused with `nesting-too-deep` and exit code 1 past the limit,
-//! accepted up to it, and never a stack overflow (which would abort the process). `cargo test --release
-//! --test depth` runs the same tests against a release build.
+//! accepted (and printed as C++) up to it, and never a stack overflow (which would abort the process).
+//! `cargo test --release --test depth` runs the same tests against a release build.
 
 use std::process::Command;
 
 /// Checks `source` with the binary, by way of a file; returns the exit code (None for a signal) and stderr.
 fn check(name: &str, source: &str) -> (Option<i32>, String) {
+    run("check", name, source)
+}
+
+/// Runs `atlc COMMAND FILE` on `source`, by way of a file; returns the exit code (None for a signal) and stderr.
+fn run(command: &str, name: &str, source: &str) -> (Option<i32>, String) {
     let dir = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("depth");
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join(format!("{name}.atls"));
     std::fs::write(&path, source).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_atlc"))
-        .arg("check")
+        .arg(command)
         .arg(&path)
         .output()
         .unwrap();
@@ -22,6 +27,8 @@ fn check(name: &str, source: &str) -> (Option<i32>, String) {
 fn accepted(name: &str, source: &str) {
     let (code, err) = check(name, source);
     assert_eq!(code, Some(0), "{name}: {err}");
+    let (code, err) = run("build", name, source);
+    assert_eq!(code, Some(0), "{name}, build: {err}");
 }
 
 fn refused(name: &str, source: &str) {

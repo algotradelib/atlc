@@ -62,7 +62,28 @@ fn usage_and_file_errors_exit_two() {
         &["check", "--color", "tests/programs/mean-reversion.atls"],
         &["check", "no/such/file.atls"],
         &["check", "--json", "no/such/file.atls"],
-        &["build", "tests/programs/mean-reversion.atls"],
+        &["build"],
+        &["build", "no/such/file.atls"],
+        // The prototype's options that were not carried over.
+        &[
+            "build",
+            "tests/programs/mean-reversion.atls",
+            "--indicators",
+            "pairwise",
+        ],
+        &["build", "tests/programs/mean-reversion.atls", "--submit", "changes"],
+        &["build", "tests/programs/mean-reversion.atls", "--params", "constexpr"],
+        &["build", "tests/programs/mean-reversion.atls", "--checks", "all"],
+        &["build", "tests/programs/mean-reversion.atls", "--share", "yes"],
+        &[
+            "build",
+            "tests/programs/mean-reversion.atls",
+            "-o",
+            "a.hpp",
+            "-o",
+            "b.hpp",
+        ],
+        &["build", "tests/programs/mean-reversion.atls", "--history"],
         &["run", "sma.toml"],
         &["frobnicate"],
         &[],
@@ -71,6 +92,41 @@ fn usage_and_file_errors_exit_two() {
         assert_eq!(code, 2, "{args:?}");
         assert!(out.is_empty() && !err.is_empty(), "{args:?}");
     }
-    let (_, _, err) = atlc(&["build", "x.atls"]);
+    let (_, _, err) = atlc(&["run", "x.toml"]);
     assert!(err.contains("not implemented"), "{err}");
+}
+
+#[test]
+fn build_prints_the_header_or_writes_it() {
+    let (code, out, err) = atlc(&["build", "tests/programs/mean-reversion.atls"]);
+    assert_eq!((code, err.as_str()), (0, ""));
+    assert!(out.contains("struct MeanReversion {"), "{out}");
+    let dir = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("cli-build");
+    std::fs::create_dir_all(&dir).unwrap();
+    let target = dir.join("mean-reversion.hpp");
+    let target = target.to_str().unwrap();
+    let (code, written, err) = atlc(&["build", "tests/programs/mean-reversion.atls", "-o", target]);
+    assert_eq!((code, written.as_str(), err.as_str()), (0, "", ""));
+    assert_eq!(std::fs::read_to_string(target).unwrap(), out);
+    // A program with errors writes nothing.
+    let (code, out, err) = atlc(&["build", "tests/ui/check/unknown-name.atls"]);
+    assert_eq!(code, 1);
+    assert!(out.is_empty() && err.starts_with("error[unknown-name]:"), "{err}");
+    // A file name that cannot name a C++ struct.
+    let bad = dir.join("2x.atls");
+    std::fs::copy("tests/programs/mean-reversion.atls", &bad).unwrap();
+    let (code, out, err) = atlc(&["build", bad.to_str().unwrap()]);
+    assert_eq!(code, 2);
+    assert!(out.is_empty() && err.contains("start with a letter"), "{err}");
+}
+
+#[test]
+fn emit_runtime_writes_every_header() {
+    let dir = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("cli-runtime");
+    let _ = std::fs::remove_dir_all(&dir);
+    let (code, out, err) = atlc(&["build", "--emit-runtime", dir.to_str().unwrap()]);
+    assert_eq!((code, out.as_str(), err.as_str()), (0, "", ""));
+    for (path, text) in atlc::backend::RUNTIME {
+        assert_eq!(std::fs::read_to_string(dir.join(path)).unwrap(), text, "{path}");
+    }
 }
