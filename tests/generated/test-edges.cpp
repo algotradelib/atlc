@@ -3,6 +3,7 @@
 #include "replay.hpp"
 
 #include <contraction.hpp>
+#include <int_compare.hpp>
 #include <integers.hpp>
 #include <missing_open.hpp>
 #include <universe_function.hpp>
@@ -101,4 +102,14 @@ TEST_CASE("state initialization, on_start and on_stop round a * b + c twice, as 
   CHECK(strategy.st_at_start_ == 0.0);
   strategy.on_stop(ctx);
   CHECK(strategy.st_at_stop_ == 0.0);
+}
+
+TEST_CASE("integers above 2^53 are compared as integers") {
+  // x == 18,000,000,000,000,000 and x - 1 round to one double; as integers x is greater.
+  const std::vector<std::optional<std::string>> expected{std::nullopt, "10", std::nullopt, std::nullopt, "10", "10"};
+  for (std::size_t which = 0; which < expected.size(); ++which) {
+    INFO("comparison " << which);
+    auto strategy = t::with(atls::IntCompare(t::id_of("A")), {{"which", static_cast<double>(which)}});
+    CHECK(target_of(strategy) == expected[which]);
+  }
 }

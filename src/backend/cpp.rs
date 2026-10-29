@@ -557,12 +557,17 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn hexpr(&mut self, e: &HExpr) -> V {
-        let repr = if self.force_checked && !e.maybe && Self::whole_only(e) {
+    /// How an expression's value is held: plain, or three-valued in a double.
+    fn repr_of(&self, e: &HExpr) -> Repr {
+        if self.force_checked && !e.maybe && Self::whole_only(e) {
             Repr::Plain
         } else {
             self.result_repr(e.ty, e.maybe)
-        };
+        }
+    }
+
+    fn hexpr(&mut self, e: &HExpr) -> V {
+        let repr = self.repr_of(e);
         match &e.kind {
             HKind::Num(v) => V {
                 code: if e.ty == Ty::Int { inum(*v) } else { dnum(*v) },
@@ -676,11 +681,14 @@ impl<'a> Printer<'a> {
             }
             HKind::Ternary(c, a, b)
                 if repr == Repr::Checked
+                    && self.repr_of(c) == Repr::Checked
                     && b.kind == HKind::Keep
                     && matches!(&c.kind, HKind::Binary(op, _, _) if op.is_comparison() && *op != BinOp::Ne) =>
             {
-                // `x < y ? v : keep`: an undefined comparison and a false one both give `keep`, so the
-                // comparison needs no three-valued form (NaN compares false). Not `!=`: NaN != y is true.
+                // `x < y ? v : keep` on a condition that may be undefined: an undefined comparison and a false one both
+                // give `keep`, so the comparison needs no three-valued form (NaN compares false). Not `!=`: NaN != y
+                // is true. Not a condition that is never undefined (between ints, say): it is compared as it is
+                // typed, below.
                 let HKind::Binary(op, x, y) = &c.kind else {
                     unreachable!()
                 };

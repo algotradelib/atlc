@@ -1,0 +1,21 @@
+# Integers above 2^53 compared as integers: 18,000,000,000,000,000 and one less are different numbers, which
+# doubles cannot tell apart. `which` picks the comparison.
+params {
+  int which = 0;
+}
+on_bar {
+  int x = 9000000000000000 * 2;
+  if (which == 0) {
+    target(x == x - 1 ? 10 : keep);
+  } else if (which == 1) {
+    target(x != x - 1 ? 10 : keep);
+  } else if (which == 2) {
+    target(x < x - 1 ? 10 : keep);
+  } else if (which == 3) {
+    target(x <= x - 1 ? 10 : keep);
+  } else if (which == 4) {
+    target(x > x - 1 ? 10 : keep);
+  } else {
+    target(x >= x - 1 ? 10 : keep);
+  }
+}

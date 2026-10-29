@@ -196,7 +196,13 @@ fn generated_strategies() {
         &[],
         perturbed,
     );
-    for program in ["missing-open", "integers", "universe-function", "contraction"] {
+    for program in [
+        "missing-open",
+        "integers",
+        "universe-function",
+        "contraction",
+        "int-compare",
+    ] {
         generate(
             &out,
             &program.replace('-', "_"),
