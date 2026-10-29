@@ -1,7 +1,5 @@
 #pragma once
 
-#include <atls/version.hpp>
-
 #include <algotradelib/strategy>
 
 #include <algorithm>

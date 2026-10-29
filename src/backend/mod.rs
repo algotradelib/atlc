@@ -1,5 +1,5 @@
 //! The C++ back end: the printer (one strategy struct per program) and the runtime headers it calls, compiled
-//! into the binary so that a generated header and the runtime written out beside it always match.
+//! into the binary so that `atlc` always carries the runtime it generates code for.
 
 mod cpp;
 
@@ -60,37 +60,15 @@ pub fn print(ir: &Ir, options: &Options) -> String {
     cpp::print(ir, options)
 }
 
-/// The runtime headers, by path under an include directory, as compiled into this binary.
-pub const RUNTIME: [(&str, &str); 3] = [
+/// The runtime headers, by path under an include directory, as compiled into this binary: the headers the code it
+/// generates is written for.
+pub const RUNTIME: [(&str, &str); 2] = [
     ("atls/ops.hpp", include_str!("../../runtime/include/atls/ops.hpp")),
     (
         "atls/universe.hpp",
         include_str!("../../runtime/include/atls/universe.hpp"),
     ),
-    (
-        "atls/version.hpp",
-        include_str!("../../runtime/include/atls/version.hpp"),
-    ),
 ];
-
-/// The runtime's compatibility identifier: 48 bits of the FNV-1a hash of every runtime header but
-/// `atls/version.hpp`, which states it as `ATLS_RUNTIME_ID` (a test keeps the two equal). Every generated
-/// header checks it, so a header and a runtime from different builds of `atlc` do not compile together.
-pub fn runtime_id() -> u64 {
-    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
-    for (path, text) in RUNTIME.iter().filter(|(p, _)| *p != "atls/version.hpp") {
-        for b in path.bytes().chain([0]).chain(text.bytes()).chain([0]) {
-            hash ^= u64::from(b);
-            hash = hash.wrapping_mul(0x0100_0000_01b3);
-        }
-    }
-    hash >> 16
-}
-
-/// `ATLS_RUNTIME_ID` as `atls/version.hpp` and the generated headers write it.
-pub fn runtime_id_text() -> String {
-    format!("0x{:012x}", runtime_id())
-}
 
 /// Writes the runtime headers under `dir` (`dir/atls/ops.hpp`, ...), replacing any already there.
 pub fn emit_runtime(dir: &Path) -> std::io::Result<()> {
@@ -107,32 +85,6 @@ pub fn emit_runtime(dir: &Path) -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// `atls/version.hpp` states the identifier of the other headers; `BLESS=1` writes it again.
-    #[test]
-    fn version_header_states_the_runtime_id() {
-        let line = format!("#define ATLS_RUNTIME_ID {}", runtime_id_text());
-        let version = RUNTIME[2].1;
-        if std::env::var_os("BLESS").is_some() && !version.contains(&line) {
-            let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("runtime/include/atls/version.hpp");
-            let text: Vec<String> = version
-                .lines()
-                .map(|l| {
-                    if l.starts_with("#define ATLS_RUNTIME_ID ") {
-                        line.clone()
-                    } else {
-                        l.to_string()
-                    }
-                })
-                .collect();
-            std::fs::write(path, text.join("\n") + "\n").unwrap();
-            return;
-        }
-        assert!(
-            version.contains(&line),
-            "runtime/include/atls/version.hpp must say `{line}` (run the tests with BLESS=1 to write it)"
-        );
-    }
 
     #[test]
     fn indicator_names_round_trip() {

@@ -5,7 +5,7 @@
 
 use std::path::PathBuf;
 
-use atlc::backend::{self, Indicators, Options};
+use atlc::backend::{Indicators, Options};
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -37,8 +37,7 @@ fn build(source: &str, options: &Options) -> String {
 }
 
 /// The expected headers: each program with the default settings, and the pairs program with `naive` (Eigen's
-/// least squares). The runtime identifier is replaced by `<runtime id>`, so a change to the runtime does not
-/// rewrite every file.
+/// least squares).
 #[test]
 fn expected_headers() {
     let cases = [
@@ -54,8 +53,7 @@ fn expected_headers() {
     for (program, name, indicators) in cases {
         let file = format!("{program}.atls");
         let source = std::fs::read_to_string(root().join("tests/programs").join(&file)).unwrap();
-        let header =
-            build(&source, &options(name, &file, indicators)).replace(&backend::runtime_id_text(), "<runtime id>");
+        let header = build(&source, &options(name, &file, indicators));
         let suffix = if indicators == Indicators::Incremental {
             String::new()
         } else {
