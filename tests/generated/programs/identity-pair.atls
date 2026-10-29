@@ -1,0 +1,50 @@
+# ols_slope and ols_intercept beside a user indicator over a window of pairs that restates them. One fill of
+# one share of y means identical bits on every bar.
+instruments { y; x; }
+params {
+  int<lower=2> n = 20;
+}
+
+# Least squares with an intercept from running sums over a window of (y, x) pairs.
+indicator u_ols(real y, real x, int n) {
+  window w[n];
+  state real sx = 0;
+  state real sy = 0;
+  state real sxx = 0;
+  state real sxy = 0;
+  enter(a, b) {
+    sx = sx + b;
+    sy = sy + a;
+    sxx = sxx + b * b;
+    sxy = sxy + b * a;
+  }
+  leave(a, b) {
+    sx = sx - b;
+    sy = sy - a;
+    sxx = sxx - b * b;
+    sxy = sxy - b * a;
+  }
+  value real d = n * sxx - sx * sx;
+  value real slope = d != 0 ? (n * sxy - sx * sy) / d : keep;
+  value real intercept = (sy - slope * sx) / n;
+}
+
+series {
+  real ys = y.close / 7;
+  real xs = x.close / 3;
+  real a1 = ols_slope(ys, xs, n);
+  real b1 = u_ols(ys, xs, n).slope;
+  real a2 = ols_intercept(ys, xs, n);
+  real b2 = u_ols(ys, xs, n).intercept;
+}
+state {
+  int diffs = 0;
+}
+on_bar {
+  bool d1 = defined(a1) and defined(b1) ? a1 == b1 : defined(a1) == defined(b1);
+  bool d2 = defined(a2) and defined(b2) ? a2 == b2 : defined(a2) == defined(b2);
+  if (not (d1 and d2)) {
+    diffs = diffs + 1;
+  }
+  target(y, 1 + diffs);
+}

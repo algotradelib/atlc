@@ -1,0 +1,55 @@
+# Built-ins beside user indicators that restate them with the same arithmetic in the same order: sma, stdev
+# and zscore. The program counts the bars where a value or its definedness differs and states one share more
+# than that count, so one fill of one share means identical bits on every bar.
+params {
+  int<lower=2> n = 20;
+}
+
+# sma(x, n): a running sum over the window.
+indicator u_sma(real x, int n) {
+  window w[n];
+  state real s = 0;
+  enter(v) { s = s + v; }
+  leave(v) { s = s - v; }
+  value real mean = s / n;
+}
+
+# stdev(x, n) and zscore(x, n): running sums of the values and their squares, sample deviation; one instance
+# gives both values.
+indicator u_dev(real x, int n) {
+  window w[n];
+  state real s = 0;
+  state real q = 0;
+  enter(v) {
+    s = s + v;
+    q = q + v * v;
+  }
+  leave(v) {
+    s = s - v;
+    q = q - v * v;
+  }
+  value real sd = sqrt((q - s * s / n) / (n - 1));
+  value real z = sd > 0 ? (x - s / n) / sd : keep;
+}
+
+series {
+  real x = close / 7;
+  real a1 = sma(x, n);
+  real b1 = u_sma(x, n);
+  real a2 = stdev(x, n);
+  real b2 = u_dev(x, n).sd;
+  real a3 = zscore(x, n);
+  real b3 = u_dev(x, n).z;
+}
+state {
+  int diffs = 0;
+}
+on_bar {
+  bool d1 = defined(a1) and defined(b1) ? a1 == b1 : defined(a1) == defined(b1);
+  bool d2 = defined(a2) and defined(b2) ? a2 == b2 : defined(a2) == defined(b2);
+  bool d3 = defined(a3) and defined(b3) ? a3 == b3 : defined(a3) == defined(b3);
+  if (not (d1 and d2 and d3)) {
+    diffs = diffs + 1;
+  }
+  target(1 + diffs);
+}
