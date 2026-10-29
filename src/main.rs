@@ -12,6 +12,9 @@ commands:
   run SPEC.toml [-P k=v]      replay a strategy from a run spec and print the report as JSON (not implemented yet)
   --version                   print the compiler's version";
 
+/// The checking thread's stack.
+const STACK_BYTES: usize = 256 << 20;
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str) {
@@ -19,7 +22,22 @@ fn main() -> ExitCode {
             println!("atlc {}", atlc::VERSION);
             ExitCode::SUCCESS
         }
-        Some("check") => check(&args[1..]),
+        Some("check") => {
+            // The parser and the checker recurse over the syntax tree: give them room for the deepest
+            // program the parser accepts in any build, and for long operator chains (the stack is reserved,
+            // not committed, so an unused part costs nothing).
+            let rest = args[1..].to_vec();
+            let worker = std::thread::Builder::new()
+                .stack_size(STACK_BYTES)
+                .spawn(move || check(&rest));
+            match worker.map(|w| w.join()) {
+                Ok(Ok(code)) => code,
+                _ => {
+                    eprintln!("atlc: internal error");
+                    ExitCode::from(101)
+                }
+            }
+        }
         Some("build" | "run") => {
             eprintln!("atlc: `{}` is not implemented yet", args[0]);
             ExitCode::from(2)
