@@ -1764,7 +1764,7 @@ impl<'a> Printer<'a> {
                     walk(b, out);
                     walk(c, out);
                 }
-                HKind::Call(_, args) => args.iter().for_each(|a| walk(a, out)),
+                HKind::Call(_, args) | HKind::UserCall(_, args) => args.iter().for_each(|a| walk(a, out)),
                 _ => {}
             }
         }

@@ -4,6 +4,7 @@
 
 #include <integers.hpp>
 #include <missing_open.hpp>
+#include <universe_function.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -77,4 +78,16 @@ TEST_CASE("integer arithmetic is 64-bit, and a result past 64 bits throws instea
   over.a_ = 3037000500;
   over.b_ = 3037000500;
   CHECK_THROWS_AS(atls::Integers(id, over), std::overflow_error);
+}
+
+TEST_CASE("a cross-sectional value passed to a function") {
+  const std::vector<t::Series> all{t::walk("A", 21, 30), t::walk("B", 22, 30)};
+  const std::vector<atl::InstrumentId> ids{t::id_of("A"), t::id_of("B")};
+  const auto outcome = t::run(atls::UniverseFunction(ids), {"A", "B"}, t::daily_events(all));
+  REQUIRE(outcome.result_.executions_.size() >= 2);
+  // Both instruments buy a hundredth of the first day's mean close, truncated.
+  const double mean = (std::stod(all[0].bars_[0].close_.str()) + std::stod(all[1].bars_[0].close_.str())) / 2;
+  const auto shares = std::to_string(static_cast<std::int64_t>(mean / 100));
+  CHECK(outcome.result_.executions_[0].fill_.quantity_.str() == shares);
+  CHECK(outcome.result_.executions_[1].fill_.quantity_.str() == shares);
 }

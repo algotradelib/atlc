@@ -1,0 +1,11 @@
+# A cross-sectional value passed to a function: each instrument targets a hundredth of the mean close.
+universe {}
+functions {
+  real id(real x) {
+    return x;
+  }
+}
+on_bar {
+  real x = id(xs_mean(close));
+  target(x / 100);
+}
