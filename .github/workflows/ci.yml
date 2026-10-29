@@ -89,11 +89,22 @@ jobs:
           if [ "$RUNNER_OS" = Windows ]; then sep=';'; prefix="$(cygpath -m "$RUNNER_TEMP/catch2")"; else sep=':'; prefix="$RUNNER_TEMP/catch2"; fi
           echo "CMAKE_PREFIX_PATH=$prefix$sep$CMAKE_PREFIX_PATH" >> "$GITHUB_ENV"
 
+      # DuckDB's prebuilt C library, for the store runs of `atlc run` (tests/run.rs).
+      - name: DuckDB
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in Linux) z=libduckdb-linux-amd64.zip ;; macOS) z=libduckdb-osx-universal.zip ;; Windows) z=libduckdb-windows-amd64.zip ;; esac
+          mkdir -p "$RUNNER_TEMP/duckdb"
+          curl -fsSL -o "$RUNNER_TEMP/duckdb.zip" "https://github.com/duckdb/duckdb/releases/download/v1.5.6/$z"
+          (cd "$RUNNER_TEMP/duckdb" && cmake -E tar xf ../duckdb.zip)
+          if [ "$RUNNER_OS" = Windows ]; then d="$(cygpath -m "$RUNNER_TEMP/duckdb")"; else d="$RUNNER_TEMP/duckdb"; fi
+          echo "ATLC_TEST_DUCKDB=$d" >> "$GITHUB_ENV"
+
       - name: C++ tests
         shell: bash
         env:
           ATLC_TEST_PREFIX: ${{ steps.atl.outputs.path }}
-        run: cargo test --test cpp -- --nocapture
+        run: cargo test --test cpp --test run -- --nocapture
 
       # An installed atlc, used outside the checkout: the runtime it writes compiles with a header it generates.
       - name: Installed atlc
@@ -115,3 +126,19 @@ jobs:
           cmake -S consumer -B consumer/build -DCMAKE_BUILD_TYPE=Release
           cmake --build consumer/build --config Release
           if [ "$RUNNER_OS" = Windows ]; then consumer/build/Release/consumer.exe; else consumer/build/consumer; fi
+
+      # An installed atlc runs a CSV spec outside the checkout, with its cache in the runner's temporary directory.
+      - name: atlc run
+        shell: bash
+        env:
+          CMAKE_PREFIX_PATH: ${{ steps.atl.outputs.path }}
+        run: |
+          cp -R "$GITHUB_WORKSPACE/examples" "$RUNNER_TEMP/run-examples"
+          cd "$RUNNER_TEMP/run-examples"
+          export ATLC_CACHE_DIR="$RUNNER_TEMP/atlc-cache"
+          "$RUNNER_TEMP/atlc/bin/atlc" run mean-reversion.toml --fills fills.csv > report.json
+          "$RUNNER_TEMP/atlc/bin/atlc" run mean-reversion.toml -P lookback=30 > report-30.json 2> second.log
+          cat report.json
+          grep -q '"executions": [1-9]' report.json
+          test "$(wc -l < fills.csv)" -gt 1
+          if grep -q 'atlc: building' second.log; then echo "a parameter change rebuilt the strategy"; exit 1; fi
