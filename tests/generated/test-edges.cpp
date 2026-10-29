@@ -5,6 +5,7 @@
 #include <contraction.hpp>
 #include <int_compare.hpp>
 #include <integers.hpp>
+#include <lazy.hpp>
 #include <loop_edge.hpp>
 #include <missing_open.hpp>
 #include <universe_function.hpp>
@@ -30,11 +31,11 @@ atl::strategy::BarEvent bar_of(const std::string& symbol, std::int64_t close, bo
   return atl::strategy::make_bar_event(t::id_of(symbol), atl::BarInterval::ONE_DAY, atl::BarStamp::OPEN, bar);
 }
 
-/** The shares `on_bar` targets on one bar, or nothing. */
+/** The shares `on_bar` targets on one bar at `price`, or nothing. */
 template <class S>
-std::optional<std::string> target_of(S& strategy, bool open = true) {
+std::optional<std::string> target_of(S& strategy, bool open = true, std::int64_t price = 10000) {
   atl::strategy::MinimalContext ctx;
-  strategy.on_bar(ctx, bar_of("A", 10000, open));
+  strategy.on_bar(ctx, bar_of("A", price, open));
   if (ctx.targets().empty()) {
     return std::nullopt;
   }
@@ -119,4 +120,24 @@ TEST_CASE("a loop ending at the largest 64-bit integer runs once and stops") {
   atls::LoopEdge strategy(t::id_of("A"));
   // The handler's loop ran once (10), and the function's loop ended (7).
   CHECK(target_of(strategy) == std::optional<std::string>("17"));
+}
+
+TEST_CASE("an unselected arm and an undecided right side are not evaluated") {
+  const auto id = t::id_of("A");
+  const auto with = [&id](double which) {
+    return t::with(atls::Lazy(id), {{"which", which}});
+  };
+  // `open != 1 ? n * n : keep`: false, or undefined, runs neither n * n nor anything else.
+  auto unused = with(0);
+  CHECK(target_of(unused, true, 1) == std::nullopt);
+  CHECK(target_of(unused, false) == std::nullopt);
+  CHECK_THROWS_AS(target_of(unused, true, 2), std::overflow_error);
+  // `open > 1 and n * n > 0`: a defined false left side decides it.
+  auto both = with(1);
+  CHECK(target_of(both, true, 1) == std::nullopt);
+  CHECK_THROWS_AS(target_of(both, true, 2), std::overflow_error);
+  // `open <= 1 or n * n > 0`: a defined true left side decides it.
+  auto either = with(2);
+  CHECK(target_of(either, true, 1) == std::optional<std::string>("2"));
+  CHECK_THROWS_AS(target_of(either, true, 2), std::overflow_error);
 }

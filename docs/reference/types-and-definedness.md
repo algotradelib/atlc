@@ -25,6 +25,15 @@ A `real` may be undefined (NaN): a window not yet full, a division by zero, a mi
 - `keep` is an undefined `real`; `target(keep)` states nothing.
 - `defined(x)` tests for NaN; an infinity is defined (but `target` refuses it).
 
+## What is evaluated
+
+Since an `int` overflow stops the run, what an expression evaluates is part of its meaning:
+- In handlers, functions and indicators, `c ? a : b` evaluates `c`, then only the arm `c` selects, and neither arm when `c` is undefined.
+- There, `a and b` and `a or b` evaluate `a` first, and `b` only when `a` does not decide the result (a defined `false` for `and`, a defined `true` for `or`).
+- A call evaluates every argument; then an undefined `real` or `bool` argument makes it undefined without running the body.
+- A loop's bounds are evaluated once, before its first pass; a range ending at the largest 64-bit integer stops after it.
+- In `series {}`, every part of every value is computed on every bar, both arms of `?:` and both sides of `and` and `or` included, since an indicator anywhere in a series must see every bar.
+
 ## Defined `int` and `bool` state
 
 `int` and `bool` values in `state {}` are always defined.

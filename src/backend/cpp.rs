@@ -566,6 +566,25 @@ impl<'a> Printer<'a> {
         }
     }
 
+    /// Whether evaluating `e` can throw: it has integer arithmetic (overflow) or calls a function (whose body may).
+    /// Where it cannot, evaluating an unused arm or side changes nothing, so the eager form stays.
+    fn may_throw(e: &HExpr) -> bool {
+        match &e.kind {
+            HKind::Binary(BinOp::Add | BinOp::Sub | BinOp::Mul, _, _) | HKind::Unary(UnOp::Neg, _)
+                if e.ty == Ty::Int =>
+            {
+                true
+            }
+            HKind::Call(Builtin::Abs, _) if e.ty == Ty::Int => true,
+            HKind::UserCall(..) => true,
+            HKind::Unary(_, a) | HKind::Xs(_, a, _) => Self::may_throw(a),
+            HKind::Binary(_, a, b) => Self::may_throw(a) || Self::may_throw(b),
+            HKind::Ternary(c, a, b) => Self::may_throw(c) || Self::may_throw(a) || Self::may_throw(b),
+            HKind::Call(_, args) => args.iter().any(Self::may_throw),
+            _ => false,
+        }
+    }
+
     fn hexpr(&mut self, e: &HExpr) -> V {
         let repr = self.repr_of(e);
         match &e.kind {
@@ -675,6 +694,30 @@ impl<'a> Printer<'a> {
                     repr: Repr::Checked,
                 }
             }
+            HKind::Binary(op @ (BinOp::And | BinOp::Or), a, b) if repr == Repr::Checked && Self::may_throw(b) => {
+                // The right side runs only when the left does not decide the result (a defined false for `and`, a
+                // defined true for `or`).
+                let (x, y) = (self.hexpr(a), self.hexpr(b));
+                let (y, decided) = (checked(&y), if *op == BinOp::And { "0.0" } else { "1.0" });
+                let code = if x.repr == Repr::Plain {
+                    if *op == BinOp::And {
+                        format!("({} ? {} : 0.0)", plain(&x), y)
+                    } else {
+                        format!("({} ? 1.0 : {})", plain(&x), y)
+                    }
+                } else {
+                    let (test, f) = if *op == BinOp::And {
+                        ("left_ == 0", "and3")
+                    } else {
+                        ("left_ != 0", "or3")
+                    };
+                    format!(
+                        "[&]() -> double {{ ATLS_NO_FMA const double left_ = {}; return !std::isnan(left_) && {test} ? {decided} : atls::ops::{f}(left_, {y}); }}()",
+                        checked(&x)
+                    )
+                };
+                V { code, ty: e.ty, repr }
+            }
             HKind::Binary(op, a, b) => {
                 let (a, b) = (self.hexpr(a), self.hexpr(b));
                 self.binary(*op, &a, &b, e.ty, repr)
@@ -704,6 +747,21 @@ impl<'a> Printer<'a> {
                     ty: e.ty,
                     repr: Repr::Checked,
                 }
+            }
+            HKind::Ternary(c, a, b) if repr == Repr::Checked && (Self::may_throw(a) || Self::may_throw(b)) => {
+                // Only the arm the condition selects runs, and neither when it is undefined.
+                let (c, a, b) = (self.hexpr(c), self.hexpr(a), self.hexpr(b));
+                let code = if c.repr == Repr::Plain {
+                    format!("({} ? {} : {})", plain(&c), checked(&a), checked(&b))
+                } else {
+                    format!(
+                        "[&]() -> double {{ ATLS_NO_FMA const double cond_ = {}; return std::isnan(cond_) ? atls::ops::NaN : (cond_ != 0 ? {} : {}); }}()",
+                        c.code,
+                        checked(&a),
+                        checked(&b)
+                    )
+                };
+                V { code, ty: e.ty, repr }
             }
             HKind::Ternary(c, a, b) => {
                 let (c, a, b) = (self.hexpr(c), self.hexpr(a), self.hexpr(b));

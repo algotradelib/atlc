@@ -203,6 +203,7 @@ fn generated_strategies() {
         "contraction",
         "int-compare",
         "loop-edge",
+        "lazy",
     ] {
         generate(
             &out,
