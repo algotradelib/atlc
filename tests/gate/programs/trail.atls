@@ -1,0 +1,44 @@
+# A trend entry with a trailing stop from the highest close since the buy, a time stop after `hold` bars, and a
+# cooldown after every exit: state and `on_fill`.
+params {
+  int<lower=1> fast = 20;
+  int<lower=fast + 1> slow = 60;
+  real<lower=0, upper=1> trail = 0.05;
+  int<lower=1> hold = 120;
+  int<lower=0> cooldown = 30;
+  int<lower=0> quantity = 100;
+}
+series {
+  real fast_avg = sma(close, fast);
+  real slow_avg = sma(close, slow);
+}
+state {
+  bool in_trade = false;
+  real peak = 0;
+  int bars_in = 0;
+  int since_exit = cooldown;
+}
+on_fill {
+  if (fill.buy) {
+    in_trade = true;
+    peak = fill.price;
+    bars_in = 0;
+  } else {
+    in_trade = false;
+    since_exit = 0;
+  }
+}
+on_bar {
+  if (in_trade) {
+    bars_in = bars_in + 1;
+    peak = max(peak, close);
+    if (close < peak * (1 - trail) or bars_in >= hold or fast_avg < slow_avg) {
+      target(0);
+    }
+  } else {
+    since_exit = since_exit + 1;
+    if (fast_avg > slow_avg and held == 0 and since_exit > cooldown) {
+      target(quantity);
+    }
+  }
+}
