@@ -46,13 +46,15 @@ algotradelib = "/opt/algotradelib"
 A spec is TOML, limited to a subset that every TOML reader reads the same way:
 - `[table]` headers and `key = value` lines; keys are bare (letters, digits, `_`, `-`), dotted keys are allowed (`columns.open = "Open"`);
 - strings in double quotes without escapes (a backslash is refused), or in single quotes, read as written (`'C:\data\bars.csv'`);
-- decimal numbers (`100_000`, `0.00015`, `1.5e-4`), `true`, `false`, and arrays of strings or numbers on one line; a value that must be whole (an `int` parameter, `slippage_ticks`) is written as an integer, since TOML reads `2.0` as a float;
-- `#` comments.
+- decimal numbers (`100_000`, `0.00015`, `1.5e-4`), `true`, `false`, and arrays of strings or numbers on one line; a value that must be whole (an `int` parameter, `slippage_ticks`) is written as an integer, since TOML reads `2.0` as a float; cash and cost values are read exactly as decimals (`1.5e-4` is 0.00015), with at most 18 significant digits;
+- `#` comments;
+- spaces and tabs between the parts of a line, and no control character but tab, even in a string or a comment.
 
 Errors, each with the file and line:
 - an unknown key (including a misspelled one under `[build]`), with the tables a spec has: `[data]`, `[instruments]`, `[replay]`, `[params]`, `[build]`;
 - a key set twice, a table defined twice, a name used both as a value and as a table, or a table made both by dotted keys and by a header (`data.file = ...` with `[data]`; TOML refuses it);
 - a value of the wrong type or outside its range, or a key that does not apply to the run (a CSV column mapping for wide tables, say);
+- a character TOML forbids: other whitespace outside a string (a no-break space, say), or a control character;
 - what TOML has beyond the subset: escapes, quoted keys, inline tables, multi-line strings and arrays, arrays of tables, dates written bare (write `"2024-01-02"`).
 
 A syntax error stops reading the file; past that, every error found is printed, not only the first.
@@ -98,6 +100,7 @@ A row is a bar with open, high and low equal to its close, unless the fill is `o
 
 A long file names its symbols one way: `data.symbol` with `data.file`, `data.symbols` with `data.files` (one per file), or `data.symbol_column`.
 Every row has as many cells as the header.
+A time must lie in the years 1 to 9999 and inside what the platform's clock holds, less two days: about the years 1678 to 2262 where it counts nanoseconds, as on Linux; a time outside is refused, never wrapped.
 Rows outside `replay.from` and `replay.to` are dropped, a row with an empty close is skipped, a price that is not positive is refused with its line, and times must increase within a symbol.
 
 `source = "store"`: a Parquet store, laid out as `<store_root>/bars/source=SOURCE/interval=INTERVAL/symbol=SYMBOL/bars.parquet` with the columns `ts`, `stamp`, `open`, `high`, `low`, `close`, `volume` and `fetched_at`.
@@ -127,13 +130,13 @@ A spec names data only: broker and vendor downloads fill the store in a separate
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `replay.from`, `replay.to` | date: `"YYYY-MM-DD"`, or yyyymmdd as a number or string | the first and last bar | the dates replayed, inclusive, in UTC |
+| `replay.from`, `replay.to` | date: `"YYYY-MM-DD"`, or yyyymmdd as a number or string, from 1970 | the first and last bar | the dates replayed, inclusive, in UTC |
 | `replay.market` | `"us"` or `"kr"` | `"kr"` when the first store coordinate's source starts with `kis`, `kiwoom` or `toss` or contains `krx`, else `"us"` | `us`: USD, any price; `kr`: KRW, prices on the KRX tick table |
 | `replay.cash` | number above 0 | 100000 (`us`), 100000000 (`kr`) | the opening cash |
 | `replay.commission` | number, 0 or more | 0 | the commission, a rate of each fill's value |
 | `replay.min_commission` | number, 0 or more | 0 | the least commission of a fill |
 | `replay.sell_tax` | number, 0 or more | 0 | the tax, a rate of each sell's value |
-| `replay.slippage_ticks` | whole number, 0 or more | 0 | slippage, in ticks |
+| `replay.slippage_ticks` | whole number, 0 to 1e9 | 0 | slippage, in ticks |
 | `replay.fill` | `"next-open"`, `"open-prev-close"` or `"legs"` | `"next-open"` | when an order fills (below) |
 | `replay.shorts` | boolean | `false` | whether a position may go below zero; no borrow is modelled |
 | `replay.periods_per_year` | number above 0 | 252 | bars a year, for the annualized Sharpe ratio |
@@ -205,10 +208,10 @@ An entry is named by a key of everything the build reads:
 - the compiler's path, size, modification time and `--version` (on Windows: `CXX`, the `cl.exe` on `PATH` and the latest Visual Studio);
 - the environment variables CMake reads: `CXXFLAGS`, `CPPFLAGS`, `LDFLAGS`, `CMAKE_GENERATOR`, `CMAKE_TOOLCHAIN_FILE`, `OPENSSL_ROOT_DIR`, `BOOST_ROOT`, `Boost_ROOT` and `Eigen3_ROOT`; `CMAKE_PREFIX_PATH`, `algotradelib_DIR`, `algotradelib_ROOT` and `ALGOTRADELIB_ROOT` unless `build.algotradelib` is set; `DUCKDB_ROOT` for a store run unless `build.duckdb` is set.
 
-After a build the entry records what CMake found, and a later run reuses the executable only while that is unchanged: every file of the algotradelib package directory and of the library's headers, the compiler, and DuckDB's library and header, by path, size and modification time.
-A library reinstalled at the same prefix, or a compiler upgraded in place, therefore builds again.
+After a build the entry records what CMake found, and a later run reuses the executable only while that is unchanged: every file of the algotradelib package directory and of the library's headers, every CMake file the configure read (a toolchain file and the files it includes, the package files of algotradelib's dependencies, CMake's own modules, as CMake's file API lists them), the compiler, and DuckDB's library and header, by path, size and modification time.
+A library reinstalled at the same prefix, a compiler upgraded in place, an edited toolchain file, or a dependency upgraded with new package files therefore builds again.
 Parameters, data and replay settings are arguments of the executable, so changing them never builds.
-The package's own dependencies (Boost, OpenSSL, Eigen) are found once per entry and not watched: after upgrading them, remove the cache directory.
+The headers and libraries of algotradelib's dependencies (Boost, OpenSSL, Eigen) are not watched beyond their package files: after changing them in place, remove the cache directory.
 Two runs building one entry at once take turns.
 
 ## Live

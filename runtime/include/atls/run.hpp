@@ -204,15 +204,41 @@ inline bool date_exists(long long yyyymmdd) {
 }
 
 /**
- * @brief Midnight UTC of a yyyymmdd date; a date that does not exist is refused.
+ * @brief An instant a number of seconds after the Unix epoch: within the years 1 to 9999, and within what this
+ *   platform's clock holds less two days, so that an offset or a bar's minutes added later stay inside it (with
+ *   nanosecond ticks, as on Linux, about the years 1678 to 2262).
+ * @param secs The seconds.
+ * @param where What is read, for errors.
+ * @return The instant.
+ */
+inline std::chrono::system_clock::time_point epoch_plus(long long secs, const std::string& where) {
+  using std::chrono::duration_cast;
+  using std::chrono::seconds;
+  using std::chrono::system_clock;
+  const long long margin = 2 * 86400LL;
+  const long long clock_min = static_cast<long long>(duration_cast<seconds>(system_clock::duration::min()).count());
+  const long long clock_max = static_cast<long long>(duration_cast<seconds>(system_clock::duration::max()).count());
+  // 0001-01-01T00:00:00Z and 9999-12-31T23:59:59Z.
+  const long long lo = std::max(-62135596800LL, clock_min + margin);
+  const long long hi = std::min(253402300799LL, clock_max - margin);
+  if (secs < lo || secs > hi) {
+    throw std::invalid_argument(
+      where + ": " + std::to_string(secs) + " seconds after 1970 is outside the years 1 to 9999 or this platform's clock"
+    );
+  }
+  return system_clock::time_point{} + seconds(secs);
+}
+
+/**
+ * @brief Seconds from the Unix epoch to midnight UTC of a yyyymmdd date; a date that does not exist is refused.
  *
  * The day count is Howard Hinnant's `days_from_civil`, from "chrono-Compatible Low-Level Date Algorithms"
  * (https://howardhinnant.github.io/date_algorithms.html), which he placed in the public domain.
  *
  * @param yyyymmdd The date.
- * @return Its midnight.
+ * @return The seconds.
  */
-inline std::chrono::system_clock::time_point day_of(int yyyymmdd) {
+inline long long day_seconds(int yyyymmdd) {
   if (!date_exists(yyyymmdd)) {
     throw std::invalid_argument("not a date: " + std::to_string(yyyymmdd));
   }
@@ -225,7 +251,16 @@ inline std::chrono::system_clock::time_point day_of(int yyyymmdd) {
   const unsigned doy = (153 * static_cast<unsigned>(m + (m > 2 ? -3 : 9)) + 2) / 5 + static_cast<unsigned>(d) - 1;
   const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
   const long long days = era * 146097LL + static_cast<long long>(doe) - 719468LL;
-  return std::chrono::system_clock::time_point{} + std::chrono::hours(24 * days);
+  return days * 86400LL;
+}
+
+/**
+ * @brief Midnight UTC of a yyyymmdd date (see day_seconds() and epoch_plus()).
+ * @param yyyymmdd The date.
+ * @return Its midnight.
+ */
+inline std::chrono::system_clock::time_point day_of(int yyyymmdd) {
+  return epoch_plus(day_seconds(yyyymmdd), "the date " + std::to_string(yyyymmdd));
 }
 
 /**
@@ -534,20 +569,6 @@ inline long offset_of(const std::string& text) {
 }
 
 /**
- * @brief An instant a number of seconds after the Unix epoch, within the years 1 to 9999.
- * @param secs The seconds.
- * @param where The file and line, for errors.
- * @return The instant.
- */
-inline std::chrono::system_clock::time_point epoch_plus(long long secs, const std::string& where) {
-  // 0001-01-01T00:00:00Z and 9999-12-31T23:59:59Z.
-  if (secs < -62135596800LL || secs > 253402300799LL) {
-    throw std::invalid_argument(where + ": " + std::to_string(secs) + " seconds is outside the years 1 to 9999");
-  }
-  return std::chrono::system_clock::time_point{} + std::chrono::seconds(secs);
-}
-
-/**
  * @brief A two-digit field of a time, or -1 when the text there is not two digits.
  * @param text The text.
  * @param at Where the field starts.
@@ -577,7 +598,7 @@ inline std::chrono::system_clock::time_point iso_of(const std::string& cell, lon
   if (cell.size() < 10) {
     throw bad();
   }
-  const auto day = day_of(date_of(cell.substr(0, 10), where));
+  const long long day = day_seconds(date_of(cell.substr(0, 10), where));
   std::size_t at = 10;
   long secs = 0;
   if (at < cell.size() && (cell[at] == 'T' || cell[at] == ' ')) {
@@ -612,7 +633,7 @@ inline std::chrono::system_clock::time_point iso_of(const std::string& cell, lon
   if (at != cell.size()) {
     throw bad();
   }
-  return day + std::chrono::seconds(secs - offset);
+  return epoch_plus(day + secs - offset, where);
 }
 
 /**
@@ -641,7 +662,7 @@ inline std::chrono::system_clock::time_point time_of(
     );
   }
   if (format == "yyyymmdd") {
-    return day_of(date_of(cell, where)) - std::chrono::seconds(offset);
+    return epoch_plus(day_seconds(date_of(cell, where)) - offset, where);
   }
   if (format == "iso") {
     return iso_of(cell, offset, where);
@@ -656,13 +677,15 @@ inline std::chrono::system_clock::time_point time_of(
  * @return Whether it is replayed.
  */
 inline bool in_range(const Settings& s, std::chrono::system_clock::time_point at) {
+  // In seconds, so that a far `replay.to` needs no instant of its own.
+  const long long t = static_cast<long long>(std::chrono::floor<std::chrono::seconds>(at.time_since_epoch()).count());
   if (const auto from = s.get("replay.from")) {
-    if (at < day_of(parse_date(*from))) {
+    if (t < day_seconds(parse_date(*from))) {
       return false;
     }
   }
   if (const auto to = s.get("replay.to")) {
-    if (!(at < day_of(parse_date(*to)) + std::chrono::hours(24))) {
+    if (t >= day_seconds(parse_date(*to)) + 86400LL) {
       return false;
     }
   }

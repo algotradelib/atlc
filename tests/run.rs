@@ -393,8 +393,22 @@ fn csv_run_matches_a_replay_computed_here() {
         assert_eq!(out.code, 0, "{}", out.stderr);
         assert!(!out.built(), "{}", out.stderr);
         assert_eq!(field(&out.stdout, "first_bar"), "\"2020-01-01T00:00:00Z\"");
+        // Exact decimals written with an exponent.
+        let costs = "symbol = \"AAA\"\n[replay]\ncash = 1e5\ncommission = 1.5e-4";
+        let out = data("costs", costs, &format!("{long}1577836800,1,1,1,1,1\n"), env);
+        assert_eq!(out.code, 0, "{}", out.stderr);
+        assert_eq!(field(&out.stdout, "opening_equity"), "\"100000\"");
+        // A year past what a nanosecond clock holds: read on this platform, or refused, never wrapped.
+        let out = data("year-2500", iso, &format!("{long}2500-01-01,1,1,1,1,1\n"), env);
+        assert!(
+            out.code == 0 && field(&out.stdout, "first_bar") == "\"2500-01-01T00:00:00Z\""
+                || out.code == 4 && out.stderr.contains("this platform's clock"),
+            "{}",
+            out.stderr
+        );
         for (name, settings, csv, says) in [
             ("no-day", iso, format!("{long}2020-02-30,1,1,1,1,1\n"), "not a date"),
+            ("year", iso, format!("{long}999999-01-01,1,1,1,1,1\n"), "not a date"),
             (
                 "junk",
                 iso,
@@ -425,6 +439,12 @@ fn csv_run_matches_a_replay_computed_here() {
                 "ts,stamp,open,high,low,close,volume\n1577836800,close,1,1,1,1,1\n1577923200,open,1,1,1,1,1\n"
                     .to_string(),
                 "share one stamp",
+            ),
+            (
+                "spelling",
+                "symbol = \"AAA\"",
+                "ts,stamp,open,high,low,close,volume\n1577836800,clsoe,1,1,1,1,1\n".to_string(),
+                "a stamp is 'open' or 'close'",
             ),
         ] {
             let out = data(name, settings, &csv, env);
@@ -475,6 +495,18 @@ fn the_cache_rebuilds_on_what_the_build_used() {
     let out = run(&[], &[]);
     assert!(out.built() && out.stderr.contains("has changed"), "{}", out.stderr);
     assert!(!run(&[], &[]).built());
+    // A file a toolchain file includes, edited in place: CMake read it, so the build is stale.
+    let included = dir.join("flags.cmake");
+    std::fs::write(&included, "set(ATLC_TEST_FLAG 1)\n").unwrap();
+    let toolchain = dir.join("toolchain.cmake");
+    let include_path = included.display().to_string().replace('\\', "/");
+    std::fs::write(&toolchain, format!("include(\"{include_path}\")\n")).unwrap();
+    let tc = [("CMAKE_TOOLCHAIN_FILE", toolchain.to_str().unwrap())];
+    assert!(run(&[], &tc).built(), "a toolchain file");
+    assert!(!run(&[], &tc).built());
+    touch(&included);
+    let out = run(&[], &tc);
+    assert!(out.built() && out.stderr.contains("has changed"), "{}", out.stderr);
     if cfg!(windows) {
         let _ = writeln!(
             std::io::stderr(),
