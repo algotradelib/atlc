@@ -194,14 +194,15 @@ TEST_CASE("integer arithmetic is exact in 64 bits, and a result past them throws
   CHECK(ops::sub_int(-1, max) == min);
   CHECK_THROWS_AS(ops::sub_int(min, 1), std::overflow_error);
   CHECK_THROWS_AS(ops::sub_int(0, min), std::overflow_error);
-  CHECK(ops::mul_int(3037000499, 3037000499) == 9223372030926249001);
-  CHECK(ops::mul_int(-3037000499, 3037000499) == -9223372030926249001);
+  // Suffixed: MSVC reads an unsuffixed literal past 32 bits as unsigned long, so `-3037000499` would be positive.
+  CHECK(ops::mul_int(3037000499LL, 3037000499LL) == 9223372030926249001LL);
+  CHECK(ops::mul_int(-3037000499LL, 3037000499LL) == -9223372030926249001LL);
   CHECK(ops::mul_int(min / 2, 2) == min);
   CHECK(ops::mul_int(-1, max) == -max);
   CHECK(ops::mul_int(0, min) == 0);
-  CHECK_THROWS_AS(ops::mul_int(3037000500, 3037000500), std::overflow_error);
-  CHECK_THROWS_AS(ops::mul_int(-3037000500, 3037000500), std::overflow_error);
-  CHECK_THROWS_AS(ops::mul_int(-3037000500, -3037000500), std::overflow_error);
+  CHECK_THROWS_AS(ops::mul_int(3037000500LL, 3037000500LL), std::overflow_error);
+  CHECK_THROWS_AS(ops::mul_int(-3037000500LL, 3037000500LL), std::overflow_error);
+  CHECK_THROWS_AS(ops::mul_int(-3037000500LL, -3037000500LL), std::overflow_error);
   CHECK_THROWS_AS(ops::mul_int(min, -1), std::overflow_error);
   CHECK_THROWS_AS(ops::mul_int(-1, min), std::overflow_error);
   CHECK(ops::neg_int(max) == min + 1);

@@ -80,6 +80,9 @@ TEST_CASE("integer arithmetic is 64-bit, and a result past 64 bits throws instea
   // The largest integer literal and default (9e15), and a product in a state's initial value.
   auto literals = with(4, 0);
   CHECK(target_of(literals) == std::optional<std::string>("7"));
+  // A negative default past 32 bits keeps its sign on every compiler (MSVC included).
+  auto negative = with(5, 0);
+  CHECK(target_of(negative) == std::optional<std::string>("-3037000499"));
   // 3037000500 squared does not fit: the state's initial value throws when the strategy is set up.
   atls::Integers::Params over;
   over.a_ = 3037000500;

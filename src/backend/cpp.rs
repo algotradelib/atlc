@@ -84,10 +84,17 @@ fn num(v: f64) -> String {
     }
 }
 
-/// A whole number as a C++ integer literal: every `int` the language accepts (up to 9e15) prints as digits. A
-/// literal past 32 bits is a `long` or `long long` in C++, and every integer operation takes 64-bit operands.
+/// A whole number as a C++ integer literal: every `int` the language accepts (up to 9e15) prints as digits, and one
+/// past 32 bits as a `long long` (`LL`): MSVC types an unsuffixed decimal literal that does not fit its 32-bit `long`
+/// as `unsigned long`, so `-3037000499` would negate an unsigned value.
 fn inum(v: f64) -> String {
-    format!("{}", v as i64)
+    let n = v as i64;
+    // By magnitude: `-2147483648` is `-` applied to 2147483648, which does not fit 32 bits either.
+    if n.unsigned_abs() <= i32::MAX as u64 {
+        format!("{n}")
+    } else {
+        format!("{n}LL")
+    }
 }
 
 fn dnum(v: f64) -> String {
@@ -2593,5 +2600,18 @@ impl<'a> Printer<'a> {
             self.line(at + 1, b);
         }
         self.line(at, "}");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn integer_literals_past_32_bits_are_long_long() {
+        assert_eq!(super::inum(2147483647.0), "2147483647");
+        assert_eq!(super::inum(-2147483647.0), "-2147483647");
+        assert_eq!(super::inum(-2147483648.0), "-2147483648LL");
+        assert_eq!(super::inum(2147483648.0), "2147483648LL");
+        assert_eq!(super::inum(-3037000499.0), "-3037000499LL");
+        assert_eq!(super::inum(9e15), "9000000000000000LL");
     }
 }

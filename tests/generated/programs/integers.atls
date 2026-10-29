@@ -11,6 +11,7 @@ params {
   int c = 0;
   int which = 0;
   int big = 9000000000000000;
+  int negative = -3037000499;
 }
 state {
   int square_at_start = a * b;
@@ -27,5 +28,7 @@ on_bar {
     target(-(-square - c) - square);
   } else if (which == 4) {
     target(big - 9000000000000000 + square - square_at_start + 7);
+  } else if (which == 5) {
+    target(negative);
   }
 }
