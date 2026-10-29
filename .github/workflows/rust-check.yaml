@@ -1,0 +1,44 @@
+# The Rust checks: formatting, lints and every test that needs no C++ toolchain, on each platform, and the declared
+# minimum Rust. The C++ suites are in cpp-check.yaml.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+name: rust-check
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+      # Deep programs are refused, never a stack overflow, in a release build too.
+      - run: cargo test --release --test depth
+      # The grammar is its own package, so LALRPOP never enters the main package's build.
+      - run: cargo fmt --check --manifest-path grammar/Cargo.toml
+      - run: cargo test --manifest-path grammar/Cargo.toml
+      # The main package has no dependency of any kind.
+      - name: no dependency
+        shell: bash
+        run: test "$(cargo tree -e all --prefix none | sort -u | wc -l)" -eq 1
+
+  # The declared minimum Rust (rust-version in Cargo.toml).
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.89
+      - run: cargo test
+      - run: cargo test --manifest-path grammar/Cargo.toml

@@ -1,0 +1,129 @@
+# The C++ side: the runtime's own tests, generated strategies replayed in the backtester, the differential gate and
+# `atlc run`, against the installed algotradelib, on each platform's compiler.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'Cargo.toml'
+      - 'src/**'
+      - 'runtime/**'
+      - 'tests/**'
+      - 'examples/**'
+      - '.github/workflows/cpp-check.yaml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Cargo.toml'
+      - 'src/**'
+      - 'runtime/**'
+      - 'tests/**'
+      - 'examples/**'
+      - '.github/workflows/cpp-check.yaml'
+
+name: cpp-check
+
+jobs:
+  # The C++ tests (`cargo test` with ATLC_TEST_PREFIX): the runtime's own, generated strategies replayed in the
+  # backtester, and the differential gate, against the installed algotradelib that setup-atl pulls (GCC on Linux,
+  # Apple Clang on macOS, MSVC on Windows). Its main channel moves, so the job prints the revision it got.
+  cpp:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            sanitize: '1'
+          - os: macos-latest
+            sanitize: '1'
+          # MSVC has AddressSanitizer but no UndefinedBehaviorSanitizer.
+          - os: windows-latest
+            sanitize: '0'
+    runs-on: ${{ matrix.os }}
+    env:
+      ATLC_TEST_SANITIZE: ${{ matrix.sanitize }}
+      CMAKE_BUILD_PARALLEL_LEVEL: '4'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+
+      - id: atl
+        uses: algotradelib/.github/actions/setup-atl@main
+
+      - name: Library package revision
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in Linux) p=linux-x64 ;; macOS) p=macos-arm64 ;; Windows) p=windows-x64 ;; esac
+          oras manifest fetch "ghcr.io/algotradelib/algotradelib:main-$p" |
+            python3 -c "import json, sys; print('algotradelib revision:', json.load(sys.stdin).get('annotations', {}).get('org.opencontainers.image.revision'))"
+
+      # OpenSSL is not in the package; Linux and Windows runners have it, Homebrew's is keg-only.
+      - name: OpenSSL (macOS)
+        if: runner.os == 'macOS'
+        run: echo "OPENSSL_ROOT_DIR=$(brew --prefix openssl@3)" >> "$GITHUB_ENV"
+
+      # Catch2 is not in the package either: built here with the runner's compiler and runtime library.
+      - name: Catch2
+        shell: bash
+        run: |
+          git clone --depth 1 --branch v3.8.1 https://github.com/catchorg/Catch2.git "$RUNNER_TEMP/catch2-src"
+          cmake -S "$RUNNER_TEMP/catch2-src" -B "$RUNNER_TEMP/catch2-build" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
+            -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/catch2"
+          cmake --build "$RUNNER_TEMP/catch2-build" --config Release --parallel 4
+          cmake --install "$RUNNER_TEMP/catch2-build" --config Release
+          if [ "$RUNNER_OS" = Windows ]; then sep=';'; prefix="$(cygpath -m "$RUNNER_TEMP/catch2")"; else sep=':'; prefix="$RUNNER_TEMP/catch2"; fi
+          echo "CMAKE_PREFIX_PATH=$prefix$sep$CMAKE_PREFIX_PATH" >> "$GITHUB_ENV"
+
+      # DuckDB's prebuilt C library, for the store runs of `atlc run` (tests/run.rs).
+      - name: DuckDB
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in Linux) z=libduckdb-linux-amd64.zip ;; macOS) z=libduckdb-osx-universal.zip ;; Windows) z=libduckdb-windows-amd64.zip ;; esac
+          mkdir -p "$RUNNER_TEMP/duckdb"
+          curl -fsSL -o "$RUNNER_TEMP/duckdb.zip" "https://github.com/duckdb/duckdb/releases/download/v1.5.6/$z"
+          (cd "$RUNNER_TEMP/duckdb" && cmake -E tar xf ../duckdb.zip)
+          if [ "$RUNNER_OS" = Windows ]; then d="$(cygpath -m "$RUNNER_TEMP/duckdb")"; else d="$RUNNER_TEMP/duckdb"; fi
+          echo "ATLC_TEST_DUCKDB=$d" >> "$GITHUB_ENV"
+
+      - name: C++ tests
+        shell: bash
+        env:
+          ATLC_TEST_PREFIX: ${{ steps.atl.outputs.path }}
+        run: cargo test --test cpp --test run -- --nocapture
+
+      # An installed atlc, used outside the checkout: the runtime it writes compiles with a header it generates.
+      - name: Installed atlc
+        shell: bash
+        run: |
+          cargo install --path . --root "$RUNNER_TEMP/atlc"
+          cd "$RUNNER_TEMP"
+          mkdir -p consumer/include
+          cp "$GITHUB_WORKSPACE/tests/programs/mean-reversion.atls" .
+          "$RUNNER_TEMP/atlc/bin/atlc" build --emit-runtime consumer/include
+          "$RUNNER_TEMP/atlc/bin/atlc" build mean-reversion.atls -o consumer/include/mean_reversion.hpp
+          printf '#include <mean_reversion.hpp>\nint main() {\n  atls::MeanReversion s(algotradelib::InstrumentId{});\n  return s.warmup_bars() == 20 ? 0 : 1;\n}\n' > consumer/main.cpp
+          printf '%s\n' 'cmake_minimum_required(VERSION 3.20)' 'project(consumer LANGUAGES CXX)' \
+            'find_package(algotradelib CONFIG REQUIRED)' 'add_executable(consumer main.cpp)' \
+            'target_compile_features(consumer PRIVATE cxx_std_17)' 'target_include_directories(consumer PRIVATE include)' \
+            'target_link_libraries(consumer PRIVATE algotradelib::algotradelib)' \
+            'target_compile_options(consumer PRIVATE $<$<CXX_COMPILER_ID:GNU>:-ffp-contract=off> $<$<CXX_COMPILER_ID:MSVC>:/fp:precise>)' \
+            > consumer/CMakeLists.txt
+          cmake -S consumer -B consumer/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build consumer/build --config Release
+          if [ "$RUNNER_OS" = Windows ]; then consumer/build/Release/consumer.exe; else consumer/build/consumer; fi
+
+      # An installed atlc runs a CSV spec outside the checkout, with its cache in the runner's temporary directory.
+      - name: atlc run
+        shell: bash
+        env:
+          CMAKE_PREFIX_PATH: ${{ steps.atl.outputs.path }}
+        run: |
+          cp -R "$GITHUB_WORKSPACE/examples" "$RUNNER_TEMP/run-examples"
+          cd "$RUNNER_TEMP/run-examples"
+          export ATLC_CACHE_DIR="$RUNNER_TEMP/atlc-cache"
+          "$RUNNER_TEMP/atlc/bin/atlc" run mean-reversion.toml --fills fills.csv > report.json
+          "$RUNNER_TEMP/atlc/bin/atlc" run mean-reversion.toml -P lookback=30 > report-30.json 2> second.log
+          cat report.json
+          grep -q '"executions": [1-9]' report.json
+          test "$(wc -l < fills.csv)" -gt 1
+          if grep -q 'atlc: building' second.log; then echo "a parameter change rebuilt the strategy"; exit 1; fi

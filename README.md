@@ -1,7 +1,8 @@
 # atlc
 
 <!-- badges: start -->
-[![ci](https://github.com/algotradelib/atlc/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/algotradelib/atlc/actions/workflows/ci.yaml?query=branch%3Amain)
+[![rust-check](https://github.com/algotradelib/atlc/actions/workflows/rust-check.yaml/badge.svg?branch=main)](https://github.com/algotradelib/atlc/actions/workflows/rust-check.yaml?query=branch%3Amain)
+[![cpp-check](https://github.com/algotradelib/atlc/actions/workflows/cpp-check.yaml/badge.svg?branch=main)](https://github.com/algotradelib/atlc/actions/workflows/cpp-check.yaml?query=branch%3Amain)
 [![codecov](https://codecov.io/gh/algotradelib/atlc/graph/badge.svg)](https://codecov.io/gh/algotradelib/atlc)
 <!-- badges: end -->
 
