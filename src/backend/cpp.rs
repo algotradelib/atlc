@@ -2351,7 +2351,7 @@ impl<'a> Printer<'a> {
         if policy == Policy::Skip {
             self.line(
                 2,
-                "/** One step that may be missing: a missing step takes its slot in the window and runs nothing. */",
+                "/** One step that may be missing: a missing step takes its slot in the window, runs `leave` for a valid tuple leaving it and computes the values again, but runs no `update` or `enter`. */",
             );
             self.line(2, &format!("void step_skip({}) {{", sargs.join(", ")));
             self.fp_contract();
