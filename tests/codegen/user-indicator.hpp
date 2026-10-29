@@ -92,7 +92,7 @@ struct UserIndicator {
       ++steps_;
       values(a_x);
     }
-    void values(double a_x) {
+    void values([[maybe_unused]] double a_x) {
 #if defined(__clang__)
     #pragma clang fp contract(off)
 #endif

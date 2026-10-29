@@ -2223,7 +2223,9 @@ impl<'a> Printer<'a> {
             self.line(2, "}");
         }
         // values
-        self.line(2, &format!("void values({}) {{", sargs.join(", ")));
+        // The values need not read the current input.
+        let vargs: Vec<String> = sargs.iter().map(|a| format!("[[maybe_unused]] {a}")).collect();
+        self.line(2, &format!("void values({}) {{", vargs.join(", ")));
         self.fp_contract();
         let mut cond = vec![];
         if let Some(sz) = &size {
