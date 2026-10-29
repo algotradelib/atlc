@@ -14,7 +14,108 @@ pub(super) fn join_ty(a: Ty, b: Ty) -> Ty {
     }
 }
 
+/// The largest magnitude of an `int` literal: an `int` passes through a double on its way into the
+/// strategy (literals, defaults and parameter values), and the strategy's setter refuses more than this.
+pub(super) const INT_LITERAL_MAX: f64 = 9e15;
+
+/// Calls `f` on every expression of the program, outermost first (`replay {}` holds settings, not
+/// expressions).
+fn each_expr(program: &Program, f: &mut dyn FnMut(&Expr)) {
+    fn expr(e: &Expr, f: &mut dyn FnMut(&Expr)) {
+        f(e);
+        match &e.kind {
+            ExprKind::Num(..) | ExprKind::Bool(_) | ExprKind::Name(_) | ExprKind::Field(..) => {}
+            ExprKind::Unary(_, a) | ExprKind::Named(_, a) | ExprKind::Member(a, _) => expr(a, f),
+            ExprKind::Binary(_, a, b) | ExprKind::Index(a, b) => {
+                expr(a, f);
+                expr(b, f);
+            }
+            ExprKind::Ternary(c, a, b) => {
+                expr(c, f);
+                expr(a, f);
+                expr(b, f);
+            }
+            ExprKind::Call(_, args) => args.iter().for_each(|a| expr(a, f)),
+        }
+    }
+    fn stmts(body: &[Stmt], f: &mut dyn FnMut(&Expr)) {
+        for s in body {
+            match s {
+                Stmt::Local(d) => expr(&d.init, f),
+                Stmt::Assign { value, .. } | Stmt::Target { value, .. } | Stmt::Return { value, .. } => expr(value, f),
+                Stmt::Expr { expr: e, .. } => expr(e, f),
+                Stmt::If { cond, then, els, .. } => {
+                    expr(cond, f);
+                    stmts(then, f);
+                    stmts(els.as_deref().unwrap_or_default(), f);
+                }
+                Stmt::For { from, to, body, .. } => {
+                    expr(from, f);
+                    expr(to, f);
+                    stmts(body, f);
+                }
+                Stmt::While { cond, body, .. } => {
+                    expr(cond, f);
+                    stmts(body, f);
+                }
+            }
+        }
+    }
+    for item in &program.items {
+        match item {
+            Item::Params(decls, _) => {
+                for d in decls {
+                    d.lower.iter().chain(&d.upper).for_each(|e| expr(e, f));
+                    expr(&d.default, f);
+                }
+            }
+            Item::Series(decls, _) | Item::State(decls, _) => decls.iter().for_each(|d| expr(&d.init, f)),
+            Item::Warmup(e, _) => expr(e, f),
+            Item::Handler(_, body, _) => stmts(body, f),
+            Item::Options(settings, _) => settings.iter().for_each(|(_, v)| expr(v, f)),
+            Item::Functions(defs, _) => defs.iter().for_each(|d| stmts(&d.body, f)),
+            Item::Indicator(d) => {
+                for part in &d.parts {
+                    match part {
+                        IndPart::Window { size: e, .. } | IndPart::Warmup(e, _) => expr(e, f),
+                        IndPart::State(v) | IndPart::Value(v) => expr(&v.init, f),
+                        IndPart::Update(body, _) | IndPart::Enter(_, body, _) | IndPart::Leave(_, body, _) => {
+                            stmts(body, f)
+                        }
+                    }
+                }
+            }
+            Item::Instruments(..) | Item::Universe(_) | Item::Replay(..) => {}
+        }
+    }
+}
+
 impl Checker<'_> {
+    /// Every `int` literal is at most 9e15 in magnitude, wherever it is written (the prototype accepted
+    /// larger ones and lost precision past 2^53).
+    pub(super) fn int_literals(&mut self, program: &Program) {
+        let mut spans = vec![];
+        each_expr(program, &mut |e| {
+            if let ExprKind::Num(v, true) = e.kind {
+                if v.abs() > INT_LITERAL_MAX || v.is_nan() {
+                    spans.push(e.span);
+                }
+            }
+        });
+        for span in spans {
+            self.err(
+                Diag::new(
+                    Code::IntLiteralTooLarge,
+                    "this `int` literal is above 9e15 in magnitude",
+                    span,
+                    "too large",
+                )
+                .note("an `int` passes through a double on its way into the strategy, and loses precision past 2^53")
+                .note("write a `real` with an exponent (`1e16`) if a real is meant"),
+            );
+        }
+    }
+
     pub(super) fn builtin(&mut self, name: &Ident, n: usize, span: Span) -> Option<Builtin> {
         let (b, arity) = match name.name.as_str() {
             "abs" => (Builtin::Abs, 1),
@@ -224,5 +325,100 @@ impl Checker<'_> {
             return false;
         }
         true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::testing::{errors, message, ok};
+    use crate::frontend::ast::Ty;
+    use crate::frontend::diag::Code;
+    use crate::ir::{HExpr, HKind, HStmt};
+
+    #[test]
+    fn int_literals_up_to_9e15_are_accepted() {
+        let ir = ok(
+            "params { int<lower=-9000000000000000> n = 9000000000000000; } on_bar { int k = -9000000000000000; target(n + k); }",
+        );
+        assert_eq!(ir.params[0].default, 9e15);
+        let on_bar = ir.handlers.on_bar.as_ref().unwrap();
+        assert!(
+            matches!(&on_bar[0], HStmt::Local { value: HExpr { kind: HKind::Unary(_, a), ty: Ty::Int, .. }, .. } if a.kind == HKind::Num(9e15))
+        );
+    }
+
+    #[test]
+    fn int_literals_above_9e15_are_refused() {
+        // A departure from the prototype, which accepted these and lost precision past 2^53.
+        for src in [
+            "params { int n = 9000000000000001; } on_bar { target(n); }",
+            "params { int n = -9000000000000001; } on_bar { target(n); }",
+            "params { int n = 9007199254740993; } on_bar { target(n); }",
+            "on_bar { int n = 9007199254740993; target(n); }",
+            "series { real big = 10000000000000000; } on_bar { target(big); }",
+            "params { int<upper=99999999999999999999> n = 1; } on_bar { target(n); }",
+            "series { real a = sma(close, 9000000000000001); } on_bar { target(a); }",
+            "functions { int f(int a) { return a + 9000000000000001; } } on_bar { target(f(1)); }",
+        ] {
+            assert_eq!(errors(src)[0], Code::IntLiteralTooLarge, "{src}");
+        }
+        assert_eq!(
+            message("on_bar { target(9007199254740993); }"),
+            "this `int` literal is above 9e15 in magnitude"
+        );
+        // Each literal once, however often the checker reads it.
+        assert_eq!(
+            errors("on_bar { int a = 9000000000000001; int b = 9000000000000002; target(a + b); }"),
+            [Code::IntLiteralTooLarge, Code::IntLiteralTooLarge]
+        );
+        // A real literal of any size is not an `int` literal.
+        ok("params { real big = 1e300; } series { real s = close * 1e16; } on_bar { target(s / big); }");
+        // Settings of `replay {}` are run-spec values, not `int`s.
+        ok("replay { cash = 100000000000000000; } on_bar { target(1); }");
+    }
+
+    #[test]
+    fn operators_and_assignment() {
+        assert_eq!(
+            errors("on_bar { real x = -(close > 1); target(x); }"),
+            [Code::OperandType]
+        );
+        assert_eq!(errors("on_bar { bool b = not close; target(1); }"), [Code::OperandType]);
+        assert_eq!(
+            errors("on_bar { bool b = close and true; target(1); }"),
+            [Code::OperandType]
+        );
+        assert_eq!(errors("on_bar { real x = true + 1; target(x); }"), [Code::OperandType]);
+        assert_eq!(
+            errors("on_bar { real x = close > 1 ? 1 : true; target(x); }"),
+            [Code::TernaryArms]
+        );
+        assert_eq!(
+            errors("on_bar { int n = round(close); target(n); }"),
+            [Code::TypeMismatch]
+        );
+        assert_eq!(
+            errors("on_bar { real x = abs(true); target(x); }"),
+            [Code::ArgumentType]
+        );
+        assert_eq!(
+            errors("on_bar { real x = max(1, true); target(x); }"),
+            [Code::ArgumentType]
+        );
+        assert_eq!(
+            errors("on_bar { real x = sqrt(1, 2); target(x); }"),
+            [Code::FunctionArity]
+        );
+        assert_eq!(
+            errors("on_bar { real x = cube(2); target(x); }"),
+            [Code::UnknownFunction]
+        );
+        assert_eq!(
+            errors("on_bar { real x = target(2); target(x); }"),
+            [Code::TargetAsValue]
+        );
+        // `==` on bools, int widening, and min/max keeping int.
+        let ir = ok("state { int n = 0; } on_bar { bool same = true == false; real r = n; n = max(n, 2); target(r); }");
+        assert_eq!(ir.locals[0].ty, Ty::Bool);
     }
 }

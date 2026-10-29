@@ -129,6 +129,7 @@ impl Checker<'_> {
 
     fn run(&mut self, program: &Program) {
         // Blocks may come in any order in the file, but are checked in dependency order.
+        self.int_literals(program);
         self.duplicate_blocks(program);
         self.modes(program);
         for item in &program.items {
