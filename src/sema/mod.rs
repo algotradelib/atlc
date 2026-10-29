@@ -239,7 +239,7 @@ pub(crate) mod testing_ir {
     /// A constant expression's value with the parameters' defaults.
     pub fn value(ir: &Ir, c: &CExpr) -> f64 {
         match c {
-            CExpr::Num(v) => *v,
+            CExpr::Num(v) | CExpr::Real(v) => *v,
             CExpr::Param(i) => ir.params[*i].default,
             CExpr::Neg(a) => -value(ir, a),
             CExpr::Bin(op, a, b) => {

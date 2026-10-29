@@ -50,7 +50,7 @@ struct Universe {
       ind1_.set(static_cast<std::size_t>(params_.lookback_));
       ind1_.set_min(static_cast<std::size_t>(1));
       ind1_.reset();
-      ring0s_.reset(static_cast<std::size_t>((params_.lookback_ + 1)));
+      ring0s_.reset(static_cast<std::size_t>(atls::ops::add_int(params_.lookback_, 1)));
       ring0s_.clear();
     }
 

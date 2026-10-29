@@ -16,7 +16,7 @@ impl Checker<'_> {
         fn deeper_than(c: &CExpr, limit: usize) -> bool {
             limit == 0
                 || match c {
-                    CExpr::Num(_) | CExpr::Param(_) => false,
+                    CExpr::Num(_) | CExpr::Real(_) | CExpr::Param(_) => false,
                     CExpr::Neg(a) => deeper_than(a, limit - 1),
                     CExpr::Bin(_, a, b) => deeper_than(a, limit - 1) || deeper_than(b, limit - 1),
                     CExpr::Max(v) => v.iter().any(|x| deeper_than(x, limit - 1)),

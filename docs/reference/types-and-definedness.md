@@ -6,6 +6,9 @@
   Literals, defaults and parameter values pass through a double on the way in, so a magnitude above 9e15 is refused: as a literal or default by the checker, as a run-time parameter value by the strategy's setter.
   An `int` literal is a number written without `.` or exponent, wherever it appears (a `real` default too: write `1e16`); 9e15 itself is accepted; the settings of `replay {}` are run-spec values, not literals in this sense.
   Refusing large literals and defaults is intended behaviour (the prototype accepted them and lost precision past 2^53).
+- `int` arithmetic (`+`, `-`, `*`, unary `-`, `abs`) is exact in 64 bits, wherever it appears (handlers, series, functions, indicators, constant expressions).
+  An `int` is always defined, so a result that does not fit in 64 bits cannot be undefined: it stops the strategy with an error (in the generated C++, `std::overflow_error` naming the operation and its operands), raised where the operation runs, before any target that bar.
+  This is intended behaviour: a run stops rather than trade on a wrong number.
 - `real`: an IEEE 754 double.
 - `bool`: `true` or `false`.
 - `int` widens to `real` where a `real` is expected.

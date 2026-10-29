@@ -1,0 +1,31 @@
+# Integer arithmetic at the edges of 64 bits: a result that does not fit stops the strategy with
+# std::overflow_error instead of trading on a wrong number. `which` picks the expression.
+functions {
+  int sum(int x, int y) {
+    return x + y;
+  }
+}
+params {
+  int a = 3037000499;
+  int b = 3037000499;
+  int c = 0;
+  int which = 0;
+  int big = 9000000000000000;
+}
+state {
+  int square_at_start = a * b;
+}
+on_bar {
+  int square = a * b;
+  if (which == 0) {
+    target(50000 * 50000);
+  } else if (which == 1) {
+    target(sum(square, c) - square);
+  } else if (which == 2) {
+    target(-square - c + square);
+  } else if (which == 3) {
+    target(-(-square - c) - square);
+  } else if (which == 4) {
+    target(big - 9000000000000000 + square - square_at_start + 7);
+  }
+}

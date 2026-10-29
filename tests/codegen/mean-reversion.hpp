@@ -120,9 +120,9 @@ struct MeanReversion {
     bars_ = 0;
     ind1_.set(static_cast<std::size_t>(params_.lookback_));
     ind1_.reset();
-    ring0_.reset(static_cast<std::size_t>((params_.lookback_ + 1)));
+    ring0_.reset(static_cast<std::size_t>(atls::ops::add_int(params_.lookback_, 1)));
     ring0_.clear();
-    warmup_ = static_cast<std::size_t>((1 + (params_.lookback_ - 1)));
+    warmup_ = static_cast<std::size_t>(atls::ops::add_int(1, atls::ops::sub_int(params_.lookback_, 1)));
   }
 
   atl::InstrumentId instrument_;

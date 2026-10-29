@@ -10,7 +10,7 @@ use super::*;
 impl Checker<'_> {
     pub(super) fn eval(&self, c: &CExpr) -> f64 {
         match c {
-            CExpr::Num(v) => *v,
+            CExpr::Num(v) | CExpr::Real(v) => *v,
             CExpr::Param(i) => self.defaults[*i],
             CExpr::Neg(a) => -self.eval(a),
             CExpr::Bin(op, a, b) => {
@@ -37,7 +37,7 @@ impl Checker<'_> {
             )
         }
         match c {
-            CExpr::Num(v) => (*v, *v),
+            CExpr::Num(v) | CExpr::Real(v) => (*v, *v),
             CExpr::Param(i) => self.intervals[*i],
             CExpr::Neg(a) => {
                 let (lo, hi) = self.interval(a);
@@ -79,7 +79,11 @@ impl Checker<'_> {
                     ));
                     return None;
                 }
-                Some((CExpr::Num(*v), if *int { Ty::Int } else { Ty::Real }))
+                Some(if *int {
+                    (CExpr::Num(*v), Ty::Int)
+                } else {
+                    (CExpr::Real(*v), Ty::Real)
+                })
             }
             ExprKind::Name(n) => match self.names.get(n).cloned() {
                 Some((Name::Poisoned, _)) => None,

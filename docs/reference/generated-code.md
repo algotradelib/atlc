@@ -42,6 +42,8 @@ Parameters are run-time fields, so one compiled header runs every point of a tun
 - `set(name, value)` sets one by name, and throws `std::invalid_argument` for an unknown name or an `int` that is not a whole number of magnitude at most 9e15;
 - a constructor or `set` throws `std::invalid_argument` when a parameter is outside its bounds, naming the bound (`set` checks every bound again, so set a parameter before one whose bound depends on it).
 
+An `int` result that does not fit in 64 bits throws `std::overflow_error` from the handler, constructor or `set` that computes it ([types and definedness](types-and-definedness.md), "Types"); the exception leaves the runner's loop, so the run stops.
+
 For a runner, the struct also states `warmup_bars()` (the bars before the handlers run), `atls_mode` (`"single"`, `"named"` or `"universe"`), `atls_legs`, `atls_instruments()` and `atls_params()`.
 
 ## The runtime

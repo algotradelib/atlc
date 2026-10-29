@@ -6,7 +6,10 @@ use crate::frontend::ast::{BinOp, HandlerKind, Span, Ty, UnOp};
 /// An expression fixed before the run: numbers and params only.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CExpr {
+    /// A whole number: an `int` literal, or one the checker computes (window lengths, lookbacks).
     Num(f64),
+    /// A `real` literal (written with `.` or an exponent), so the printer keeps its arithmetic in doubles.
+    Real(f64),
     Param(usize),
     Neg(Box<CExpr>),
     Bin(BinOp, Box<CExpr>, Box<CExpr>),

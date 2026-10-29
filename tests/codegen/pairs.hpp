@@ -101,12 +101,12 @@ struct Pairs {
     if (!std::isnan(c1)) {
       if (c1 != 0) {
         target_y.state(static_cast<std::int64_t>(params_.quantity_));
-        target_x.state(static_cast<double>((static_cast<double>((-params_.quantity_)) * s_hedge)));
+        target_x.state(static_cast<double>((static_cast<double>(atls::ops::neg_int(params_.quantity_)) * s_hedge)));
       } else {
         const double c2 = atls::ops::gt(s_z, params_.entry_);
         if (!std::isnan(c2)) {
           if (c2 != 0) {
-            target_y.state(static_cast<std::int64_t>((-params_.quantity_)));
+            target_y.state(static_cast<std::int64_t>(atls::ops::neg_int(params_.quantity_)));
             target_x.state(static_cast<double>((static_cast<double>(params_.quantity_) * s_hedge)));
           } else {
             const double c3 = atls::ops::lt(std::fabs(s_z), params_.exit_);
@@ -155,9 +155,9 @@ struct Pairs {
     ind5_.reset();
     obj2_.set(static_cast<std::size_t>(params_.lookback_));
     obj2_.reset();
-    ring4_.reset(static_cast<std::size_t>((params_.lookback_ + 1)));
+    ring4_.reset(static_cast<std::size_t>(atls::ops::add_int(params_.lookback_, 1)));
     ring4_.clear();
-    warmup_ = static_cast<std::size_t>(std::max<std::int64_t>({static_cast<std::int64_t>((1 + (params_.lookback_ - 1))), static_cast<std::int64_t>(((1 + (params_.lookback_ - 1)) + (params_.lookback_ - 1)))}));
+    warmup_ = static_cast<std::size_t>(std::max<std::int64_t>({static_cast<std::int64_t>(atls::ops::add_int(1, atls::ops::sub_int(params_.lookback_, 1))), static_cast<std::int64_t>(atls::ops::add_int(atls::ops::add_int(1, atls::ops::sub_int(params_.lookback_, 1)), atls::ops::sub_int(params_.lookback_, 1)))}));
   }
 
   std::vector<atl::InstrumentId> ids_;

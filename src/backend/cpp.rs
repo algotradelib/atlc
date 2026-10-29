@@ -26,6 +26,15 @@ struct V {
     repr: Repr,
 }
 
+/// The runtime's checked integer operation for `+`, `-` or `*`.
+fn int_op(op: BinOp) -> &'static str {
+    match op {
+        BinOp::Add => "add",
+        BinOp::Sub => "sub",
+        _ => "mul",
+    }
+}
+
 fn checked(v: &V) -> String {
     match (v.ty, v.repr) {
         (Ty::Bool, Repr::Plain) => format!("({} ? 1.0 : 0.0)", v.code),
@@ -54,6 +63,12 @@ fn num(v: f64) -> String {
         // Debug prints the shortest text that reads back as the same double: `0.05`, `1e300`.
         format!("{:?}", v)
     }
+}
+
+/// A whole number as a C++ integer literal: every `int` the language accepts (up to 9e15) prints as digits. A
+/// literal past 32 bits is a `long` or `long long` in C++, and every integer operation takes 64-bit operands.
+fn inum(v: f64) -> String {
+    format!("{}", v as i64)
 }
 
 fn dnum(v: f64) -> String {
@@ -180,13 +195,35 @@ impl<'a> Printer<'a> {
         }
     }
 
-    /// A constant expression in C++, integer arithmetic for ints.
+    /// The type of a constant expression: `int` unless a `real` literal, a `real` param or `/` is in it.
+    fn cexpr_ty(&self, c: &CExpr) -> Ty {
+        match c {
+            CExpr::Num(_) | CExpr::Max(_) => Ty::Int,
+            CExpr::Real(_) | CExpr::Bin(BinOp::Div, _, _) => Ty::Real,
+            CExpr::Param(i) => self.ir.params[*i].ty,
+            CExpr::Neg(a) => self.cexpr_ty(a),
+            CExpr::Bin(_, a, b) => {
+                if self.cexpr_ty(a) == Ty::Int && self.cexpr_ty(b) == Ty::Int {
+                    Ty::Int
+                } else {
+                    Ty::Real
+                }
+            }
+        }
+    }
+
+    /// A constant expression in C++: integer arithmetic checked for overflow for ints, doubles otherwise.
     fn cexpr(&self, c: &CExpr) -> String {
         match c {
-            CExpr::Num(v) => num(*v),
+            CExpr::Num(v) => inum(*v),
+            CExpr::Real(v) => dnum(*v),
             CExpr::Param(i) => self.param_ref(*i),
+            CExpr::Neg(a) if self.cexpr_ty(a) == Ty::Int => format!("atls::ops::neg_int({})", self.cexpr(a)),
             CExpr::Neg(a) => format!("(-{})", self.cexpr(a)),
             CExpr::Bin(BinOp::Div, a, b) => format!("(static_cast<double>({}) / {})", self.cexpr(a), self.cexpr(b)),
+            CExpr::Bin(op, a, b) if self.cexpr_ty(c) == Ty::Int => {
+                format!("atls::ops::{}_int({}, {})", int_op(*op), self.cexpr(a), self.cexpr(b))
+            }
             CExpr::Bin(op, a, b) => format!("({} {} {})", self.cexpr(a), op.text(), self.cexpr(b)),
             CExpr::Max(v) => {
                 let parts: Vec<String> = v
@@ -322,7 +359,7 @@ impl<'a> Printer<'a> {
         let n = &self.ir.nodes[i];
         match &n.kind {
             NodeKind::Num(v) => V {
-                code: if n.ty == Ty::Int { num(*v) } else { dnum(*v) },
+                code: if n.ty == Ty::Int { inum(*v) } else { dnum(*v) },
                 ty: n.ty,
                 repr: Repr::Plain,
             },
@@ -368,6 +405,7 @@ impl<'a> Printer<'a> {
 
     fn unary(&self, op: UnOp, a: &V, ty: Ty, repr: Repr) -> V {
         let code = match (op, repr) {
+            (UnOp::Neg, Repr::Plain) if ty == Ty::Int => format!("atls::ops::neg_int({})", plain(a)),
             (UnOp::Neg, Repr::Plain) => format!("(-{})", plain(a)),
             (UnOp::Neg, Repr::Checked) => format!("(-{})", checked(a)),
             (UnOp::Not, Repr::Plain) => format!("(!{})", plain(a)),
@@ -382,6 +420,9 @@ impl<'a> Printer<'a> {
                 BinOp::And => format!("({} && {})", plain(a), plain(b)),
                 BinOp::Or => format!("({} || {})", plain(a), plain(b)),
                 BinOp::Div => format!("(static_cast<double>({}) / {})", plain(a), plain(b)),
+                BinOp::Add | BinOp::Sub | BinOp::Mul if ty == Ty::Int => {
+                    format!("atls::ops::{}_int({}, {})", int_op(op), plain(a), plain(b))
+                }
                 _ => format!("({} {} {})", plain(a), op.text(), plain(b)),
             },
             Repr::Checked => {
@@ -423,7 +464,7 @@ impl<'a> Printer<'a> {
             },
             Builtin::Abs => {
                 let code = match (repr, ty) {
-                    (Repr::Plain, Ty::Int) => format!("std::llabs({})", plain(&args[0])),
+                    (Repr::Plain, Ty::Int) => format!("atls::ops::abs_int({})", plain(&args[0])),
                     (Repr::Plain, _) => format!("std::fabs({})", plain(&args[0])),
                     (Repr::Checked, _) => format!("std::fabs({})", checked(&args[0])),
                 };
@@ -505,7 +546,7 @@ impl<'a> Printer<'a> {
         };
         match &e.kind {
             HKind::Num(v) => V {
-                code: if e.ty == Ty::Int { num(*v) } else { dnum(*v) },
+                code: if e.ty == Ty::Int { inum(*v) } else { dnum(*v) },
                 ty: e.ty,
                 repr: Repr::Plain,
             },
@@ -1334,7 +1375,7 @@ impl<'a> Printer<'a> {
         self.line(1, "struct Params {");
         for p in &ir.params {
             let val = match p.ty {
-                Ty::Int => num(p.default),
+                Ty::Int => inum(p.default),
                 Ty::Real => dnum(p.default),
                 Ty::Bool => (p.default != 0.0).to_string(),
             };

@@ -102,7 +102,7 @@ struct UserIndicator {
         return;
       }
       v_mean = atls::ops::div(s_s, static_cast<double>(static_cast<std::int64_t>(count_)));
-      v_sd = atls::ops::sqrt_of(atls::ops::div((s_q - atls::ops::div((s_s * s_s), static_cast<double>(static_cast<std::int64_t>(count_)))), static_cast<double>((static_cast<std::int64_t>(count_) - 1))));
+      v_sd = atls::ops::sqrt_of(atls::ops::div((s_q - atls::ops::div((s_s * s_s), static_cast<double>(static_cast<std::int64_t>(count_)))), static_cast<double>(atls::ops::sub_int(static_cast<std::int64_t>(count_), 1))));
     }
   };
 
@@ -188,7 +188,7 @@ struct UserIndicator {
     obj1_.set(static_cast<std::int64_t>(params_.lookback_));
     obj1_.poisoned_ = false;
     obj1_.reset();
-    warmup_ = static_cast<std::size_t>((1 + (params_.lookback_ - 1)));
+    warmup_ = static_cast<std::size_t>(atls::ops::add_int(1, atls::ops::sub_int(params_.lookback_, 1)));
   }
 
   atl::InstrumentId instrument_;

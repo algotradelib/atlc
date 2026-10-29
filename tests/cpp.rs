@@ -196,7 +196,7 @@ fn generated_strategies() {
         &[],
         perturbed,
     );
-    for program in ["missing-open"] {
+    for program in ["missing-open", "integers"] {
         generate(
             &out,
             &program.replace('-', "_"),

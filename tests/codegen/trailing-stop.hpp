@@ -152,7 +152,7 @@ struct TrailingStop {
     ring1_.clear();
     st_in_trade_ = (0 != 0);
     st_peak_ = static_cast<double>(0);
-    warmup_ = static_cast<std::size_t>(std::max<std::int64_t>({static_cast<std::int64_t>((1 + (params_.lookback_ - 1))), static_cast<std::int64_t>(((1 + (params_.lookback_ - 1)) + 1))}));
+    warmup_ = static_cast<std::size_t>(std::max<std::int64_t>({static_cast<std::int64_t>(atls::ops::add_int(1, atls::ops::sub_int(params_.lookback_, 1))), static_cast<std::int64_t>(atls::ops::add_int(atls::ops::add_int(1, atls::ops::sub_int(params_.lookback_, 1)), 1))}));
   }
 
   atl::InstrumentId instrument_;
