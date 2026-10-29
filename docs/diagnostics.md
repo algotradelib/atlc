@@ -259,14 +259,15 @@ From `tests/ui/syntax/two-errors.atls`.
 
 ### `nesting-too-deep`
 
-An expression nested more than 256 levels deep (an implementation limit).
+A program nested more than 256 levels deep (an implementation limit): blocks, `else if`, parentheses and every level of an expression's tree count, one per operator of a chain; or a lookback built from parameters that deep.
 
 ```
-error[nesting-too-deep]: expressions nest deeper than 256 levels
- --> tests/ui/syntax/nesting-too-deep.atls:2:266
+error[nesting-too-deep]: the program nests deeper than 256 levels here
+ --> tests/ui/syntax/nesting-too-deep.atls:2:265
   |
 2 |   target(((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((1)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))));
-  |                                                                                                                                                                                                                                                                          ^ too deep
+  |                                                                                                                                                                                                                                                                         ^ too deep
+  = blocks, `else if`, parentheses and each operator of a chain count one level each; split the expression with locals or series
 ```
 
 From `tests/ui/syntax/nesting-too-deep.atls`.

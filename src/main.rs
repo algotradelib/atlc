@@ -12,8 +12,10 @@ commands:
   run SPEC.toml [-P k=v]      replay a strategy from a run spec and print the report as JSON (not implemented yet)
   --version                   print the compiler's version";
 
-/// The checking thread's stack.
-const STACK_BYTES: usize = 256 << 20;
+/// The checking thread's stack. The parser refuses programs nested deeper than 256 levels; checking the
+/// deepest program it accepts was measured to need up to 16 MB of stack in a debug build and 2 MB in a release
+/// build, more than a main thread has on Windows (1 MB) or in a debug build elsewhere (8 MB).
+const STACK_BYTES: usize = 64 << 20;
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -23,9 +25,8 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         Some("check") => {
-            // The parser and the checker recurse over the syntax tree: give them room for the deepest
-            // program the parser accepts in any build, and for long operator chains (the stack is reserved,
-            // not committed, so an unused part costs nothing).
+            // The parser and the checker recurse over the syntax tree: give them room for the deepest program
+            // the parser accepts, in any build (the stack is reserved, not committed).
             let rest = args[1..].to_vec();
             let worker = std::thread::Builder::new()
                 .stack_size(STACK_BYTES)

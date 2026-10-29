@@ -3,11 +3,40 @@
 
 use crate::frontend::ast::*;
 use crate::frontend::diag::{Code, Diag};
+use crate::frontend::parser::MAX_DEPTH;
 use crate::ir::*;
 
 use super::*;
 
 impl Checker<'_> {
+    /// A lookback built from parameters deepens by one level per indicator over an indicator (`sma(s, k)`
+    /// over `s = sma(close, k)`...): refused past the parser's nesting limit, so that no expression the
+    /// checker builds is deeper than the program's own tree may be.
+    pub(super) fn lookback_fits(&mut self, lb: &CExpr, span: Span) -> bool {
+        fn deeper_than(c: &CExpr, limit: usize) -> bool {
+            limit == 0
+                || match c {
+                    CExpr::Num(_) | CExpr::Param(_) => false,
+                    CExpr::Neg(a) => deeper_than(a, limit - 1),
+                    CExpr::Bin(_, a, b) => deeper_than(a, limit - 1) || deeper_than(b, limit - 1),
+                    CExpr::Max(v) => v.iter().any(|x| deeper_than(x, limit - 1)),
+                }
+        }
+        if deeper_than(lb, MAX_DEPTH) {
+            self.err(
+                Diag::new(
+                    Code::NestingTooDeep,
+                    format!("this series' lookback nests deeper than {MAX_DEPTH} levels"),
+                    span,
+                    "too deep",
+                )
+                .note("each indicator whose window is a parameter, over a series that has one too, adds a level; give some windows a number"),
+            );
+            return false;
+        }
+        true
+    }
+
     pub(super) fn lookback_max(&self, ids: &[usize]) -> CExpr {
         let mut terms: Vec<CExpr> = vec![];
         for &i in ids {
@@ -170,7 +199,9 @@ impl Checker<'_> {
                 _ => CExpr::Max(vec![window.clone(), need]),
             };
         }
-        let _ = span;
+        if !self.lookback_fits(&lb, span) {
+            return None;
+        }
         Some(self.add_node(NodeKind::Ind(ind, input, window, miss), Ty::Real, class, lb))
     }
 
@@ -213,6 +244,9 @@ impl Checker<'_> {
         let mut class = self.ir.nodes[id].class;
         if self.ir.period_clock {
             class = Class::Maybe;
+        }
+        if !self.lookback_fits(&lb, x.span.to(m.span)) {
+            return None;
         }
         Some(self.add_node(NodeKind::Partial(input, window, min), Ty::Real, class, lb))
     }
@@ -257,6 +291,9 @@ impl Checker<'_> {
                 Box::new(CExpr::Num(1.0)),
             )),
         );
+        if !self.lookback_fits(&lb, span) {
+            return None;
+        }
         // A flat x makes the slope undefined.
         Some(self.add_node(NodeKind::Pair(which, a, b, window), Ty::Real, Class::Maybe, lb))
     }

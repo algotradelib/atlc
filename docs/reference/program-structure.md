@@ -63,6 +63,7 @@ A declaration must not use a keyword, a built-in's name, `lower` or `upper`.
   - `ols_slope(y, x, n)`, `ols_intercept`: max(Ly, Lx) + n - 1; `kf_*`: max(Ly, Lx);
   - an expression of several inputs: the largest of their lookbacks;
   - under `missing = skip`: see [missing values](missing-values.md).
+  A lookback built from parameters deepens by one level for each indicator with a parameter window over a series that has one, and is refused past 256 levels, the nesting limit of [syntax](syntax.md).
   So `sma(sma(close, 20), 30)` needs 49 periods.
 - The periodic handlers' first call comes after max(1, warmup, the lookbacks of every series any handler reads) periods: one gate for the program.
 - After that gate the checker treats eventually-defined values as defined, but a handler can still see an undefined value: an undefined input restarts an indicator, and `skip`, `poison` or a domain error (`log(0)`) can leave a value undefined ([types and definedness](types-and-definedness.md)).

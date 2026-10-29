@@ -18,7 +18,8 @@
 EBNF: `'x'` is a literal, `A*` zero or more, `A?` optional, `|` a choice.
 This is the grammar of valid programs.
 The parser also accepts a few forms only to report a better error later (an expression used as a statement, `while`, `target` used as a value, as in `x = target(1);`); those are diagnostics, not part of the language.
-The parser refuses an expression nested more than 256 levels deep (parentheses, `-` and `not`): an implementation limit, not part of the grammar.
+A program may nest at most 256 levels deep: blocks, `else if`, parentheses and every level of an expression's tree count, and a chain of operators deepens its tree by one level per operator (`1 + 1 + 1` is three levels).
+Deeper programs are refused (`nesting-too-deep`): an implementation limit, not part of the grammar.
 
 ```ebnf
 program    = item* ;

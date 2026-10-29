@@ -12,6 +12,7 @@ pub fn parse(source: &str) -> Result<Program, Vec<Diag>> {
         at: 0,
         errors: vec![],
         depth: 0,
+        height: 0,
     };
     let program = p.program();
     if p.errors.is_empty() {
@@ -26,10 +27,14 @@ struct Parser {
     at: usize,
     errors: Vec<Diag>,
     depth: usize,
+    /// The height of the expression the last expression function returned (a leaf is 1).
+    height: usize,
 }
 
-/// Deeper nesting is refused rather than overflowing the stack (5,000 parentheses did).
-const MAX_DEPTH: usize = 256;
+/// The deepest a program may nest: blocks, `else if`, parentheses and every level of an expression's tree
+/// (a chain of operators deepens its tree by one per operator) together. Deeper programs are refused before
+/// their tree is built, rather than overflowing the stack of the parser, the checker or a tree's destructor.
+pub const MAX_DEPTH: usize = 256;
 
 type R<T> = Result<T, Diag>;
 
@@ -191,6 +196,15 @@ impl Parser {
             }
             self.bump();
         }
+    }
+
+    /// Refuses a node of height `h` (its subtree's levels) built at the current depth, if it would be
+    /// deeper than [`MAX_DEPTH`]: checked as each node is built, so no deeper tree ever exists.
+    fn node(&self, h: usize, span: Span) -> R<()> {
+        if self.depth + h > MAX_DEPTH {
+            return Err(too_deep(span));
+        }
+        Ok(())
     }
 
     fn program(&mut self) -> Program {
@@ -606,6 +620,17 @@ impl Parser {
     }
 
     fn block(&mut self) -> R<(Vec<Stmt>, Span)> {
+        if self.depth >= MAX_DEPTH {
+            let t = self.peek().clone();
+            return Err(too_deep(t.span));
+        }
+        self.depth += 1;
+        let b = self.block_inner();
+        self.depth -= 1;
+        b
+    }
+
+    fn block_inner(&mut self) -> R<(Vec<Stmt>, Span)> {
         let open = self.expect_punct("{", "to open the block")?;
         let mut body = vec![];
         while !self.is_punct("}") && self.peek().tok != Tok::Eof {
@@ -739,7 +764,15 @@ impl Parser {
         if self.is_word("else") {
             self.bump();
             if self.is_word("if") {
-                let s = self.if_stmt()?;
+                // `else if` nests an `if` in the `else`: one level deeper, like a block.
+                if self.depth >= MAX_DEPTH {
+                    let t = self.peek().clone();
+                    return Err(too_deep(t.span));
+                }
+                self.depth += 1;
+                let s = self.if_stmt();
+                self.depth -= 1;
+                let s = s?;
                 span = span.to(stmt_span(&s));
                 els = Some(vec![s]);
             } else {
@@ -760,12 +793,7 @@ impl Parser {
     pub fn expr(&mut self) -> R<Expr> {
         if self.depth >= MAX_DEPTH {
             let t = self.peek().clone();
-            return Err(Diag::new(
-                Code::NestingTooDeep,
-                format!("expressions nest deeper than {} levels", MAX_DEPTH),
-                t.span,
-                "too deep",
-            ));
+            return Err(too_deep(t.span));
         }
         self.depth += 1;
         let e = self.expr_inner();
@@ -776,10 +804,15 @@ impl Parser {
     fn expr_inner(&mut self) -> R<Expr> {
         let cond = self.or()?;
         if self.eat_punct("?") {
+            let hc = self.height;
             let a = self.expr()?;
+            let ha = self.height;
             self.expect_punct(":", "in `?:`")?;
             let b = self.expr()?;
             let span = cond.span.to(b.span);
+            let h = 1 + hc.max(ha).max(self.height);
+            self.node(h, span)?;
+            self.height = h;
             return Ok(Expr {
                 kind: ExprKind::Ternary(Box::new(cond), Box::new(a), Box::new(b)),
                 span,
@@ -811,14 +844,18 @@ impl Parser {
 
     fn or(&mut self) -> R<Expr> {
         let mut left = self.and()?;
+        let mut h = self.height;
         loop {
             self.c_style("or")?;
             if !self.is_word("or") {
+                self.height = h;
                 return Ok(left);
             }
             self.bump();
             let right = self.and()?;
             let span = left.span.to(right.span);
+            h = 1 + h.max(self.height);
+            self.node(h, span)?;
             left = Expr {
                 kind: ExprKind::Binary(BinOp::Or, Box::new(left), Box::new(right)),
                 span,
@@ -828,14 +865,18 @@ impl Parser {
 
     fn and(&mut self) -> R<Expr> {
         let mut left = self.not()?;
+        let mut h = self.height;
         loop {
             self.c_style("and")?;
             if !self.is_word("and") {
+                self.height = h;
                 return Ok(left);
             }
             self.bump();
             let right = self.not()?;
             let span = left.span.to(right.span);
+            h = 1 + h.max(self.height);
+            self.node(h, span)?;
             left = Expr {
                 kind: ExprKind::Binary(BinOp::And, Box::new(left), Box::new(right)),
                 span,
@@ -848,12 +889,7 @@ impl Parser {
         if self.is_word("not") {
             if self.depth >= MAX_DEPTH {
                 let t = self.peek().clone();
-                return Err(Diag::new(
-                    Code::NestingTooDeep,
-                    format!("expressions nest deeper than {} levels", MAX_DEPTH),
-                    t.span,
-                    "too deep",
-                ));
+                return Err(too_deep(t.span));
             }
             let start = self.bump().span;
             self.depth += 1;
@@ -861,6 +897,8 @@ impl Parser {
             self.depth -= 1;
             let inner = inner?;
             let span = start.to(inner.span);
+            self.height += 1;
+            self.node(self.height, span)?;
             return Ok(Expr {
                 kind: ExprKind::Unary(UnOp::Not, Box::new(inner)),
                 span,
@@ -871,6 +909,7 @@ impl Parser {
 
     fn comparison(&mut self) -> R<Expr> {
         let left = self.additive()?;
+        let hl = self.height;
         let op = match &self.peek().tok {
             Tok::Punct("<") => BinOp::Lt,
             Tok::Punct("<=") => BinOp::Le,
@@ -892,6 +931,7 @@ impl Parser {
         self.bump();
         let right = self.additive()?;
         let span = left.span.to(right.span);
+        let h = 1 + hl.max(self.height);
         if matches!(&self.peek().tok, Tok::Punct("<" | "<=" | ">" | ">=" | "==" | "!=")) {
             let t = self.peek().clone();
             return Err(Diag::new(
@@ -903,6 +943,8 @@ impl Parser {
             .also(span, "this is already a comparison")
             .note("write `a < b and b < c`"));
         }
+        self.node(h, span)?;
+        self.height = h;
         Ok(Expr {
             kind: ExprKind::Binary(op, Box::new(left), Box::new(right)),
             span,
@@ -911,15 +953,21 @@ impl Parser {
 
     fn additive(&mut self) -> R<Expr> {
         let mut left = self.multiplicative()?;
+        let mut h = self.height;
         loop {
             let op = match &self.peek().tok {
                 Tok::Punct("+") => BinOp::Add,
                 Tok::Punct("-") => BinOp::Sub,
-                _ => return Ok(left),
+                _ => {
+                    self.height = h;
+                    return Ok(left);
+                }
             };
             self.bump();
             let right = self.multiplicative()?;
             let span = left.span.to(right.span);
+            h = 1 + h.max(self.height);
+            self.node(h, span)?;
             left = Expr {
                 kind: ExprKind::Binary(op, Box::new(left), Box::new(right)),
                 span,
@@ -929,15 +977,21 @@ impl Parser {
 
     fn multiplicative(&mut self) -> R<Expr> {
         let mut left = self.unary()?;
+        let mut h = self.height;
         loop {
             let op = match &self.peek().tok {
                 Tok::Punct("*") => BinOp::Mul,
                 Tok::Punct("/") => BinOp::Div,
-                _ => return Ok(left),
+                _ => {
+                    self.height = h;
+                    return Ok(left);
+                }
             };
             self.bump();
             let right = self.unary()?;
             let span = left.span.to(right.span);
+            h = 1 + h.max(self.height);
+            self.node(h, span)?;
             left = Expr {
                 kind: ExprKind::Binary(op, Box::new(left), Box::new(right)),
                 span,
@@ -948,12 +1002,7 @@ impl Parser {
     fn unary(&mut self) -> R<Expr> {
         if self.is_punct("-") && self.depth >= MAX_DEPTH {
             let t = self.peek().clone();
-            return Err(Diag::new(
-                Code::NestingTooDeep,
-                format!("expressions nest deeper than {} levels", MAX_DEPTH),
-                t.span,
-                "too deep",
-            ));
+            return Err(too_deep(t.span));
         }
         if self.is_punct("-") {
             let start = self.bump().span;
@@ -962,6 +1011,8 @@ impl Parser {
             self.depth -= 1;
             let inner = inner?;
             let span = start.to(inner.span);
+            self.height += 1;
+            self.node(self.height, span)?;
             return Ok(Expr {
                 kind: ExprKind::Unary(UnOp::Neg, Box::new(inner)),
                 span,
@@ -972,16 +1023,20 @@ impl Parser {
 
     fn postfix(&mut self) -> R<Expr> {
         let mut e = self.primary()?;
+        let mut h = self.height;
         while self.is_punct("[") {
             self.bump();
             let k = self.expr()?;
             let end = self.expect_punct("]", "after the lag")?;
             let span = e.span.to(end);
+            h = 1 + h.max(self.height);
+            self.node(h, span)?;
             e = Expr {
                 kind: ExprKind::Index(Box::new(e), Box::new(k)),
                 span,
             };
         }
+        self.height = h;
         Ok(e)
     }
 
@@ -990,6 +1045,7 @@ impl Parser {
         match &t.tok {
             Tok::Num(v, int) => {
                 self.bump();
+                self.height = 1;
                 Ok(Expr {
                     kind: ExprKind::Num(*v, *int),
                     span: t.span,
@@ -1006,6 +1062,7 @@ impl Parser {
             }
             Tok::Ident(s) if s == "true" || s == "false" => {
                 self.bump();
+                self.height = 1;
                 Ok(Expr {
                     kind: ExprKind::Bool(s == "true"),
                     span: t.span,
@@ -1019,6 +1076,7 @@ impl Parser {
                 self.bump();
                 if self.eat_punct("(") {
                     let mut args = vec![];
+                    let mut h = 1;
                     if !self.is_punct(")") {
                         loop {
                             // `name = value`: a named argument (`missing = skip`).
@@ -1029,12 +1087,14 @@ impl Parser {
                                 self.bump();
                                 let v = self.expr()?;
                                 let span = key.span.to(v.span);
+                                h = h.max(2 + self.height);
                                 args.push(Expr {
                                     kind: ExprKind::Named(key, Box::new(v)),
                                     span,
                                 });
                             } else {
                                 args.push(self.expr()?);
+                                h = h.max(1 + self.height);
                             }
                             if !self.eat_punct(",") {
                                 break;
@@ -1042,15 +1102,20 @@ impl Parser {
                         }
                     }
                     let end = self.expect_punct(")", &format!("to close `{}(`", name.name))?;
+                    let span = t.span.to(end);
+                    self.node(h, span)?;
                     let call = Expr {
-                        span: t.span.to(end),
+                        span,
                         kind: ExprKind::Call(name, args),
                     };
+                    self.height = h;
                     if self.is_punct(".") {
                         // `mean_sd(close, 20).sd`
                         self.bump();
                         let field = self.ident("a value name")?;
                         let span = call.span.to(field.span);
+                        self.node(h + 1, span)?;
+                        self.height = h + 1;
                         return Ok(Expr {
                             span,
                             kind: ExprKind::Member(Box::new(call), field),
@@ -1061,11 +1126,13 @@ impl Parser {
                 if self.is_punct(".") {
                     self.bump();
                     let field = self.ident("a field name")?;
+                    self.height = 1;
                     return Ok(Expr {
                         span: t.span.to(field.span),
                         kind: ExprKind::Field(name, field),
                     });
                 }
+                self.height = 1;
                 Ok(Expr {
                     kind: ExprKind::Name(name.name),
                     span: t.span,
@@ -1079,6 +1146,12 @@ impl Parser {
             )),
         }
     }
+}
+
+/// The refusal of a program nested deeper than [`MAX_DEPTH`].
+fn too_deep(span: Span) -> Diag {
+    Diag::new(Code::NestingTooDeep, format!("the program nests deeper than {MAX_DEPTH} levels here"), span, "too deep")
+        .note("blocks, `else if`, parentheses and each operator of a chain count one level each; split the expression with locals or series")
 }
 
 pub fn stmt_span(s: &Stmt) -> Span {
@@ -1205,6 +1278,11 @@ mod tests {
                 [Code::NestingTooDeep]
             )
         });
+        // A chain of operators counts one level per operator.
+        let chain = |n: usize| format!("on_bar {{ x = 1{}; }}", " + 1".repeat(n - 1));
+        assert!(parse(&chain(254)).is_ok());
+        assert_eq!(codes(&chain(255)), [Code::NestingTooDeep]);
+        assert_eq!(codes(&chain(100_000)), [Code::NestingTooDeep]);
         // The deepest nesting accepted.
         run(|| drop(parse(&format!("on_bar {{ x = {}1{}; }}", "(".repeat(254), ")".repeat(254))).unwrap()));
     }

@@ -1,0 +1,7 @@
+error[nesting-too-deep]: this series' lookback nests deeper than 256 levels
+   --> tests/ui/check/lookback-too-deep.atls:260:15
+    |
+260 |   real s254 = sma(s253, k);
+    |               ^^^^^^^^^^^^ too deep
+    = each indicator whose window is a parameter, over a series that has one too, adds a level; give some windows a number
+

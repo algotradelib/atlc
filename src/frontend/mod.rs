@@ -9,10 +9,11 @@ use ast::{BinOp, Expr, ExprKind, UnOp};
 
 /// Parses a program with the hand-written parser, the reference implementation of the grammar.
 ///
-/// The parser and the checker recurse over the syntax tree. The parser refuses expressions nested more
-/// than 256 levels deep (`nesting-too-deep`); reaching that depth takes about 1 MB of stack in a release
-/// build and 8 MB in a debug build, more than a spawned thread's default. Long operator chains and deeply
-/// nested blocks are not limited: run on a thread with a large stack, as `atlc check` does (256 MB).
+/// The parser and the checker recurse over the syntax tree, so the parser refuses a program nested deeper
+/// than [`parser::MAX_DEPTH`] levels (`nesting-too-deep`): blocks, `else if`, parentheses and every level of
+/// an expression's tree (one per operator of a chain) count. Parsing and checking the deepest program it
+/// accepts needs up to 16 MB of stack in a debug build and 2 MB in a release build, more than a spawned
+/// thread's default: run on a thread with a larger stack, as `atlc check` does (64 MB).
 pub fn parse(source: &str) -> Result<ast::Program, Vec<diag::Diag>> {
     parser::parse(source)
 }

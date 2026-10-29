@@ -142,7 +142,7 @@ fn the_corpus() {
     assert!(same >= 140, "{counts:?}");
     assert!(refused >= 20, "{counts:?}");
     assert!(diagnostic_only >= 4, "{counts:?}");
-    assert_eq!(too_deep, 1, "{counts:?}");
+    assert_eq!(too_deep, 2, "{counts:?}");
 }
 
 /// Replacement tokens for the mutants: every kind of token the grammar knows, and some it does not.
@@ -159,7 +159,7 @@ fn mutants() {
         let mut outcomes = [0usize; 4];
         for (name, source) in corpus() {
             // The large stress file and the nesting limit add nothing but time here.
-            if source.len() > 20_000 || name.contains("nesting-too-deep") {
+            if source.len() > 20_000 || name.contains("too-deep") {
                 continue;
             }
             let Ok(tokens) = lex(&source) else { continue };

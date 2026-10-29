@@ -20,6 +20,8 @@ jobs:
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
+      # Deep programs are refused, never a stack overflow, in a release build too.
+      - run: cargo test --release --test depth
       # The grammar is its own package, so LALRPOP never enters the main package's build.
       - run: cargo fmt --check --manifest-path grammar/Cargo.toml
       - run: cargo test --manifest-path grammar/Cargo.toml

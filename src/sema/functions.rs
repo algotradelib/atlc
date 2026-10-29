@@ -625,6 +625,9 @@ impl Checker<'_> {
             } else {
                 Class::Eventually
             };
+        if !self.lookback_fits(&lb, span) {
+            return None;
+        }
         Some(self.add_node(
             NodeKind::UInd {
                 def: d,
