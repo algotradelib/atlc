@@ -151,10 +151,10 @@ impl Checker<'_> {
                 ) {
                     return None;
                 }
-                if v.maybe {
-                    if let Some(c) = self.uctx.as_mut() {
-                        c.returns_maybe = true;
-                    }
+                if v.maybe
+                    && let Some(c) = self.uctx.as_mut()
+                {
+                    c.returns_maybe = true;
                 }
                 Some(HStmt::Return(v))
             }

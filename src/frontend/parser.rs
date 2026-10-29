@@ -216,10 +216,10 @@ impl Parser {
                     self.errors.push(d);
                     // Skip to the next top-level keyword.
                     while self.peek().tok != Tok::Eof {
-                        if let Tok::Ident(s) = &self.peek().tok {
-                            if BLOCKS.contains(&s.as_str()) {
-                                break;
-                            }
+                        if let Tok::Ident(s) = &self.peek().tok
+                            && BLOCKS.contains(&s.as_str())
+                        {
+                            break;
                         }
                         self.bump();
                     }
@@ -829,15 +829,15 @@ impl Parser {
             Tok::Punct("!") => Some("not"),
             _ => None,
         };
-        if let Some(a) = alt {
-            if a == wanted {
-                return Err(Diag::new(
-                    Code::CStyleOperator,
-                    format!("use `{}`", a),
-                    t.span,
-                    format!("write `{}`", a),
-                ));
-            }
+        if let Some(a) = alt
+            && a == wanted
+        {
+            return Err(Diag::new(
+                Code::CStyleOperator,
+                format!("use `{}`", a),
+                t.span,
+                format!("write `{}`", a),
+            ));
         }
         Ok(())
     }

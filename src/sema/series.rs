@@ -11,10 +11,8 @@ impl Checker<'_> {
         let key = format!("{:?}", kind);
         // Bar fields are the inputs: always one node each, so handlers and series agree.
         let cons = self.opts.share || matches!(kind, NodeKind::Field(..));
-        if cons {
-            if let Some(&id) = self.consed.get(&key) {
-                return id;
-            }
+        if cons && let Some(&id) = self.consed.get(&key) {
+            return id;
         }
         let id = self.ir.nodes.len();
         self.ir.nodes.push(Node {
@@ -207,10 +205,10 @@ impl Checker<'_> {
                 None
             }
             ExprKind::Member(call, value) => {
-                if let ExprKind::Call(name, args) = &call.kind {
-                    if let Some((Name::Indicator(d), _)) = self.names.get(&name.name).cloned() {
-                        return self.user_indicator(d, args, Some(value), e.span);
-                    }
+                if let ExprKind::Call(name, args) = &call.kind
+                    && let Some((Name::Indicator(d), _)) = self.names.get(&name.name).cloned()
+                {
+                    return self.user_indicator(d, args, Some(value), e.span);
                 }
                 self.err(
                     Diag::new(

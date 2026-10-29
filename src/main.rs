@@ -211,11 +211,11 @@ fn build(args: &[String]) -> ExitCode {
 
 /// Writes the runtime into `dir`, if one is given.
 fn emit_runtime(dir: Option<&str>) -> ExitCode {
-    if let Some(dir) = dir {
-        if let Err(e) = backend::emit_runtime(std::path::Path::new(dir)) {
-            eprintln!("atlc build: cannot write the runtime into {dir}: {e}");
-            return ExitCode::from(2);
-        }
+    if let Some(dir) = dir
+        && let Err(e) = backend::emit_runtime(std::path::Path::new(dir))
+    {
+        eprintln!("atlc build: cannot write the runtime into {dir}: {e}");
+        return ExitCode::from(2);
     }
     ExitCode::SUCCESS
 }

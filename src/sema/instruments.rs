@@ -46,15 +46,15 @@ impl Checker<'_> {
                 .note("add `on_bar { target(...); }`"),
             );
         }
-        if self.ir.mode != Mode::Single {
-            if let Some(f) = span_of(HandlerKind::OnFill) {
-                self.err(Diag::new(
-                    Code::OnFillOutsideSingle,
-                    "`on_fill` is supported in single-instrument programs only",
-                    f,
-                    "not here yet",
-                ));
-            }
+        if self.ir.mode != Mode::Single
+            && let Some(f) = span_of(HandlerKind::OnFill)
+        {
+            self.err(Diag::new(
+                Code::OnFillOutsideSingle,
+                "`on_fill` is supported in single-instrument programs only",
+                f,
+                "not here yet",
+            ));
         }
         // The prototype accepted these in a universe but generated nothing for them.
         if self.ir.mode == Mode::Universe {

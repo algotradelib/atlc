@@ -28,10 +28,10 @@ impl Checker<'_> {
     }
 
     pub(super) fn policy_of(&mut self, value: &Expr) -> Option<Policy> {
-        if let ExprKind::Name(n) = &value.kind {
-            if let Some(p) = Policy::from_name(n) {
-                return Some(p);
-            }
+        if let ExprKind::Name(n) = &value.kind
+            && let Some(p) = Policy::from_name(n)
+        {
+            return Some(p);
         }
         self.err(Diag::new(Code::UnknownPolicy, format!("`{}` is not a missing-value policy", crate::frontend::ast_text(value)), value.span, "expected restart, skip or poison")
             .note("restart: the window starts again after a missing value; skip: a missing value is left out of the window's result; poison: undefined for good from the first missing value"));

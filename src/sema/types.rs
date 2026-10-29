@@ -96,10 +96,10 @@ impl Checker<'_> {
     pub(super) fn int_literals(&mut self, program: &Program) {
         let mut spans = vec![];
         each_expr(program, &mut |e| {
-            if let ExprKind::Num(v, true) = e.kind {
-                if v.abs() > INT_LITERAL_MAX || v.is_nan() {
-                    spans.push(e.span);
-                }
+            if let ExprKind::Num(v, true) = e.kind
+                && (v.abs() > INT_LITERAL_MAX || v.is_nan())
+            {
+                spans.push(e.span);
             }
         });
         for span in spans {

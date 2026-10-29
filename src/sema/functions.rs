@@ -203,10 +203,10 @@ impl Checker<'_> {
                     }
                     // Named even if its length fails, so `enter` and `leave` report nothing more.
                     ctx.window = Some(name.name.clone());
-                    if let ExprKind::Name(n) = &size.kind {
-                        if let Some(i) = args.iter().position(|a| &a.0 == n && a.1 == Ty::Int) {
-                            ctx.nonzero.push(i);
-                        }
+                    if let ExprKind::Name(n) = &size.kind
+                        && let Some(i) = args.iter().position(|a| &a.0 == n && a.1 == Ty::Int)
+                    {
+                        ctx.nonzero.push(i);
                     }
                     self.uctx = Some(ctx.clone());
                     if let Some(h) = self.hexpr(size, HandlerKind::User) {
@@ -245,24 +245,24 @@ impl Checker<'_> {
             if let IndPart::State(v) = part {
                 self.not_reserved(&v.name);
                 self.uctx = Some(ctx.clone());
-                if let Some(h) = self.hexpr(&v.init, HandlerKind::User) {
-                    if self.assignable(v.ty, h.ty, h.maybe && v.ty != Ty::Real, v.init.span, &v.name.name) {
-                        if ctx.states.iter().any(|st| st.0 == v.name.name) || args.iter().any(|a| a.0 == v.name.name) {
-                            self.err(Diag::new(
-                                Code::ShadowedName,
-                                format!("`{}` is already a name in `{}`", v.name.name, d.name.name),
-                                v.name.span,
-                                "choose another",
-                            ));
-                        }
-                        ctx.states.push((v.name.name.clone(), v.ty, h.maybe));
-                        states.push(UStateIr {
-                            name: v.name.name.clone(),
-                            ty: v.ty,
-                            init: h,
-                            maybe: false,
-                        });
+                if let Some(h) = self.hexpr(&v.init, HandlerKind::User)
+                    && self.assignable(v.ty, h.ty, h.maybe && v.ty != Ty::Real, v.init.span, &v.name.name)
+                {
+                    if ctx.states.iter().any(|st| st.0 == v.name.name) || args.iter().any(|a| a.0 == v.name.name) {
+                        self.err(Diag::new(
+                            Code::ShadowedName,
+                            format!("`{}` is already a name in `{}`", v.name.name, d.name.name),
+                            v.name.span,
+                            "choose another",
+                        ));
                     }
+                    ctx.states.push((v.name.name.clone(), v.ty, h.maybe));
+                    states.push(UStateIr {
+                        name: v.name.name.clone(),
+                        ty: v.ty,
+                        init: h,
+                        maybe: false,
+                    });
                 }
             }
         }

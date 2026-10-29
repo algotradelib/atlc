@@ -270,18 +270,18 @@ impl<'a> Printer<'a> {
         let mode = self.o.indicators;
         let mut out: Vec<RingOwner> = vec![];
         for i in self.live_inds() {
-            if let NodeKind::Ind(ind, input, _, miss) = &self.ir.nodes[i].kind {
-                if let Some(extra) = ring_need(*ind, mode, miss.policy) {
-                    if self.o.share_rings {
-                        let name = Self::ring_name(*input, miss.policy);
-                        if let Some(r) = out.iter_mut().find(|r| r.0 == name) {
-                            r.2.push((i, extra));
-                            continue;
-                        }
-                        out.push((name, *input, vec![(i, extra)]));
-                    } else {
-                        out.push((format!("ring{}_", i), *input, vec![(i, extra)]));
+            if let NodeKind::Ind(ind, input, _, miss) = &self.ir.nodes[i].kind
+                && let Some(extra) = ring_need(*ind, mode, miss.policy)
+            {
+                if self.o.share_rings {
+                    let name = Self::ring_name(*input, miss.policy);
+                    if let Some(r) = out.iter_mut().find(|r| r.0 == name) {
+                        r.2.push((i, extra));
+                        continue;
                     }
+                    out.push((name, *input, vec![(i, extra)]));
+                } else {
+                    out.push((format!("ring{}_", i), *input, vec![(i, extra)]));
                 }
             }
         }
@@ -1394,16 +1394,16 @@ impl<'a> Printer<'a> {
     fn poison_flags(&self) -> Vec<String> {
         let mut out: Vec<String> = vec![];
         for i in self.live_inds() {
-            if let NodeKind::Ind(_, input, _, m) = &self.ir.nodes[i].kind {
-                if m.policy == Policy::Poison {
-                    let name = if self.o.share_rings {
-                        format!("poisoned{}_", input)
-                    } else {
-                        format!("poisoned{}_", i)
-                    };
-                    if !out.contains(&name) {
-                        out.push(name);
-                    }
+            if let NodeKind::Ind(_, input, _, m) = &self.ir.nodes[i].kind
+                && m.policy == Policy::Poison
+            {
+                let name = if self.o.share_rings {
+                    format!("poisoned{}_", input)
+                } else {
+                    format!("poisoned{}_", i)
+                };
+                if !out.contains(&name) {
+                    out.push(name);
                 }
             }
         }
