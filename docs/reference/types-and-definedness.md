@@ -41,7 +41,7 @@ Only maybe-undefined values carry run-time checks.
 ## Arithmetic
 
 How a window is summed decides trades at exact ties: on a day when an open equals its 20-day average to the cent, a running sum and the same window added again can differ in the last bit, and `open > average` comes out differently.
-atls names the arithmetic of each indicator, and a run can choose among three (`build.indicators`):
+atls names the arithmetic of each indicator, and a build can choose among three (`atlc build --indicators`, or the run spec's `build.indicators`):
 
 | Indicator | `incremental` (default) | `naive` | `exact` |
 | --- | --- | --- | --- |
@@ -59,5 +59,5 @@ atls names the arithmetic of each indicator, and a run can choose among three (`
 A result computed another way (by another tool, or in decimal) may differ at an exact tie.
 
 Floating-point contraction (fused multiply-add) is off in generated code and in the runtime: with Clang by pragma, with GCC by `-ffp-contract=off`, and with MSVC by `/fp:precise`, which leaves contraction off from Visual Studio 2022 (17.0) on; earlier MSVC versions are not supported.
-`atlc run` sets these flags; a project that compiles exported strategies itself must set them too, and must not add `/fp:contract`.
+`atlc run` sets these flags; a project that compiles exported strategies itself must set them too, and must not add `/fp:contract` ([the generated C++](generated-code.md), "Compiling exported strategies").
 Contraction is not the only difference between compilers and math libraries (`log`, `sqrt` and evaluation order may differ in the last bit); atls promises identical results only for one compiler and platform.

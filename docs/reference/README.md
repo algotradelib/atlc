@@ -15,6 +15,7 @@ The grammar in [syntax.md](syntax.md) is checked against the compiler's parser b
 | [Missing values](missing-values.md) | `restart`, `skip`, `poison`, and how a window treats a missing value |
 | [Built-in functions and indicators](builtins.md) | Every built-in, its definition and its arithmetic |
 | [Functions and indicators](functions-and-indicators.md) | `functions {}` and user-defined `indicator`s |
+| [The generated C++](generated-code.md) | What `atlc build` writes, the runtime it includes, and how to compile it |
 | [Run spec](run-spec.md) | What `atlc run` reads: data, replay settings, parameters, build settings |
 
 Conventions: "must" and "must not" are rules the checker enforces; "is undefined" means a value is NaN in the sense of [types and definedness](types-and-definedness.md); file names are relative to the repository.
