@@ -358,6 +358,34 @@ pub struct Program {
     pub legs: bool,
 }
 
+impl Program {
+    /// What the checks need from a checked program.
+    pub fn of(ir: &crate::ir::Ir) -> Program {
+        use crate::frontend::ast::Ty;
+        use crate::ir::Mode;
+        Program {
+            params: ir
+                .params
+                .iter()
+                .map(|p| {
+                    let ty = match p.ty {
+                        Ty::Int => ParamType::Int,
+                        Ty::Real => ParamType::Real,
+                        Ty::Bool => ParamType::Bool,
+                    };
+                    (p.name.clone(), ty)
+                })
+                .collect(),
+            named: match &ir.mode {
+                Mode::Named(names) => Some(names.clone()),
+                _ => None,
+            },
+            universe: matches!(ir.mode, Mode::Universe),
+            legs: ir.legs,
+        }
+    }
+}
+
 /// A parameter's type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ParamType {

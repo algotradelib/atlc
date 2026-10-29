@@ -9,10 +9,8 @@ use std::process::Command;
 use std::time::Instant;
 
 use crate::backend;
-use crate::frontend::ast::Ty;
 use crate::frontend::diag;
-use crate::ir::{Ir, Mode};
-use crate::spec::{self, Entry, ParamType, Program};
+use crate::spec::{self, Entry, Program};
 
 /// Why a run stopped, with the exit code each gives.
 #[derive(Debug)]
@@ -65,7 +63,7 @@ pub fn run(spec_path: &Path, cli: Vec<Entry>, fills: Option<PathBuf>) -> Result<
         eprintln!("{}", diag::render(d, &file, &source));
     }
     let replay = spec::from_replay(&ir.replay, &strategy, &source).map_err(Failure::Spec)?;
-    let resolved = spec::resolve(&[replay, entries, cli], &program_of(&ir)).map_err(Failure::Spec)?;
+    let resolved = spec::resolve(&[replay, entries, cli], &Program::of(&ir)).map_err(Failure::Spec)?;
     let options = backend::Options {
         name: name.clone(),
         source_name: strategy
@@ -93,30 +91,6 @@ pub fn run(spec_path: &Path, cli: Vec<Entry>, fills: Option<PathBuf>) -> Result<
         .status()
         .map_err(|e| Failure::Build(format!("cannot run {}: {e}", exe.display())))?;
     if status.success() { Ok(()) } else { Err(Failure::Replay) }
-}
-
-/// What the spec's checks need from the program.
-fn program_of(ir: &Ir) -> Program {
-    Program {
-        params: ir
-            .params
-            .iter()
-            .map(|p| {
-                let ty = match p.ty {
-                    Ty::Int => ParamType::Int,
-                    Ty::Real => ParamType::Real,
-                    Ty::Bool => ParamType::Bool,
-                };
-                (p.name.clone(), ty)
-            })
-            .collect(),
-        named: match &ir.mode {
-            Mode::Named(names) => Some(names.clone()),
-            _ => None,
-        },
-        universe: matches!(ir.mode, Mode::Universe),
-        legs: ir.legs,
-    }
 }
 
 /// The environment variables that change what CMake finds or how it compiles, in the key unless a spec setting
