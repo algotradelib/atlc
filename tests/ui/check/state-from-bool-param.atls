@@ -1,0 +1,12 @@
+# A state is initialized from literals and int or real parameters; a bool state from true or false only.
+params {
+  bool start_long = true;
+}
+state {
+  bool long = start_long;
+}
+on_bar {
+  if (long) {
+    target(1);
+  }
+}

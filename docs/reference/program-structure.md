@@ -14,7 +14,8 @@ Each block kind appears at most once, except `indicator`, which appears once per
   A series reads bar fields (`open high low close volume`), parameters and earlier series; it must not read `state` or `held`.
   Indicators are allowed only here: a streaming indicator must see every period, so it must not sit under an `if`.
   A series no handler reads, directly or through another series, is not computed, and the checker warns about it.
-- `state {}`: typed values kept between periods, initialized from literals and parameters (no calls), written only by handlers.
+- `state {}`: typed values kept between periods, written only by handlers.
+  A state is initialized from numbers and `int` or `real` parameters with `+ - * /` (no calls); a `bool` state from `true` or `false` only, not from a `bool` parameter.
 - `options {}`: program-wide settings; today only `missing` ([missing values](missing-values.md)).
 - `warmup EXPR;`: a least number of periods before the periodic handler's first call.
 - Handlers: see below.

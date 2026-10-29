@@ -1,0 +1,6 @@
+error[const-param-not-int]: a state's initial value is built from `int` and `real` params
+ --> tests/ui/check/state-from-bool-param.atls:6:15
+  |
+6 |   bool long = start_long;
+  |               ^^^^^^^^^^ `start_long` is `bool`
+

@@ -662,7 +662,7 @@ From `tests/ui/check/not-whole-number.atls`.
 
 ### `const-param-not-int`
 
-A count of bars built from a parameter that is not an `int`.
+A constant built from a parameter of the wrong type: a count of bars from a parameter that is not an `int`, or a bound or a state's initial value from a `bool` parameter.
 
 ```
 error[const-param-not-int]: `sma`'s window is built from `int` params

@@ -88,7 +88,11 @@ impl Checker<'_> {
                     if ty == Ty::Bool || (int_only && ty != Ty::Int) {
                         self.err(Diag::new(
                             Code::ConstParamNotInt,
-                            format!("{} is built from `int` params", what),
+                            if int_only {
+                                format!("{what} is built from `int` params")
+                            } else {
+                                format!("{what} is built from `int` and `real` params")
+                            },
                             e.span,
                             format!("`{}` is `{}`", n, ty.name()),
                         ));
@@ -186,6 +190,14 @@ mod tests {
         assert_eq!(
             errors("params { bool f = true; } state { real s = f; } on_bar { target(s); }"),
             [Code::ConstParamNotInt]
+        );
+        // A bool state takes `true` or `false`, not a bool parameter.
+        assert_eq!(
+            errors("params { bool b = true; } state { bool c = b; } on_bar { target(1); }"),
+            [Code::ConstParamNotInt]
+        );
+        ok(
+            "params { real<lower=0> r = 1.5; int n = 2; } state { bool c = false; real s = r * n - 1 / 2; } on_bar { target(s); }",
         );
         assert_eq!(
             errors("on_bar { for (i in 1:held) { } target(1); }"),
