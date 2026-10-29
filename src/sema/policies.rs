@@ -74,6 +74,24 @@ impl Checker<'_> {
             }
         }
         if let Some(ms) = min_span {
+            // The prototype accepted `min` here and ignored it.
+            if matches!(ind, Ind::Lag | Ind::Ema) {
+                let rule = if ind == Ind::Lag {
+                    "under `skip`, a lag reads the value in that exact slot, which may be missing"
+                } else {
+                    "under `skip`, an EMA ignores a missing value and keeps its previous output"
+                };
+                self.err(
+                    Diag::new(
+                        Code::MinNotApplicable,
+                        format!("`{}` takes no `min`", ind.name()),
+                        ms,
+                        "it would have no effect",
+                    )
+                    .note(rule),
+                );
+                return None;
+            }
             if miss.policy != Policy::Skip {
                 self.err(
                     Diag::new(
@@ -147,5 +165,115 @@ impl Checker<'_> {
             }
         }
         true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::testing::{errors, ok};
+    use crate::frontend::diag::Code;
+    use crate::ir::{CExpr, Ind, NodeKind, Policy};
+
+    fn policies(src: &str) -> Vec<(Ind, Policy, CExpr)> {
+        let ir = ok(src);
+        ir.nodes
+            .iter()
+            .filter_map(|n| match &n.kind {
+                NodeKind::Ind(i, _, _, m) => Some((*i, m.policy, m.min.clone())),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn program_default_and_overrides() {
+        let p = policies(
+            "options { missing = skip; } series { real a = sma(close, 5); real b = sma(close, 6, missing = poison); } on_bar { target(a + b); }",
+        );
+        assert_eq!(
+            p,
+            [
+                (Ind::Sma, Policy::Skip, CExpr::Num(1.0)),
+                (Ind::Sma, Policy::Poison, CExpr::Num(1.0))
+            ]
+        );
+        let p = policies("series { real a = stdev(close, 5, missing = skip, min = 3); } on_bar { target(a); }");
+        assert_eq!(p, [(Ind::Stdev, Policy::Skip, CExpr::Num(3.0))]);
+        assert_eq!(
+            errors("options { missing = drop; } on_bar { target(1); }"),
+            [Code::UnknownPolicy]
+        );
+        assert_eq!(
+            errors("options { fill = skip; } on_bar { target(1); }"),
+            [Code::UnknownOption]
+        );
+    }
+
+    #[test]
+    fn named_arguments() {
+        assert_eq!(
+            errors("series { real a = sma(close, 5, window = 3); } on_bar { target(a); }"),
+            [Code::UnknownNamedArgument]
+        );
+        assert_eq!(
+            errors("series { real a = abs(close, missing = skip); } on_bar { target(a); }"),
+            [Code::NamedArgumentNotAllowed]
+        );
+        assert_eq!(
+            errors("series { real a = ols_slope(close, open, 5, missing = skip); } on_bar { target(a); }"),
+            [Code::NamedArgumentNotAllowed]
+        );
+        assert_eq!(
+            errors("series { real a = ts_sum(close, 5, 3, missing = skip); } on_bar { target(a); }"),
+            [Code::NamedArgumentNotAllowed]
+        );
+        assert_eq!(
+            errors("series { real a = sma(close, 5, min = 2); } on_bar { target(a); }"),
+            [Code::MinWithoutSkip]
+        );
+        assert_eq!(
+            errors("series { real a = sma(close, 5, missing = skip, min = 6); } on_bar { target(a); }"),
+            [Code::MinOutOfRange]
+        );
+        assert_eq!(
+            errors("series { real a = sma(close, 5, missing = skip, min = 0); } on_bar { target(a); }"),
+            [Code::MinOutOfRange]
+        );
+        assert_eq!(
+            errors("series { real a = rsi(close, 5, missing = skip); } on_bar { target(a); }"),
+            [Code::SkipUnsupported]
+        );
+        assert_eq!(
+            errors("options { missing = skip; } series { real a = ts_max(close, 5); } on_bar { target(a); }"),
+            [Code::SkipUnsupported]
+        );
+        ok(
+            "options { missing = skip; } series { real a = ts_max(close, 5, missing = restart); } on_bar { target(a); }",
+        );
+    }
+
+    #[test]
+    fn min_is_refused_on_lag_and_ema() {
+        // A departure from the prototype, which accepted `min` on these and ignored it.
+        for call in [
+            "lag(close, 3, missing = skip, min = 2)",
+            "ema(close, 5, missing = skip, min = 2)",
+            "lag(close, 3, min = 1)",
+            "ema(close, 5, missing = restart, min = 1)",
+        ] {
+            let src = format!("series {{ real a = {call}; }} on_bar {{ target(a); }}");
+            assert_eq!(errors(&src), [Code::MinNotApplicable], "{call}");
+        }
+        // Without `min` both keep every policy.
+        let p = policies(
+            "series { real a = lag(close, 3, missing = skip); real b = ema(close, 5, missing = poison); } on_bar { target(a + b); }",
+        );
+        assert_eq!(
+            p,
+            [
+                (Ind::Lag, Policy::Skip, CExpr::Num(1.0)),
+                (Ind::Ema, Policy::Poison, CExpr::Num(1.0))
+            ]
+        );
     }
 }
