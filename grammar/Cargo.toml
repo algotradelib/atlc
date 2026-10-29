@@ -1,0 +1,19 @@
+[package]
+name = "atlc-grammar"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.85"
+description = "The atls grammar of docs/reference/syntax.md for LALRPOP, checked against atlc's hand-written parser"
+license = "MIT"
+publish = false
+
+# Its own workspace: this package is a test of the main one, not a member of it, so that LALRPOP never
+# enters the main package's build.
+[workspace]
+
+[dependencies]
+atlc = { path = ".." }
+lalrpop-util = { version = "0.22", default-features = false }
+
+[build-dependencies]
+lalrpop = { version = "0.22", default-features = false }

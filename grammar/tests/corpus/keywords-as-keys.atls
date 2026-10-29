@@ -1,0 +1,10 @@
+replay {
+  params = 1; series = 2; state = 3; options = 4; functions = 5; instruments = 6; universe = 7; replay = 8;
+  warmup = 9; indicator = 10; on_start = 11; on_bar = 12; on_fill = 13; on_stop = 14; on_open = 15;
+  on_close = 16; int = 17; real = 18; bool = 19; true = 20; false = 21; if = 22; else = 23; for = 24;
+  in = 25; return = 26; target = 27; while = 28; and = 29; or = 30; not = 31; window = 32; value = 33;
+  update = 34; enter = 35; leave = 36; lower = 37; upper = 38;
+}
+universe {}
+on_open { target(1); }
+on_close { target(0); }

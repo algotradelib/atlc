@@ -1,0 +1,268 @@
+// The grammar of valid atls programs, as docs/reference/syntax.md states it, for LALRPOP (LR(1)).
+// It reads the tokens of atlc's lexer and builds atlc's syntax tree, spans included, so that a test can
+// compare it with the hand-written parser tree for tree. The parser's diagnostic-only forms (an expression
+// used as a statement, `while`, `target` used as a value) are not part of the language and not here.
+
+use atlc::frontend::ast::*;
+use crate::{T, bin};
+
+grammar;
+
+extern {
+    type Location = usize;
+    type Error = ();
+    enum T {
+        Num => T::Num(<f64>, <bool>),
+        Id => T::Ident(<String>),
+        Str => T::Str(<String>),
+        // Reserved everywhere.
+        "params" => T::Kw("params"), "series" => T::Kw("series"), "state" => T::Kw("state"),
+        "options" => T::Kw("options"), "functions" => T::Kw("functions"),
+        "instruments" => T::Kw("instruments"), "universe" => T::Kw("universe"), "replay" => T::Kw("replay"),
+        "warmup" => T::Kw("warmup"), "indicator" => T::Kw("indicator"),
+        "on_start" => T::Kw("on_start"), "on_bar" => T::Kw("on_bar"), "on_fill" => T::Kw("on_fill"),
+        "on_stop" => T::Kw("on_stop"), "on_open" => T::Kw("on_open"), "on_close" => T::Kw("on_close"),
+        "int" => T::Kw("int"), "real" => T::Kw("real"), "bool" => T::Kw("bool"),
+        "true" => T::Kw("true"), "false" => T::Kw("false"),
+        "if" => T::Kw("if"), "else" => T::Kw("else"), "for" => T::Kw("for"), "in" => T::Kw("in"),
+        "return" => T::Kw("return"), "target" => T::Kw("target"), "while" => T::Kw("while"),
+        "and" => T::Kw("and"), "or" => T::Kw("or"), "not" => T::Kw("not"),
+        // Reserved inside an indicator, or in bounds; names elsewhere.
+        "window" => T::Kw("window"), "value" => T::Kw("value"), "update" => T::Kw("update"),
+        "enter" => T::Kw("enter"), "leave" => T::Kw("leave"), "lower" => T::Kw("lower"), "upper" => T::Kw("upper"),
+        "<=" => T::P("<="), ">=" => T::P(">="), "==" => T::P("=="), "!=" => T::P("!="),
+        "{" => T::P("{"), "}" => T::P("}"), "(" => T::P("("), ")" => T::P(")"), "[" => T::P("["), "]" => T::P("]"),
+        "<" => T::P("<"), ">" => T::P(">"), "=" => T::P("="), "+" => T::P("+"), "-" => T::P("-"),
+        "*" => T::P("*"), "/" => T::P("/"), "?" => T::P("?"), ":" => T::P(":"), ";" => T::P(";"),
+        "," => T::P(","), "." => T::P("."),
+    }
+}
+
+// program = item* ;
+pub Program: Program = <items:Item*> => Program { items };
+
+// A list with separators and no trailing separator: A ( ',' A )*, or nothing.
+Sep<A>: Vec<A> = {
+    => vec![],
+    <first:A> <rest:("," <A>)*> => std::iter::once(first).chain(rest).collect(),
+};
+
+Item: Item = {
+    <l:@L> "params" "{" <d:Param*> "}" <r:@R> => Item::Params(d, Span::new(l, r)),
+    <l:@L> "series" "{" <d:Decl*> "}" <r:@R> => Item::Series(d, Span::new(l, r)),
+    <l:@L> "state" "{" <d:Decl*> "}" <r:@R> => Item::State(d, Span::new(l, r)),
+    <l:@L> "options" "{" <o:Opt*> "}" <r:@R> => Item::Options(o, Span::new(l, r)),
+    <l:@L> "instruments" "{" <n:(<Name> ";")*> "}" <r:@R> => Item::Instruments(n, Span::new(l, r)),
+    <l:@L> "universe" "{" "}" <r:@R> => Item::Universe(Span::new(l, r)),
+    <l:@L> "replay" "{" <s:Setting*> "}" <r:@R> => Item::Replay(s, Span::new(l, r)),
+    <l:@L> "warmup" <e:Expr> ";" <r:@R> => Item::Warmup(e, Span::new(l, r)),
+    <l:@L> "functions" "{" <f:Function*> "}" <r:@R> => Item::Functions(f, Span::new(l, r)),
+    <l:@L> "indicator" <name:Name> <args:Args> "{" <parts:Part*> "}" <r:@R> =>
+        Item::Indicator(IndicatorDef { name, args, parts, span: Span::new(l, r) }),
+    <l:@L> <k:Handler> <b:Block> => Item::Handler(k, b.0, Span::new(l, b.1.end)),
+};
+
+Handler: HandlerKind = {
+    "on_start" => HandlerKind::OnStart,
+    "on_bar" => HandlerKind::OnBar,
+    "on_fill" => HandlerKind::OnFill,
+    "on_stop" => HandlerKind::OnStop,
+    "on_open" => HandlerKind::OnOpen,
+    "on_close" => HandlerKind::OnClose,
+};
+
+// param = type bounds? NAME '=' expr ';' ;
+Param: ParamDecl = <ty:Ty> <b:Bounds?> <name:Name> "=" <default:Expr> ";" <r:@R> => {
+    let (lower, upper) = b.unwrap_or((None, None));
+    ParamDecl { ty: ty.0, ty_span: ty.1, lower, upper, name, default, span: Span::new(ty.1.start, r) }
+};
+
+// bounds = '<' bound ( ',' bound )* '>' ; a bound is read at the additive level, so '>' closes the bounds.
+Bounds: (Option<Expr>, Option<Expr>) = "<" <first:Bound> <rest:("," <Bound>)*> ">" => {
+    let (mut lower, mut upper) = (None, None);
+    for (is_lower, e) in std::iter::once(first).chain(rest) {
+        if is_lower { lower = Some(e) } else { upper = Some(e) }
+    }
+    (lower, upper)
+};
+
+Bound: (bool, Expr) = {
+    "lower" "=" <Additive> => (true, <>),
+    "upper" "=" <Additive> => (false, <>),
+};
+
+// decl = type NAME '=' expr ';' ;
+Decl: VarDecl = <ty:Ty> <name:Name> "=" <init:Expr> ";" <r:@R> =>
+    VarDecl { ty: ty.0, ty_span: ty.1, name, init, span: Span::new(ty.1.start, r) };
+
+Ty: (Ty, Span) = {
+    <l:@L> "int" <r:@R> => (Ty::Int, Span::new(l, r)),
+    <l:@L> "real" <r:@R> => (Ty::Real, Span::new(l, r)),
+    <l:@L> "bool" <r:@R> => (Ty::Bool, Span::new(l, r)),
+};
+
+// option = NAME '=' expr ';' ;
+Opt: (Ident, Expr) = <Name> "=" <Expr> ";";
+
+// setting = KEY ( '.' KEY )* '=' ( '-'? NUMBER | STRING | 'true' | 'false' ) ';' ;  KEY: any word.
+Setting: Setting = <l:@L> <first:Key> <rest:("." <Key>)*> "=" <value:Lit> ";" <r:@R> => {
+    let key = std::iter::once(first).chain(rest).collect::<Vec<_>>().join(".");
+    Setting { key, value, span: Span::new(l, r) }
+};
+
+Lit: Lit = {
+    "-" <n:Num> => Lit::Num(-n.0),
+    <n:Num> => Lit::Num(n.0),
+    <s:Str> => Lit::Str(s),
+    "true" => Lit::Bool(true),
+    "false" => Lit::Bool(false),
+};
+
+Key: String = {
+    <Id>,
+    <k:Keyword> => k.to_string(),
+};
+
+Keyword: &'static str = {
+    "params" => "params", "series" => "series", "state" => "state", "options" => "options",
+    "functions" => "functions", "instruments" => "instruments", "universe" => "universe", "replay" => "replay",
+    "warmup" => "warmup", "indicator" => "indicator", "on_start" => "on_start", "on_bar" => "on_bar",
+    "on_fill" => "on_fill", "on_stop" => "on_stop", "on_open" => "on_open", "on_close" => "on_close",
+    "int" => "int", "real" => "real", "bool" => "bool", "true" => "true", "false" => "false", "if" => "if",
+    "else" => "else", "for" => "for", "in" => "in", "return" => "return", "target" => "target",
+    "while" => "while", "and" => "and", "or" => "or", "not" => "not", "window" => "window",
+    "value" => "value", "update" => "update", "enter" => "enter", "leave" => "leave", "lower" => "lower",
+    "upper" => "upper",
+};
+
+// function = type NAME args block ;
+Function: FunctionDef = <ret:Ty> <name:Name> <args:Args> <b:Block> =>
+    FunctionDef { ret: ret.0, name, args, body: b.0, span: ret.1.to(b.1) };
+
+// args = '(' ( type NAME ( ',' type NAME )* )? ')' ;
+Args: Vec<Arg> = "(" <Sep<TypedName>> ")";
+
+TypedName: Arg = <ty:Ty> <name:Name> => Arg { ty: ty.0, name };
+
+Part: IndPart = {
+    <l:@L> "window" <name:Name> "[" <size:Expr> "]" ";" <r:@R> => IndPart::Window { name, size, span: Span::new(l, r) },
+    "state" <Decl> => IndPart::State(<>),
+    "value" <Decl> => IndPart::Value(<>),
+    <l:@L> "warmup" <e:Expr> ";" <r:@R> => IndPart::Warmup(e, Span::new(l, r)),
+    <l:@L> "update" <b:Block> => IndPart::Update(b.0, Span::new(l, b.1.end)),
+    <l:@L> "enter" "(" <names:Sep<Name>> ")" <b:Block> => IndPart::Enter(names, b.0, Span::new(l, b.1.end)),
+    <l:@L> "leave" "(" <names:Sep<Name>> ")" <b:Block> => IndPart::Leave(names, b.0, Span::new(l, b.1.end)),
+};
+
+// block = '{' stmt* '}' ;
+Block: (Vec<Stmt>, Span) = <l:@L> "{" <s:Stmt*> "}" <r:@R> => (s, Span::new(l, r));
+
+Stmt: Stmt = {
+    Decl => Stmt::Local(<>),
+    <name:Name> "=" <value:Expr> ";" <r:@R> => Stmt::Assign { span: Span::new(name.span.start, r), name, value },
+    <l:@L> "target" "(" <inst:(<Name> ",")?> <value:Expr> ")" ";" <r:@R> =>
+        Stmt::Target { inst, value, span: Span::new(l, r) },
+    If,
+    <l:@L> "for" "(" <var:Name> "in" <from:Additive> ":" <to:Additive> ")" <b:Block> =>
+        Stmt::For { var, from, to, body: b.0, span: Span::new(l, b.1.end) },
+    <l:@L> "return" <value:Expr> ";" <r:@R> => Stmt::Return { value, span: Span::new(l, r) },
+};
+
+// Blocks are mandatory after `if` and `else`, so there is no dangling `else`.
+If: Stmt = <l:@L> "if" "(" <cond:Expr> ")" <then:Block> <els:("else" <Else>)?> => {
+    let end = els.as_ref().map_or(then.1.end, |e| e.1.end);
+    Stmt::If { cond, then: then.0, els: els.map(|e| e.0), span: Span::new(l, end) }
+};
+
+Else: (Vec<Stmt>, Span) = {
+    <s:If> => { let span = atlc::frontend::parser::stmt_span(&s); (vec![s], span) },
+    Block,
+};
+
+// Expressions, lowest to highest: ?:, or, and, not, comparison, + -, * /, unary -, postfix.
+Expr: Expr = {
+    <c:Or> "?" <a:Expr> ":" <b:Expr> => {
+        let span = c.span.to(b.span);
+        Expr { kind: ExprKind::Ternary(Box::new(c), Box::new(a), Box::new(b)), span }
+    },
+    Or,
+};
+
+Or: Expr = {
+    <a:Or> "or" <b:And> => bin(BinOp::Or, a, b),
+    And,
+};
+
+And: Expr = {
+    <a:And> "and" <b:Not> => bin(BinOp::And, a, b),
+    Not,
+};
+
+Not: Expr = {
+    <l:@L> "not" <e:Not> => { let span = Span::new(l, e.span.end); Expr { kind: ExprKind::Unary(UnOp::Not, Box::new(e)), span } },
+    Comparison,
+};
+
+// Non-associative: `a < b < c` is not a program.
+Comparison: Expr = {
+    <a:Additive> <op:CmpOp> <b:Additive> => bin(op, a, b),
+    Additive,
+};
+
+CmpOp: BinOp = {
+    "<" => BinOp::Lt, "<=" => BinOp::Le, ">" => BinOp::Gt, ">=" => BinOp::Ge, "==" => BinOp::Eq, "!=" => BinOp::Ne,
+};
+
+Additive: Expr = {
+    <a:Additive> "+" <b:Term> => bin(BinOp::Add, a, b),
+    <a:Additive> "-" <b:Term> => bin(BinOp::Sub, a, b),
+    Term,
+};
+
+Term: Expr = {
+    <a:Term> "*" <b:Unary> => bin(BinOp::Mul, a, b),
+    <a:Term> "/" <b:Unary> => bin(BinOp::Div, a, b),
+    Unary,
+};
+
+Unary: Expr = {
+    <l:@L> "-" <e:Unary> => { let span = Span::new(l, e.span.end); Expr { kind: ExprKind::Unary(UnOp::Neg, Box::new(e)), span } },
+    Postfix,
+};
+
+// x[k] is lag(x, k).
+Postfix: Expr = {
+    <e:Postfix> "[" <k:Expr> "]" <r:@R> => { let span = Span::new(e.span.start, r); Expr { kind: ExprKind::Index(Box::new(e), Box::new(k)), span } },
+    Primary,
+};
+
+Primary: Expr = {
+    <l:@L> <n:Num> <r:@R> => Expr { kind: ExprKind::Num(n.0, n.1), span: Span::new(l, r) },
+    <l:@L> "true" <r:@R> => Expr { kind: ExprKind::Bool(true), span: Span::new(l, r) },
+    <l:@L> "false" <r:@R> => Expr { kind: ExprKind::Bool(false), span: Span::new(l, r) },
+    <n:Name> => Expr { span: n.span, kind: ExprKind::Name(n.name) },
+    <c:Call> => c,
+    <c:Call> "." <v:Name> => { let span = c.span.to(v.span); Expr { kind: ExprKind::Member(Box::new(c), v), span } },
+    <n:Name> "." <f:Name> => Expr { span: n.span.to(f.span), kind: ExprKind::Field(n, f) },
+    // Parentheses leave no node; the expression takes their span.
+    <l:@L> "(" <e:Expr> ")" <r:@R> => Expr { kind: e.kind, span: Span::new(l, r) },
+};
+
+Call: Expr = <n:Name> "(" <args:Sep<CallArg>> ")" <r:@R> => Expr { span: Span::new(n.span.start, r), kind: ExprKind::Call(n, args) };
+
+// arg = expr | NAME '=' expr ;  (named: missing = skip, min = 5)
+CallArg: Expr = {
+    Expr,
+    <k:Name> "=" <v:Expr> => { let span = k.span.to(v.span); Expr { kind: ExprKind::Named(k, Box::new(v)), span } },
+};
+
+// A name: any word but a keyword; the words reserved only in indicators and bounds are names elsewhere.
+Name: Ident = {
+    <l:@L> <name:Id> <r:@R> => Ident { name, span: Span::new(l, r) },
+    <l:@L> <w:Contextual> <r:@R> => Ident { name: w.to_string(), span: Span::new(l, r) },
+};
+
+Contextual: &'static str = {
+    "window" => "window", "value" => "value", "update" => "update", "enter" => "enter", "leave" => "leave",
+    "lower" => "lower", "upper" => "upper",
+};
