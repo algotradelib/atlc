@@ -28,6 +28,111 @@ impl fmt::Display for Origin {
     }
 }
 
+/// Where an error is.
+#[derive(Clone, Debug, PartialEq)]
+pub enum At {
+    /// A line of a file: the spec, or the program's `replay {}`.
+    Line(PathBuf, usize),
+    /// A file as a whole: one that cannot be read, or that lacks something.
+    File(PathBuf),
+    /// A `-P` setting.
+    CommandLine,
+    /// The command line itself: an option, its value, or the spec argument.
+    Usage,
+    /// No one place: something the run needs that no layer gives.
+    Nowhere,
+}
+
+impl At {
+    /// Where a setting is.
+    fn of(origin: &Origin) -> At {
+        match origin {
+            Origin::File(path, line) => At::Line(path.clone(), *line),
+            Origin::CommandLine => At::CommandLine,
+        }
+    }
+}
+
+/// A usage, file or spec error, with its place kept as data.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Error {
+    /// `usage`, `unreadable`, `program-name` or `spec`.
+    pub code: &'static str,
+    pub at: At,
+    pub message: String,
+}
+
+impl Error {
+    /// A spec error at `at`.
+    pub fn new(at: At, message: impl Into<String>) -> Error {
+        Error {
+            code: "spec",
+            at,
+            message: message.into(),
+        }
+    }
+
+    /// A spec error about a setting, at the place it was given.
+    pub fn at(origin: &Origin, message: impl Into<String>) -> Error {
+        Error::new(At::of(origin), message)
+    }
+
+    /// A spec error with no one place.
+    pub fn nowhere(message: impl Into<String>) -> Error {
+        Error::new(At::Nowhere, message)
+    }
+
+    /// A usage error: the command line itself.
+    pub fn usage(message: impl Into<String>) -> Error {
+        Error {
+            code: "usage",
+            ..Error::new(At::Usage, message)
+        }
+    }
+
+    /// A file that cannot be read, named by `at`.
+    pub fn unreadable(at: At, message: impl Into<String>) -> Error {
+        Error {
+            code: "unreadable",
+            ..Error::new(at, message)
+        }
+    }
+
+    /// The error with another code.
+    pub fn with_code(self, code: &'static str) -> Error {
+        Error { code, ..self }
+    }
+
+    /// The error as one JSON object: `severity`, `code`, `message`, `file` and `line` (null without a place),
+    /// and `origin` (`file` or `command_line`).
+    pub fn to_json(&self) -> String {
+        use crate::frontend::diag::json_string;
+        let (file, line, origin) = match &self.at {
+            At::Line(path, line) => (json_string(&path.display().to_string()), line.to_string(), "file"),
+            At::File(path) => (json_string(&path.display().to_string()), "null".into(), "file"),
+            At::CommandLine | At::Usage => ("null".into(), "null".into(), "command_line"),
+            At::Nowhere => ("null".into(), "null".into(), "file"),
+        };
+        format!(
+            "{{\"severity\":\"error\",\"code\":{},\"message\":{},\"file\":{file},\"line\":{line},\"origin\":\"{origin}\"}}",
+            json_string(self.code),
+            json_string(&self.message)
+        )
+    }
+}
+
+impl fmt::Display for Error {
+    /// As `atlc run` prints it: the place, then the message.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.at {
+            At::Line(path, line) => write!(f, "{}:{line}: {}", path.display(), self.message),
+            At::File(path) => write!(f, "{}: {}", path.display(), self.message),
+            At::CommandLine => write!(f, "the command line: {}", self.message),
+            At::Usage | At::Nowhere => write!(f, "{}", self.message),
+        }
+    }
+}
+
 /// A value as written.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
@@ -408,17 +513,22 @@ pub struct Run {
 }
 
 /// Reads a spec file: its entries (paths made absolute) and the program it names.
-pub fn read(path: &Path) -> Result<(PathBuf, Vec<Entry>), Vec<String>> {
-    let source = std::fs::read_to_string(path).map_err(|e| vec![format!("cannot read {}: {e}", path.display())])?;
+pub fn read(path: &Path) -> Result<(PathBuf, Vec<Entry>), Vec<Error>> {
+    let source = std::fs::read_to_string(path).map_err(|e| {
+        vec![Error::unreadable(
+            At::Nowhere,
+            format!("cannot read {}: {e}", path.display()),
+        )]
+    })?;
     let mut entries = toml::parse(&source, path).map_err(|e| vec![e])?;
-    let errors: Vec<String> = entries.iter_mut().filter_map(|e| check(e).err()).collect();
+    let errors: Vec<Error> = entries.iter_mut().filter_map(|e| check(e).err()).collect();
     if !errors.is_empty() {
         return Err(errors);
     }
     let Some(strategy) = entries.iter().find(|e| e.key == "strategy") else {
-        return Err(vec![format!(
-            "{}: no `strategy = \"FILE.atls\"`: a spec names the program it runs",
-            path.display()
+        return Err(vec![Error::new(
+            At::File(path.to_path_buf()),
+            "no `strategy = \"FILE.atls\"`: a spec names the program it runs",
         )]);
     };
     let Value::Str(strategy) = &strategy.value else {
@@ -432,7 +542,7 @@ pub fn from_replay(
     settings: &[crate::frontend::ast::Setting],
     file: &Path,
     source: &str,
-) -> Result<Vec<Entry>, Vec<String>> {
+) -> Result<Vec<Entry>, Vec<Error>> {
     use crate::frontend::ast::Lit;
     let mut out: Vec<Entry> = vec![];
     let mut errors = vec![];
@@ -440,14 +550,20 @@ pub fn from_replay(
         let line = source[..s.span.start.min(source.len())].matches('\n').count() + 1;
         let origin = Origin::File(file.to_path_buf(), line);
         if s.key == "strategy" || s.key.starts_with("params.") {
-            errors.push(format!(
-                "{origin}: `{}` cannot be set in `replay {{}}` (a parameter's default is in `params {{}}`)",
-                s.key
+            errors.push(Error::at(
+                &origin,
+                format!(
+                    "`{}` cannot be set in `replay {{}}` (a parameter's default is in `params {{}}`)",
+                    s.key
+                ),
             ));
             continue;
         }
         if let Some(first) = out.iter().find(|e| e.key == s.key) {
-            errors.push(format!("{origin}: `{}` is already set on {}", s.key, first.origin));
+            errors.push(Error::at(
+                &origin,
+                format!("`{}` is already set on {}", s.key, first.origin),
+            ));
             continue;
         }
         let value = match &s.value {
@@ -468,10 +584,10 @@ pub fn from_replay(
     if errors.is_empty() { Ok(out) } else { Err(errors) }
 }
 
-/// `-P name=value`: a parameter from the command line.
-pub fn from_command_line(assignment: &str) -> Result<Entry, String> {
+/// `-P name=value`: a parameter from the command line; a malformed one is a usage error.
+pub fn from_command_line(assignment: &str) -> Result<Entry, Error> {
     let Some((name, text)) = assignment.split_once('=') else {
-        return Err(format!("-P takes name=value, not `{assignment}`"));
+        return Err(Error::usage(format!("-P takes name=value, not `{assignment}`")));
     };
     let value = match text {
         "true" => Value::Bool(true),
@@ -481,7 +597,7 @@ pub fn from_command_line(assignment: &str) -> Result<Entry, String> {
                 .parse()
                 .ok()
                 .filter(|v: &f64| v.is_finite() && !t.contains(['i', 'n', 'I', 'N']))
-                .ok_or_else(|| format!("-P {assignment}: `{t}` is not a number, `true` or `false`"))?;
+                .ok_or_else(|| Error::usage(format!("-P {assignment}: `{t}` is not a number, `true` or `false`")))?;
             Value::Num(t.trim_start_matches('+').to_string(), v)
         }
     };
@@ -498,7 +614,7 @@ fn known(name: &str) -> Option<&'static Key> {
 }
 
 /// Checks one entry's key and value, making a path absolute against its file's directory.
-fn check(e: &mut Entry) -> Result<(), String> {
+fn check(e: &mut Entry) -> Result<(), Error> {
     let at = &e.origin;
     let kind = if let Some(name) = e
         .key
@@ -506,15 +622,14 @@ fn check(e: &mut Entry) -> Result<(), String> {
         .or_else(|| e.key.strip_prefix("params."))
     {
         if name.contains('.') {
-            return Err(format!("{at}: unknown setting `{}`", e.key));
+            return Err(Error::at(at, format!("unknown setting `{}`", e.key)));
         }
         if e.key.starts_with("params.") {
             return match e.value {
                 Value::Num(..) | Value::Bool(_) => Ok(()),
-                _ => Err(format!(
-                    "{at}: `{}` is a number or a boolean, not {}",
-                    e.key,
-                    e.value.describe()
+                _ => Err(Error::at(
+                    at,
+                    format!("`{}` is a number or a boolean, not {}", e.key, e.value.describe()),
                 )),
             };
         }
@@ -529,11 +644,11 @@ fn check(e: &mut Entry) -> Result<(), String> {
                     Some("data" | "replay") | None => "",
                     Some(_) => " (tables: [data], [instruments], [replay], [params], [build])",
                 };
-                return Err(format!("{at}: unknown setting `{}`{hint}", e.key));
+                return Err(Error::at(at, format!("unknown setting `{}`{hint}", e.key)));
             }
         }
     };
-    let bad = |what: &str| format!("{at}: `{}` is {what}, not {}", e.key, e.value.describe());
+    let bad = |what: &str| Error::at(at, format!("`{}` is {what}, not {}", e.key, e.value.describe()));
     let base = match at {
         Origin::File(path, _) => path.parent().map(Path::to_path_buf).unwrap_or_default(),
         Origin::CommandLine => PathBuf::new(),
@@ -576,25 +691,27 @@ fn check(e: &mut Entry) -> Result<(), String> {
                 return Err(bad("a string or a list of strings"));
             };
             if let Some(item) = items.iter().find(|s| s.contains(',')) {
-                return Err(format!(
-                    "{at}: `{}`: \"{item}\" holds a comma, which the replay cannot read",
-                    e.key
+                return Err(Error::at(
+                    at,
+                    format!("`{}`: \"{item}\" holds a comma, which the replay cannot read", e.key),
                 ));
             }
             if kind == Kind::Coordinates {
                 for c in &items {
                     let parts: Vec<&str> = c.split('/').collect();
                     if parts.len() != 3 || parts.iter().any(|p| p.is_empty()) {
-                        return Err(format!(
-                            "{at}: `{}`: \"{c}\" is not a store coordinate, SOURCE/INTERVAL/SYMBOL (\"kis-krx/1d/005930\")",
-                            e.key
+                        return Err(Error::at(
+                            at,
+                            format!(
+                                "`{}`: \"{c}\" is not a store coordinate, SOURCE/INTERVAL/SYMBOL (\"kis-krx/1d/005930\")",
+                                e.key
+                            ),
                         ));
                     }
                     if !INTERVALS.contains(&parts[1]) {
-                        return Err(format!(
-                            "{at}: `{}`: \"{c}\": the interval is one of {}",
-                            e.key,
-                            INTERVALS.join(", ")
+                        return Err(Error::at(
+                            at,
+                            format!("`{}`: \"{c}\": the interval is one of {}", e.key, INTERVALS.join(", ")),
                         ));
                     }
                 }
@@ -792,7 +909,7 @@ fn offset(s: &str) -> bool {
 
 /// Merges the layers (later winning: the program's `replay {}`, the spec, the command line) and checks them
 /// together against the program; every error found.
-pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<String>> {
+pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Error>> {
     let mut merged: Vec<Entry> = vec![];
     for layer in layers {
         for e in layer {
@@ -819,23 +936,25 @@ pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Stri
             && !k.sources.is_empty()
             && !k.sources.contains(&source.as_str())
         {
-            errors.push(format!(
-                "{}: `{}` applies to data.source = {}, and this run reads \"{source}\"",
-                e.origin,
-                e.key,
-                k.sources
-                    .iter()
-                    .map(|s| format!("\"{s}\""))
-                    .collect::<Vec<_>>()
-                    .join(" or ")
+            errors.push(Error::at(
+                &e.origin,
+                format!(
+                    "`{}` applies to data.source = {}, and this run reads \"{source}\"",
+                    e.key,
+                    k.sources
+                        .iter()
+                        .map(|s| format!("\"{s}\""))
+                        .collect::<Vec<_>>()
+                        .join(" or ")
+                ),
             ));
         }
     }
-    let both = |a: &str, b: &str, errors: &mut Vec<String>| {
+    let both = |a: &str, b: &str, errors: &mut Vec<Error>| {
         if let (Some(x), Some(y)) = (get(a), get(b)) {
-            errors.push(format!(
-                "{}: `{a}` and `{b}` ({}) name the same thing: give one",
-                x.origin, y.origin
+            errors.push(Error::at(
+                &x.origin,
+                format!("`{a}` and `{b}` ({}) name the same thing: give one", y.origin),
             ));
         }
     };
@@ -843,17 +962,18 @@ pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Stri
         "wide" => {
             both("data.file", "data.close", &mut errors);
             if get("data.file").is_none() && get("data.close").is_none() {
-                errors.push(
-                    "the run reads wide tables (data.source = \"wide\"): give the closes, `data.file` or `data.close`"
-                        .into(),
-                );
+                errors.push(Error::nowhere(
+                    "the run reads wide tables (data.source = \"wide\"): give the closes, `data.file` or `data.close`",
+                ));
             }
         }
         "csv" => {
             both("data.file", "data.files", &mut errors);
             both("data.symbol", "data.symbols", &mut errors);
             if get("data.file").is_none() && get("data.files").is_none() {
-                errors.push("the run reads CSV (data.source = \"csv\"): give `data.file` or `data.files`".into());
+                errors.push(Error::nowhere(
+                    "the run reads CSV (data.source = \"csv\"): give `data.file` or `data.files`",
+                ));
             }
             let count = |key: &str| match get(key).map(|e| &e.value) {
                 Some(Value::List(items)) => items.len(),
@@ -865,39 +985,43 @@ pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Stri
                     e.key.starts_with("data.columns.")
                         || matches!(e.key.as_str(), "data.symbol" | "data.symbols" | "data.symbol_column")
                 }) {
-                    errors.push(format!(
-                        "{}: `{}` applies to data.layout = \"long\": a wide CSV names its symbols in its header",
-                        e.origin, e.key
+                    errors.push(Error::at(
+                        &e.origin,
+                        format!(
+                            "`{}` applies to data.layout = \"long\": a wide CSV names its symbols in its header",
+                            e.key
+                        ),
                     ));
                 }
             } else if get("data.symbol_column").is_some() {
                 for k in ["data.symbol", "data.symbols"] {
                     if let Some(e) = get(k) {
-                        errors.push(format!(
-                            "{}: `{k}` and `data.symbol_column` both name symbols: give one",
-                            e.origin
+                        errors.push(Error::at(
+                            &e.origin,
+                            format!("`{k}` and `data.symbol_column` both name symbols: give one"),
                         ));
                     }
                 }
             } else if get("data.files").is_some() {
                 if count("data.symbols") != count("data.files") {
-                    errors.push(format!(
+                    errors.push(Error::nowhere(format!(
                         "data.files names {} files and data.symbols {} symbols: give one symbol per file (or data.symbol_column)",
                         count("data.files"),
                         count("data.symbols")
-                    ));
+                    )));
                 }
             } else if get("data.file").is_some() && get("data.symbol").is_none() {
-                errors.push(
-                    "a long CSV names its symbol: give `data.symbol`, or `data.symbol_column` for a file of many symbols"
-                        .into(),
-                );
+                errors.push(Error::nowhere(
+                    "a long CSV names its symbol: give `data.symbol`, or `data.symbol_column` for a file of many symbols",
+                ));
             }
         }
         _ => {
             for k in ["data.store", "data.store_root"] {
                 if get(k).is_none() {
-                    errors.push(format!("the run reads a store (data.source = \"store\"): give `{k}`"));
+                    errors.push(Error::nowhere(format!(
+                        "the run reads a store (data.source = \"store\"): give `{k}`"
+                    )));
                 }
             }
         }
@@ -905,37 +1029,41 @@ pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Stri
 
     // Fills.
     let fill = text("replay.fill").unwrap_or_else(|| "next-open".into());
-    let at = |key: &str| get(key).map(|e| format!("{}: ", e.origin)).unwrap_or_default();
+    // An error about a setting is at the setting, if it is given; else nowhere.
+    let at = |key: &str, message: String| match get(key) {
+        Some(e) => Error::at(&e.origin, message),
+        None => Error::nowhere(message),
+    };
     if program.legs && fill != "legs" {
-        errors.push(format!(
-            "{}the program has on_open or on_close: set replay.fill = \"legs\"",
-            at("replay.fill")
+        errors.push(at(
+            "replay.fill",
+            "the program has on_open or on_close: set replay.fill = \"legs\"".into(),
         ));
     }
     if !program.legs && fill == "legs" {
-        errors.push(format!(
-            "{}replay.fill = \"legs\" feeds each day as an open and a close, for a program with on_open or on_close",
-            at("replay.fill")
+        errors.push(at(
+            "replay.fill",
+            "replay.fill = \"legs\" feeds each day as an open and a close, for a program with on_open or on_close"
+                .into(),
         ));
     }
     if fill == "open-prev-close" && source != "wide" {
-        errors.push(format!(
-            "{}replay.fill = \"open-prev-close\" reads wide tables of closes (data.source = \"wide\")",
-            at("replay.fill")
+        errors.push(at(
+            "replay.fill",
+            "replay.fill = \"open-prev-close\" reads wide tables of closes (data.source = \"wide\")".into(),
         ));
     }
     if fill == "legs" && program.legs && source == "wide" {
         for k in ["data.open", "data.high", "data.low"] {
             if get(k).is_none() {
-                errors.push(format!("replay.fill = \"legs\" on wide tables needs `{k}`"));
+                errors.push(Error::nowhere(format!(
+                    "replay.fill = \"legs\" on wide tables needs `{k}`"
+                )));
             }
         }
     }
     if fill == "legs" && program.legs && source == "csv" && text("data.interval").is_some_and(|i| i != "1d") {
-        errors.push(format!(
-            "{}replay.fill = \"legs\" needs daily bars",
-            at("data.interval")
-        ));
+        errors.push(at("data.interval", "replay.fill = \"legs\" needs daily bars".into()));
     }
     if fill == "legs"
         && program.legs
@@ -947,18 +1075,18 @@ pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Stri
             .map(Value::text)
             .filter(|c| c.split('/').nth(1) != Some("1d"))
         {
-            errors.push(format!(
-                "{}replay.fill = \"legs\" needs daily bars, not \"{c}\"",
-                at("data.store")
+            errors.push(at(
+                "data.store",
+                format!("replay.fill = \"legs\" needs daily bars, not \"{c}\""),
             ));
         }
     }
     if let (Some(from), Some(to)) = (get("replay.from"), get("replay.to"))
         && from.value.text() > to.value.text()
     {
-        errors.push(format!(
-            "{}: replay.from is after replay.to ({})",
-            from.origin, to.origin
+        errors.push(Error::at(
+            &from.origin,
+            format!("replay.from is after replay.to ({})", to.origin),
         ));
     }
 
@@ -968,26 +1096,25 @@ pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Stri
         Some(names) => {
             for n in names {
                 if get(&format!("instruments.{n}")).is_none() {
-                    errors.push(format!(
+                    errors.push(Error::nowhere(format!(
                         "the program names instrument `{n}`: map it to a symbol, `{n} = \"...\"` in [instruments]"
-                    ));
+                    )));
                 }
             }
             for e in &instruments {
                 let n = &e.key["instruments.".len()..];
                 if !names.iter().any(|m| m == n) {
-                    errors.push(format!(
-                        "{}: the program has no instrument `{n}` (it names {})",
-                        e.origin,
-                        names.join(", ")
+                    errors.push(Error::at(
+                        &e.origin,
+                        format!("the program has no instrument `{n}` (it names {})", names.join(", ")),
                     ));
                 }
             }
         }
         None if !program.universe && instruments.len() > 1 => {
-            errors.push(format!(
-                "{}: a program without instruments {{}} or universe {{}} trades one symbol: [instruments] holds at most one",
-                instruments[1].origin
+            errors.push(Error::at(
+                &instruments[1].origin,
+                "a program without instruments {} or universe {} trades one symbol: [instruments] holds at most one",
             ));
         }
         None => {}
@@ -999,14 +1126,16 @@ pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Stri
         let name = &e.key["params.".len()..];
         let Some((_, ty)) = program.params.iter().find(|(p, _)| p == name) else {
             let list: Vec<&str> = program.params.iter().map(|(p, _)| p.as_str()).collect();
-            errors.push(format!(
-                "{}: the program has no parameter `{name}`{}",
-                e.origin,
-                if list.is_empty() {
-                    String::from(" (it has none)")
-                } else {
-                    format!(" (it has {})", list.join(", "))
-                }
+            errors.push(Error::at(
+                &e.origin,
+                format!(
+                    "the program has no parameter `{name}`{}",
+                    if list.is_empty() {
+                        String::from(" (it has none)")
+                    } else {
+                        format!(" (it has {})", list.join(", "))
+                    }
+                ),
             ));
             continue;
         };
@@ -1015,22 +1144,27 @@ pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Stri
             (ParamType::Int, Value::Num(t, v)) if integer_text(t) && v.abs() <= 9e15 => format!("{v}"),
             (ParamType::Real, Value::Num(t, _)) => t.clone(),
             (ParamType::Bool, _) => {
-                errors.push(format!(
-                    "{}: `{name}` is a bool parameter: give `true` or `false`",
-                    e.origin
+                errors.push(Error::at(
+                    &e.origin,
+                    format!("`{name}` is a bool parameter: give `true` or `false`"),
                 ));
                 continue;
             }
             (ParamType::Int, _) => {
-                errors.push(format!(
-                    "{}: `{name}` is an int parameter: give a whole number written as an integer, of magnitude at most 9e15, not {}",
-                    e.origin,
-                    e.value.describe()
+                errors.push(Error::at(
+                    &e.origin,
+                    format!(
+                        "`{name}` is an int parameter: give a whole number written as an integer, of magnitude at most 9e15, not {}",
+                        e.value.describe()
+                    ),
                 ));
                 continue;
             }
             (ParamType::Real, _) => {
-                errors.push(format!("{}: `{name}` is a real parameter: give a number", e.origin));
+                errors.push(Error::at(
+                    &e.origin,
+                    format!("`{name}` is a real parameter: give a number"),
+                ));
                 continue;
             }
         };
@@ -1053,6 +1187,18 @@ pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Stri
         run_args.push((k, e.value.text()));
     }
     run_args.extend(args);
+    // The build paths CMake will be given, checked here so that a spec that cannot build fails before anything runs.
+    let store = source == "store";
+    for (key, used) in [("build.algotradelib", true), ("build.duckdb", store)] {
+        if let Some(e) = get(key).filter(|_| used)
+            && let Some(m) = cmake_refuses(Path::new(&e.value.text()), key)
+        {
+            errors.push(Error::at(&e.origin, m));
+        }
+    }
+    if !errors.is_empty() {
+        return Err(errors);
+    }
     let path = |key: &str| text(key).map(PathBuf::from);
     Ok(Run {
         algotradelib: path("build.algotradelib"),
@@ -1060,8 +1206,18 @@ pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Stri
         indicators: text("build.indicators")
             .and_then(|i| Indicators::from_name(&i))
             .unwrap_or(Indicators::Incremental),
-        store: source == "store",
+        store,
         args: run_args,
+    })
+}
+
+/// Why a path cannot be a quoted CMake argument, if it cannot: it holds `"`, `;` or `$`.
+pub fn cmake_refuses(path: &Path, setting: &str) -> Option<String> {
+    path.display().to_string().contains(['"', ';', '$']).then(|| {
+        format!(
+            "`{setting}` = \"{}\": a path holding `\"`, `;` or `$` cannot be passed to CMake",
+            path.display()
+        )
     })
 }
 
@@ -1069,10 +1225,19 @@ pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Stri
 mod tests {
     use super::*;
 
+    /// Errors as `atlc run` prints them.
+    fn texts(errors: Vec<Error>) -> Vec<String> {
+        errors.iter().map(Error::to_string).collect()
+    }
+
     fn spec(src: &str) -> Result<Vec<Entry>, Vec<String>> {
-        let mut entries = toml::parse(src, Path::new("/specs/s.toml")).map_err(|e| vec![e])?;
-        let errors: Vec<String> = entries.iter_mut().filter_map(|e| check(e).err()).collect();
-        if errors.is_empty() { Ok(entries) } else { Err(errors) }
+        let mut entries = toml::parse(src, Path::new("/specs/s.toml")).map_err(|e| vec![e.to_string()])?;
+        let errors: Vec<Error> = entries.iter_mut().filter_map(|e| check(e).err()).collect();
+        if errors.is_empty() {
+            Ok(entries)
+        } else {
+            Err(texts(errors))
+        }
     }
 
     fn one_error(src: &str) -> String {
@@ -1093,7 +1258,7 @@ mod tests {
     }
 
     fn run(src: &str, program: &Program) -> Result<Run, Vec<String>> {
-        resolve(&[spec(src)?], program)
+        resolve(&[spec(src)?], program).map_err(texts)
     }
 
     fn arg<'a>(r: &'a Run, key: &str) -> Option<&'a str> {
@@ -1218,13 +1383,13 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("s.toml");
         std::fs::write(&path, "[replay]\ncash = 1\n").unwrap();
-        assert!(read(&path).unwrap_err()[0].contains("no `strategy"));
+        assert!(read(&path).unwrap_err()[0].to_string().contains("no `strategy"));
         std::fs::write(&path, "strategy = 'm.atls'\n").unwrap();
         assert_eq!(read(&path).unwrap().0, dir.join("m.atls"));
         std::fs::write(&path, "strategy = 'm.atls'\nfoo = 1\nbar = 2\n").unwrap();
         assert_eq!(read(&path).unwrap_err().len(), 2);
         std::fs::remove_dir_all(&dir).unwrap();
-        assert!(read(&path).unwrap_err()[0].contains("cannot read"));
+        assert!(read(&path).unwrap_err()[0].to_string().contains("cannot read"));
     }
 
     #[test]
@@ -1276,9 +1441,24 @@ mod tests {
             let e = run(&format!("{WIDE_SPEC}[params]\n{params}\n"), &p).unwrap_err();
             assert!(e.len() == 1 && e[0].contains(says), "{params}: {e:?}");
         }
-        assert!(from_command_line("lookback").unwrap_err().contains("name=value"));
-        assert!(from_command_line("lookback=inf").unwrap_err().contains("not a number"));
-        assert!(from_command_line("lookback=ten").unwrap_err().contains("not a number"));
+        assert!(
+            from_command_line("lookback")
+                .unwrap_err()
+                .message
+                .contains("name=value")
+        );
+        assert!(
+            from_command_line("lookback=inf")
+                .unwrap_err()
+                .message
+                .contains("not a number")
+        );
+        assert!(
+            from_command_line("lookback=ten")
+                .unwrap_err()
+                .message
+                .contains("not a number")
+        );
         assert_eq!(from_command_line("x=+2").unwrap().value, Value::Num("2".into(), 2.0));
     }
 
@@ -1442,6 +1622,7 @@ mod tests {
             source,
         )
         .unwrap_err();
+        let e = texts(e);
         assert_eq!(e.len(), 3, "{e:?}");
         assert!(e[0].contains("cannot be set in `replay {}`"));
         assert!(e[1].contains("/p/m.atls:3: `replay.cash` is already set on /p/m.atls:2"));

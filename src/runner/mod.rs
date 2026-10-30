@@ -9,14 +9,15 @@ use std::process::Command;
 use std::time::Instant;
 
 use crate::backend;
-use crate::frontend::diag;
-use crate::spec::{self, Entry, Program};
+use crate::frontend::diag::{self, Diag};
+use crate::ir::Ir;
+use crate::spec::{self, At, Entry, Program};
 
 /// Why a run stopped, with the exit code each gives.
 #[derive(Debug)]
 pub enum Failure {
-    /// A usage, spec or file error (2): the messages.
-    Spec(Vec<String>),
+    /// A usage, spec or file error (2): the errors.
+    Spec(Vec<spec::Error>),
     /// The program has errors (1); they were printed.
     Program,
     /// The build failed (3): the message.
@@ -37,33 +38,100 @@ impl Failure {
     }
 }
 
-/// Runs a spec: `cli` holds `-P` settings, `fills` the file for every fill.
-pub fn run(spec_path: &Path, cli: Vec<Entry>, fills: Option<PathBuf>) -> Result<(), Failure> {
-    let spec_path = std::path::absolute(spec_path).unwrap_or_else(|_| spec_path.to_path_buf());
-    let spec_path = spec_path.as_path();
-    let (strategy, entries) = spec::read(spec_path).map_err(Failure::Spec)?;
-    let file = strategy.display().to_string();
-    let source = std::fs::read_to_string(&strategy)
-        .map_err(|e| Failure::Spec(vec![format!("{}: cannot read {file}: {e}", spec_path.display())]))?;
+/// A spec prepared for a run: its program checked, its layers merged and resolved.
+pub struct Ready {
+    /// The generated struct's name.
+    pub name: String,
+    /// The checked program.
+    pub ir: Ir,
+    /// The build settings and the replay's arguments.
+    pub run: spec::Run,
+}
+
+/// Why preparing a spec stopped.
+pub enum Stop {
+    /// A usage, spec or file error.
+    Spec(Vec<spec::Error>),
+    /// The program's errors.
+    Program(Vec<Diag>),
+}
+
+/// What preparing a spec found, for `atlc run` and `atlc spec` alike.
+pub struct Preparation {
+    /// The spec, made absolute.
+    pub spec: PathBuf,
+    /// The program's path and text, once read, to render its diagnostics.
+    pub program: Option<(PathBuf, String)>,
+    /// The program's warnings, once it checked.
+    pub warnings: Vec<Diag>,
+    /// The prepared run, or why there is none.
+    pub outcome: Result<Ready, Stop>,
+}
+
+/// Prepares a spec as `atlc run` uses it, building nothing: the spec read (its path made absolute), the program read,
+/// its struct name validated and the program checked, its `replay {}` merged under the spec and `cli` (`-P`), then
+/// resolved, with the build paths CMake will be given checked.
+pub fn prepare(spec_path: &Path, cli: Vec<Entry>) -> Preparation {
+    let spec = std::path::absolute(spec_path).unwrap_or_else(|_| spec_path.to_path_buf());
+    let mut p = Preparation {
+        spec,
+        program: None,
+        warnings: vec![],
+        outcome: Err(Stop::Spec(vec![])),
+    };
+    p.outcome = prepared(&mut p, cli);
+    p
+}
+
+/// The steps of `prepare`, filling in what they found.
+fn prepared(p: &mut Preparation, cli: Vec<Entry>) -> Result<Ready, Stop> {
+    let (strategy, entries) = spec::read(&p.spec).map_err(Stop::Spec)?;
+    let source = std::fs::read_to_string(&strategy).map_err(|e| {
+        Stop::Spec(vec![spec::Error::unreadable(
+            At::File(p.spec.clone()),
+            format!("cannot read {}: {e}", strategy.display()),
+        )])
+    })?;
     let stem = strategy
         .file_stem()
         .map(|s| s.to_string_lossy().into_owned())
         .unwrap_or_default();
-    let name = backend::struct_name(&stem).map_err(|m| Failure::Spec(vec![m]))?;
-    let ir = match crate::check(&source) {
-        Ok(ir) => ir,
-        Err(errors) => {
-            for d in &errors {
-                eprintln!("{}", diag::render(d, &file, &source));
-            }
-            return Err(Failure::Program);
-        }
+    let name =
+        backend::struct_name(&stem).map_err(|m| Stop::Spec(vec![spec::Error::nowhere(m).with_code("program-name")]))?;
+    p.program = Some((strategy.clone(), source.clone()));
+    let ir = crate::check(&source).map_err(Stop::Program)?;
+    p.warnings = ir.warnings.clone();
+    let replay = spec::from_replay(&ir.replay, &strategy, &source).map_err(Stop::Spec)?;
+    let run = spec::resolve(&[replay, entries, cli], &Program::of(&ir)).map_err(Stop::Spec)?;
+    Ok(Ready { name, ir, run })
+}
+
+/// Runs a spec: `cli` holds `-P` settings, `fills` the file for every fill.
+pub fn run(spec_path: &Path, cli: Vec<Entry>, fills: Option<PathBuf>) -> Result<(), Failure> {
+    let p = prepare(spec_path, cli);
+    let render = |d: &Diag| match &p.program {
+        Some((path, source)) => diag::render(d, &path.display().to_string(), source),
+        None => d.message.clone(),
     };
-    for d in &ir.warnings {
-        eprintln!("{}", diag::render(d, &file, &source));
+    if let Err(Stop::Program(errors)) = &p.outcome {
+        for d in errors {
+            eprintln!("{}", render(d));
+        }
+        return Err(Failure::Program);
     }
-    let replay = spec::from_replay(&ir.replay, &strategy, &source).map_err(Failure::Spec)?;
-    let resolved = spec::resolve(&[replay, entries, cli], &Program::of(&ir)).map_err(Failure::Spec)?;
+    for d in &p.warnings {
+        eprintln!("{}", render(d));
+    }
+    let Ready {
+        name,
+        ir,
+        run: resolved,
+    } = match p.outcome {
+        Ok(ready) => ready,
+        Err(Stop::Spec(errors)) => return Err(Failure::Spec(errors)),
+        Err(Stop::Program(_)) => unreachable!("returned above"),
+    };
+    let strategy = p.program.as_ref().map(|(path, _)| path.clone()).unwrap_or_default();
     let options = backend::Options {
         name: name.clone(),
         source_name: strategy
@@ -75,7 +143,8 @@ pub fn run(spec_path: &Path, cli: Vec<Entry>, fills: Option<PathBuf>) -> Result<
         drop_history: true,
     };
     let header = backend::print(&ir, &options);
-    let project = Project::new(&options, header, &resolved).map_err(Failure::Spec)?;
+    let project = Project::new(&options, header, &resolved)
+        .map_err(|m| Failure::Spec(m.into_iter().map(spec::Error::nowhere).collect()))?;
     let exe = project.build().map_err(Failure::Build)?;
     let mut args: Vec<String> = resolved.args.iter().map(|(k, v)| format!("{k}={v}")).collect();
     if let Some(f) = fills {
@@ -486,16 +555,12 @@ fn cmake_path(path: &Path) -> String {
     path.display().to_string().replace('\\', "/")
 }
 
-/// A path for a quoted CMake argument, or why it cannot be one.
+/// A path for a quoted CMake argument, or why it cannot be one (which `spec::resolve` has already refused).
 fn quoted_path(path: &Path, setting: &str) -> Result<String, String> {
-    let p = cmake_path(path);
-    if p.contains(['"', ';', '$']) {
-        return Err(format!(
-            "`{setting}` = \"{}\": a path holding `\"`, `;` or `$` cannot be passed to CMake",
-            path.display()
-        ));
+    match spec::cmake_refuses(path, setting) {
+        Some(m) => Err(m),
+        None => Ok(cmake_path(path)),
     }
-    Ok(p)
 }
 
 /// The project's `CMakeLists.txt`.

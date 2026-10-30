@@ -7,10 +7,10 @@
 
 use std::path::Path;
 
-use super::{Entry, Origin, Value};
+use super::{At, Entry, Error, Origin, Value};
 
-/// Reads a run spec into entries, in file order; the first error found, as `FILE:LINE: message`.
-pub fn parse(source: &str, file: &Path) -> Result<Vec<Entry>, String> {
+/// Reads a run spec into entries, in file order; the first error found, at its line.
+pub fn parse(source: &str, file: &Path) -> Result<Vec<Entry>, Error> {
     let mut out: Vec<Entry> = vec![];
     let mut table = String::new();
     let mut tables: Vec<(String, usize)> = vec![];
@@ -18,7 +18,7 @@ pub fn parse(source: &str, file: &Path) -> Result<Vec<Entry>, String> {
     let mut dotted: Vec<(String, usize)> = vec![];
     for (i, raw) in source.lines().enumerate() {
         let line = i + 1;
-        let err = |m: String| format!("{}:{line}: {m}", file.display());
+        let err = |m: String| Error::new(At::Line(file.to_path_buf(), line), m);
         characters(raw).map_err(err)?;
         let text = strip_comment(raw).trim();
         if text.is_empty() {
@@ -68,9 +68,9 @@ pub fn parse(source: &str, file: &Path) -> Result<Vec<Entry>, String> {
     for (d, dline) in &dotted {
         let under = format!("{d}.");
         if let Some((t, tline)) = tables.iter().find(|(t, _)| t == d || t.starts_with(&under)) {
-            return Err(format!(
-                "{}:{tline}: table `[{t}]` and the dotted key on line {dline} both define `{d}`; use one or the other",
-                file.display()
+            return Err(Error::new(
+                At::Line(file.to_path_buf(), *tline),
+                format!("table `[{t}]` and the dotted key on line {dline} both define `{d}`; use one or the other"),
             ));
         }
     }
@@ -78,17 +78,19 @@ pub fn parse(source: &str, file: &Path) -> Result<Vec<Entry>, String> {
     for e in &out {
         let prefix = format!("{}.", e.key);
         if let Some(other) = out.iter().find(|o| o.key.starts_with(&prefix)) {
-            return Err(format!(
-                "{}: `{}` is a value here and a table on {}",
-                e.origin, e.key, other.origin
+            return Err(Error::at(
+                &e.origin,
+                format!("`{}` is a value here and a table on {}", e.key, other.origin),
             ));
         }
         if let Some((t, line)) = tables.iter().find(|(t, _)| *t == e.key || t.starts_with(&prefix)) {
-            return Err(format!(
-                "{}: `{}` is a value here and a table on {}:{line} (`[{t}]`)",
-                e.origin,
-                e.key,
-                file.display()
+            return Err(Error::at(
+                &e.origin,
+                format!(
+                    "`{}` is a value here and a table on {}:{line} (`[{t}]`)",
+                    e.key,
+                    file.display()
+                ),
             ));
         }
     }
@@ -292,7 +294,7 @@ mod tests {
     }
 
     fn bad(src: &str) -> String {
-        parse(src, Path::new("s.toml")).expect_err(src)
+        parse(src, Path::new("s.toml")).expect_err(src).to_string()
     }
 
     fn s(v: &str) -> Value {
