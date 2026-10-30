@@ -689,8 +689,9 @@ fn check(e: &mut Entry) -> Result<(), Error> {
                 let table = e.key.split_once('.').map(|(t, _)| t);
                 let hint = match table {
                     Some("build") => " ([build] takes algotradelib, duckdb and indicators)",
+                    Some("orders") => " ([orders] takes type and offset)",
                     Some("data" | "replay") | None => "",
-                    Some(_) => " (tables: [data], [instruments], [replay], [params], [build])",
+                    Some(_) => " (tables: [data], [instruments], [replay], [params], [orders], [build])",
                 };
                 return Err(Error::at(at, format!("unknown setting `{}`{hint}", e.key)));
             }
@@ -1374,12 +1375,16 @@ mod tests {
             ("[data]\nsorce = \"csv\"", "unknown setting `data.sorce`"),
             ("[build]\ncache = \"x\"", "unknown setting `build.cache`"),
             (
+                "[orders]\nprice = \"last\"",
+                "unknown setting `orders.price` ([orders] takes type and offset)",
+            ),
+            (
                 "[build]\nindicators = \"pairwise\"",
                 "`build.indicators` is one of \"incremental\", \"naive\", \"exact\"",
             ),
             (
                 "[output]\nfills = \"f.csv\"",
-                "tables: [data], [instruments], [replay], [params], [build]",
+                "tables: [data], [instruments], [replay], [params], [orders], [build]",
             ),
             ("[params.x]\ny = 1", "unknown setting `params.x.y`"),
             ("[params]\nlookback = \"20\"", "is a number or a boolean"),
