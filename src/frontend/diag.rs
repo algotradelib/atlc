@@ -361,6 +361,19 @@ pub fn to_json(d: &Diag, file: &str, source: &str) -> String {
     )
 }
 
+/// One diagnostic as `atlc spec --json` lists it, beside the spec's own errors: `severity`, `code`, `message`,
+/// `file`, `line` (of the span's start, from 1) and `origin` (`program`).
+pub fn to_flat_json(d: &Diag, file: &str, source: &str) -> String {
+    let (line, _, _, _) = line_col(source, clamp(d.span, source).start);
+    format!(
+        "{{\"severity\":{},\"code\":{},\"message\":{},\"file\":{},\"line\":{line},\"origin\":\"program\"}}",
+        json_string(d.severity.as_str()),
+        json_string(d.code.as_str()),
+        json_string(&d.message),
+        json_string(file)
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
