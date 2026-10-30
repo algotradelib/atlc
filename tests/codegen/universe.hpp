@@ -34,6 +34,7 @@ struct Universe {
   /** One instrument's series, indicators and state. */
   struct Lane {
     std::size_t bars_{0};
+    atl::Decimal64 price_{};  // the price of this instrument's last event, for limit pricing
     double open_now_{atls::ops::NaN};
     double s_last_close{};
     double s_trend{};
@@ -82,6 +83,12 @@ struct Universe {
     setup();
   }
 
+  /** Prices every target from now on as a market order or a limit (`atls::ops::OrderPricing::set`); kept across `set` and `setup()`. */
+  void set_order_pricing(atl::OrderType type, const atl::Decimal64& offset) { pricing_.set(type, offset); }
+
+  /** The targets limit pricing did not submit, by reason. */
+  const atls::ops::PricingRefusals& pricing_refusals() const { return pricing_.refusals(); }
+
   /** The leg of a day a slice is: 0 the open, 1 the day's bar, 2 the close (minutes past midnight, less one). */
   static int part_of(std::chrono::system_clock::time_point end) {
     const auto midnight = std::chrono::floor<std::chrono::hours>(end);
@@ -111,6 +118,7 @@ struct Universe {
         }
         continue;
       }
+      lanes_[ln].price_ = bar->bar_.close_;
       if (part == 0) {
         if (!bar->bar_.open_) {
           continue;
@@ -181,7 +189,9 @@ struct Universe {
         order.instrument_ = ids_[ln];
         order.tag_ = tag_;
         order.target_quantity_ = atl::Decimal64(tg_[ln].shares(), 0);
-        ctx.submit(order);
+        if (!pricing_.limit() || pricing_.price(ctx, order, lanes_[ln].price_)) {
+          ctx.submit(order);
+        }
       }
     }
   }
@@ -212,6 +222,7 @@ struct Universe {
   std::vector<atl::InstrumentId> ids_;
   Params params_;
   std::string tag_{"universe"};
+  atls::ops::OrderPricing pricing_;
   std::size_t warmup_{0};
   std::size_t periods_{0};
   std::vector<Lane> lanes_;

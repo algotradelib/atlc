@@ -57,6 +57,12 @@ struct Pairs {
     setup();
   }
 
+  /** Prices every target from now on as a market order or a limit (`atls::ops::OrderPricing::set`); kept across `set` and `setup()`. */
+  void set_order_pricing(atl::OrderType type, const atl::Decimal64& offset) { pricing_.set(type, offset); }
+
+  /** The targets limit pricing did not submit, by reason. */
+  const atls::ops::PricingRefusals& pricing_refusals() const { return pricing_.refusals(); }
+
   /** Series every bar, then `on_bar` once the warm-up is over. */
   template <class Ctx>
   void on_bars(Ctx& ctx, const atl::strategy::BarSlice& slice) {
@@ -121,14 +127,18 @@ struct Pairs {
       order.instrument_ = ids_[0];
       order.tag_ = tag_;
       order.target_quantity_ = atl::Decimal64(target_y.shares(), 0);
-      ctx.submit(order);
+      if (!pricing_.limit() || pricing_.price(ctx, order, bar_y->bar_.close_)) {
+        ctx.submit(order);
+      }
     }
     if (target_x.stated()) {
       atl::strategy::TargetPosition order;
       order.instrument_ = ids_[1];
       order.tag_ = tag_;
       order.target_quantity_ = atl::Decimal64(target_x.shares(), 0);
-      ctx.submit(order);
+      if (!pricing_.limit() || pricing_.price(ctx, order, bar_x->bar_.close_)) {
+        ctx.submit(order);
+      }
     }
   }
 
@@ -162,6 +172,7 @@ struct Pairs {
   std::vector<atl::InstrumentId> ids_;
   Params params_;
   std::string tag_{"pairs"};
+  atls::ops::OrderPricing pricing_;
   std::size_t bars_{0};
   std::size_t warmup_{0};
   atls::ops::Ring ring4_;

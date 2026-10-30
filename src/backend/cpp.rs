@@ -1581,7 +1581,9 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn submit_lines(&mut self, indent: usize, target: &str, id: &str) {
+    /// Submits a stated target, priced as a limit from `basis` (the price of the event that ran the handler) when the
+    /// pricing says so; `net` is the exact net position the handler already read, if it read one.
+    fn submit_lines(&mut self, indent: usize, target: &str, id: &str, basis: &str, net: Option<&str>) {
         self.line(indent, &format!("if ({}.stated()) {{", target));
         self.line(indent + 1, "atl::strategy::TargetPosition order;");
         self.line(indent + 1, &format!("order.instrument_ = {};", id));
@@ -1590,8 +1592,33 @@ impl<'a> Printer<'a> {
             indent + 1,
             &format!("order.target_quantity_ = atl::Decimal64({}.shares(), 0);", target),
         );
-        self.line(indent + 1, "ctx.submit(order);");
+        let net = net.map(|n| format!(", {n}")).unwrap_or_default();
+        self.line(
+            indent + 1,
+            &format!("if (!pricing_.limit() || pricing_.price(ctx, order, {basis}{net})) {{"),
+        );
+        self.line(indent + 2, "ctx.submit(order);");
+        self.line(indent + 1, "}");
         self.line(indent, "}");
+    }
+
+    /// `set_order_pricing` and `pricing_refusals`, the same for every program.
+    fn pricing_methods(&mut self) {
+        self.line(
+            1,
+            "/** Prices every target from now on as a market order or a limit (`atls::ops::OrderPricing::set`); kept across `set` and `setup()`. */",
+        );
+        self.line(
+            1,
+            "void set_order_pricing(atl::OrderType type, const atl::Decimal64& offset) { pricing_.set(type, offset); }",
+        );
+        self.line(0, "");
+        self.line(1, "/** The targets limit pricing did not submit, by reason. */");
+        self.line(
+            1,
+            "const atls::ops::PricingRefusals& pricing_refusals() const { return pricing_.refusals(); }",
+        );
+        self.line(0, "");
     }
 
     fn program(&mut self) {
@@ -1659,6 +1686,7 @@ impl<'a> Printer<'a> {
         }
         self.line(0, "");
         self.set_method();
+        self.pricing_methods();
         if let Some(body) = &ir.handlers.on_start {
             self.line(1, "/** `on_start`. */");
             self.line(1, "template <class Ctx>");
@@ -1750,10 +1778,23 @@ impl<'a> Printer<'a> {
         if named {
             for k in 0..self.inst_count() {
                 let n = self.inst_name(k);
-                self.submit_lines(2, &format!("target_{}", n), &format!("ids_[{}]", k));
+                let net = format!("*net_{n}");
+                self.submit_lines(
+                    2,
+                    &format!("target_{n}"),
+                    &format!("ids_[{k}]"),
+                    &format!("bar_{n}->bar_.close_"),
+                    ir.uses_held.then_some(net.as_str()),
+                );
             }
         } else {
-            self.submit_lines(2, "target", "instrument_");
+            self.submit_lines(
+                2,
+                "target",
+                "instrument_",
+                "bar.bar_.close_",
+                ir.uses_held.then_some("*net"),
+            );
         }
         self.line(1, "}");
         self.line(0, "");
@@ -1814,6 +1855,7 @@ impl<'a> Printer<'a> {
         }
         self.line(1, "Params params_;");
         self.line(1, &format!("std::string tag_{{\"{}\"}};", o.name.to_lowercase()));
+        self.line(1, "atls::ops::OrderPricing pricing_;");
         self.line(1, "std::size_t bars_{0};");
         self.line(1, "std::size_t warmup_{0};");
         self.object_members(1);
@@ -1963,11 +2005,16 @@ impl<'a> Printer<'a> {
         self.line(1, "/** One instrument's series, indicators and state. */");
         self.line(1, "struct Lane {");
         self.line(2, "std::size_t bars_{0};");
+        self.line(
+            2,
+            "atl::Decimal64 price_{};  // the price of this instrument's last event, for limit pricing",
+        );
         if ir.legs {
             self.line(2, "double open_now_{atls::ops::NaN};");
         }
         if ir.uses_held {
             self.line(2, "double held_{0};");
+            self.line(2, "atl::Decimal64 net_{};");
         }
         for i in 0..ir.nodes.len() {
             if !ir.live[i]
@@ -2035,6 +2082,7 @@ impl<'a> Printer<'a> {
         self.line(1, "}");
         self.line(0, "");
         self.set_method();
+        self.pricing_methods();
         if ir.legs {
             self.line(1, "/** The leg of a day a slice is: 0 the open, 1 the day's bar, 2 the close (minutes past midnight, less one). */");
             self.line(1, "static int part_of(std::chrono::system_clock::time_point end) {");
@@ -2078,6 +2126,7 @@ impl<'a> Printer<'a> {
         }
         self.line(4, "continue;");
         self.line(3, "}");
+        self.line(3, "lanes_[ln].price_ = bar->bar_.close_;");
         if ir.legs {
             self.line(3, "if (part == 0) {");
             self.line(4, "if (!bar->bar_.open_) {");
@@ -2109,6 +2158,7 @@ impl<'a> Printer<'a> {
             self.line(4, "if (!net) {");
             self.line(5, "active_[ln] = 0;");
             self.line(4, "} else {");
+            self.line(5, "lanes_[ln].net_ = *net;");
             self.line(5, "lanes_[ln].held_ = atls::ops::to_double(*net);");
             self.line(4, "}");
             self.line(3, "}");
@@ -2133,7 +2183,13 @@ impl<'a> Printer<'a> {
         self.line(3, "if (!active_[ln]) {");
         self.line(4, "continue;");
         self.line(3, "}");
-        self.submit_lines(3, "tg_[ln]", "ids_[ln]");
+        self.submit_lines(
+            3,
+            "tg_[ln]",
+            "ids_[ln]",
+            "lanes_[ln].price_",
+            ir.uses_held.then_some("lanes_[ln].net_"),
+        );
         self.line(2, "}");
         self.line(1, "}");
         self.line(0, "");
@@ -2162,6 +2218,7 @@ impl<'a> Printer<'a> {
         self.line(1, "std::vector<atl::InstrumentId> ids_;");
         self.line(1, "Params params_;");
         self.line(1, &format!("std::string tag_{{\"{}\"}};", o.name.to_lowercase()));
+        self.line(1, "atls::ops::OrderPricing pricing_;");
         self.line(1, "std::size_t warmup_{0};");
         self.line(1, "std::size_t periods_{0};");
         self.line(1, "std::vector<Lane> lanes_;");
