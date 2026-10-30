@@ -223,6 +223,7 @@ With `orders.type = "limit"`, the generated strategy gives each target it submit
 - An undefined target states nothing and does not erase an earlier valid one in the same handler; the price applies once, to the final target.
 - A target that cannot be priced is not submitted, and is counted by reason in the report's `pricing_refused` and `pricing_refusal_reasons`: the price missing or not positive (`no_basis_price`), no reference data or an unknown price grid (`no_price_grid`), arithmetic that does not fit a decimal (`price_not_representable`; an offset of many digits, such as 0.299999999999999999, makes most products too large), a rounded price that is not positive (`price_not_positive`), or a net position whose rows do not sum (`net_not_representable`).
   A requested limit never becomes a market order.
+  A program that reads `held` stops before stating any target when the net position does not sum, as it does with market orders, so that case is not counted here.
 - With market orders, the strategy does nothing more than check the setting once per target.
 
 The backtester fills a limit when the next bar's range reaches it: a buy when the bar's low is at or below the limit, a sell when its high is at or above it.
