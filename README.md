@@ -36,9 +36,10 @@ Status: in development, before its first release; the language may change withou
 atlc check mean-reversion.atls # parse and check, no C++ toolchain needed
 atlc build mean-reversion.atls -o mean-reversion.hpp # the C++ strategy, for your own algotradelib project
 atlc run mean-reversion.toml -P lookback=30 # replay it from a run spec and print the report as JSON
+atlc spec mean-reversion.toml --json # check a run spec and print its resolved settings, building nothing
 ```
 
-Add `--json` to `check` for one JSON object per diagnostic.
+Add `--json` to `check` for one JSON object per diagnostic, and to `spec` for one JSON object for tools.
 A run spec says what to replay the program on:
 
 ```toml

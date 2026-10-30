@@ -37,6 +37,15 @@ A universe with `on_open` or `on_close` reads each day as three one-minute bars 
 Each handler call submits at most one `TargetPosition` per instrument: the last target it stated, in whole shares, with the struct's name in lower case as the tag.
 A target stated again on a later bar is submitted again.
 
+Targets are market orders unless the strategy is told otherwise:
+- `set_order_pricing(type, offset)` prices every target from then on: `atl::OrderType::MARKET` (the default, with an offset of 0) or `atl::OrderType::LIMIT` with an `atl::Decimal64` offset at least 0 and below 0.3; it throws `std::invalid_argument` for another type, an offset outside that range, or an offset with a market order, and `set` and `setup()` keep it;
+- with a limit, a target is priced from the price of the event that ran the handler, its side from the target against the net position, and a target that cannot be priced is not submitted ([run spec](run-spec.md), "Limit orders");
+- `pricing_refusals()` counts the targets not submitted, by reason (`atls::ops::PricingRefusals`: `no_basis_price_`, `no_price_grid_`, `price_not_representable_`, `price_not_positive_`, `net_not_representable_`, and `total()`).
+
+With market orders the pricing costs one check per submitted target: no portfolio scan, reference-data lookup or decimal arithmetic, and no change to the series or the warm-up.
+With a limit, the strategy reads the net position once per target it prices (the one the handler read, if it reads `held`), and the instrument's reference data (`ctx.instrument(id)`), which a runner must supply.
+A universe keeps each instrument's last event price, for its limits.
+
 Parameters are run-time fields, so one compiled header runs every point of a tuning grid:
 - `Params` has one field per parameter, `name_`, holding the program's default;
 - `set(name, value)` sets one by name, and throws `std::invalid_argument` for an unknown name or an `int` that is not a whole number of magnitude at most 9e15;
@@ -50,7 +59,7 @@ For a runner, the struct also states `warmup_bars()` (the bars before the handle
 
 | Header | Contents |
 | --- | --- |
-| `atls/ops.hpp` | Rings, the built-in indicators in each arithmetic, the three-valued operators on undefined values, the target rule |
+| `atls/ops.hpp` | Rings, the built-in indicators in each arithmetic, the three-valued operators on undefined values, the target rule and its pricing (`atls::ops::OrderPricing`) |
 | `atls/universe.hpp` | One single-instrument strategy over several instruments: `atls::Universe<S>` forwards each bar to the strategy trading its instrument, `atls::UniverseBars<S>` each bar of a slice |
 | `atls/run.hpp` | The replay driver of `atlc run`: `atls::run::main<S>(argc, argv)` reads `key=value` settings, loads the bars, replays `S` in the backtester, prints the report as JSON and writes the fills |
 
@@ -60,7 +69,8 @@ The first line of a generated header names the `atlc` that wrote it.
 
 The runtime includes algotradelib's `strategy` headers; `atls/run.hpp` also includes its `backtest` headers.
 `atls/run.hpp` reads a Parquet store only when compiled with `ATLS_DUCKDB` defined and DuckDB's C library linked (`duckdb.h`, tested with 1.5); without it a store run stops with a message, and nothing else needs DuckDB.
-`atlc run` writes the settings it passes ([run spec](run-spec.md)); a project that drives `atls::run::main` itself passes the same `key=value` arguments: the spec's keys with `data.source` always given, `instrument.NAME` for `instruments.NAME`, `param.NAME` for `params.NAME` (a `bool` as 1 or 0) and `output.fills` for `--fills`.
+`atlc run` writes the settings it passes ([run spec](run-spec.md)); a project that drives `atls::run::main` itself passes the same `key=value` arguments, which `atlc spec --json` lists as `args`: the spec's keys with `data.source` always given, `instrument.NAME` for `instruments.NAME`, `param.NAME` for `params.NAME` (a `bool` as 1 or 0), `orders.type` and `orders.offset`, and `output.fills` for `--fills`.
+The driver sets the parameters, then the pricing.
 `--indicators naive` solves `ols_slope` and `ols_intercept` with Eigen, so it needs an algotradelib built with Eigen (`ATL_USE_EIGEN=ON`, the default); without it, such a strategy fails to compile with a message saying so.
 
 ## Compiling exported strategies

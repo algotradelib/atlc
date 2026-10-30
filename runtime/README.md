@@ -4,7 +4,7 @@
 
 | Header | Contents |
 | --- | --- |
-| `atls/ops.hpp` | Rings, the built-in indicators in each arithmetic, the three-valued operators on undefined values, the target rule |
+| `atls/ops.hpp` | Rings, the built-in indicators in each arithmetic, the three-valued operators on undefined values, the target rule and its pricing |
 | `atls/universe.hpp` | One single-instrument strategy run over several instruments |
 | `atls/run.hpp` | The replay driver `atlc run` builds each strategy with: settings, bar readers (wide tables, CSV, a Parquet store through DuckDB's C API), the backtester, the report as JSON |
 

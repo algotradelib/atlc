@@ -2,6 +2,7 @@
 
 ```sh
 atlc run SPEC.toml [-P name=value]... [--fills FILE]
+atlc spec SPEC.toml [-P name=value]... [--json]
 ```
 
 `atlc run` reads a run spec, checks it against its program, builds the strategy once per program shape, replays it in algotradelib's backtester, and prints the library's report as JSON on standard output.
@@ -15,6 +16,8 @@ Messages, including the build's progress, go to standard error.
 | 2 | a usage, spec or file error; nothing was built |
 | 3 | the build failed: no compiler or CMake, no algotradelib package, no DuckDB, or a compile error |
 | 4 | the replay failed: unreadable data, a parameter outside its bounds, or an `int` overflow; its error is printed |
+
+`atlc spec` checks a spec as `atlc run` would and prints its resolved settings, building nothing (below, "Checking a spec").
 
 Settings apply in this order, later winning: the program's `replay {}`, the spec, the command line.
 `replay {}` may set any key below but `strategy` and `params.*`; a parameter's default is in `params {}`.
@@ -51,7 +54,7 @@ A spec is TOML, limited to a subset that every TOML reader reads the same way:
 - spaces and tabs between the parts of a line, and no control character but tab, even in a string or a comment.
 
 Errors, each with the file and line:
-- an unknown key (including a misspelled one under `[build]`), with the tables a spec has: `[data]`, `[instruments]`, `[replay]`, `[params]`, `[build]`;
+- an unknown key (including a misspelled one under `[build]` or `[orders]`), with the tables a spec has: `[data]`, `[instruments]`, `[replay]`, `[params]`, `[orders]`, `[build]`;
 - a key set twice, a table defined twice, a name used both as a value and as a table, or a table made both by dotted keys and by a header (`data.file = ...` with `[data]`; TOML refuses it);
 - a value of the wrong type or outside its range, or a key that does not apply to the run (a CSV column mapping for wide tables, say);
 - a character TOML forbids: other whitespace outside a string (a no-break space, say), or a control character;
@@ -167,6 +170,7 @@ The offset is written as a plain decimal of at most 18 fractional digits (`0.002
 The bound 0.3 is a chosen input bound, not an exchange's rule.
 `replay {}` may set both keys; the layers are checked together, so an offset without `orders.type = "limit"` is refused whichever layer sets either.
 Changing `[orders]` does not rebuild: the pricing is an argument, like the parameters.
+How a limit is priced, and how it fills, is below ("Limit orders").
 
 ### `[build]`
 
@@ -176,7 +180,7 @@ Changing `[orders]` does not rebuild: the pricing is an argument, like the param
 | `build.duckdb` | path | `DUCKDB_ROOT`, then the system's paths | the directory of DuckDB's `duckdb.h` and shared library, for a store run |
 | `build.indicators` | `"incremental"`, `"naive"` or `"exact"` | `"incremental"` | how windows are summed ([types](types-and-definedness.md), "Arithmetic") |
 
-A `[build]` path holding `"`, `;` or `$` cannot be passed to CMake and is refused.
+A `[build]` path holding `"`, `;` or `$` cannot be passed to CMake and is refused at its setting, before anything is built (`build.duckdb` only for a store run).
 
 ## The report
 
@@ -198,12 +202,87 @@ One JSON object, one field per line:
 | `halted` | string or null | why the replay stopped early, if it did; read it before any figure |
 | `aborted` | boolean | whether a halt cleared queued orders |
 | `rejection_reasons` | object | each rejection and refusal reason, with its count (refusals as `guard:REASON`) |
-| `caveats` | object | `gaps` (bars that did not follow their predecessor), `unfilled` (orders still queued at the end), `unvalued_bars`, `multiple_instruments`, `cost_totals_incomplete`, `volume_ignored` (always true: fills are not capped by volume), `lowest_cash` (the lowest cash a fill left, as a decimal string, when below zero) and `shorts_borrow_nothing` (always true) |
+| `pricing_refused` | integer | targets limit pricing did not submit ("Limit orders"); 0 with market orders |
+| `pricing_refusal_reasons` | object | each pricing refusal reason with its count, when nonzero: `no_basis_price`, `no_price_grid`, `price_not_representable`, `price_not_positive`, `net_not_representable` |
+| `caveats` | object | `gaps` (bars that did not follow their predecessor), `unfilled` (orders still queued at the end), `expired` (`DAY` orders withdrawn unfilled when their session ended, as they would expire live; on daily bars, after one bar), `unvalued_bars`, `multiple_instruments`, `cost_totals_incomplete`, `volume_ignored` (always true: fills are not capped by volume), `lowest_cash` (the lowest cash a fill left, as a decimal string, when below zero) and `shorts_borrow_nothing` (always true) |
 | `first_bar`, `last_bar` | string | the first and last recorded times, ISO 8601 in UTC; absent when nothing was replayed |
 
 A number is printed with ten significant digits; a figure the library leaves undefined (a return on zero equity, a ratio without variance) is null.
 
 `--fills FILE` writes one line per fill, after the header `at,symbol,side,quantity,price,commission,tax`: the time (ISO 8601, UTC), the symbol, `buy` or `sell`, and decimals.
+
+## Limit orders
+
+With `orders.type = "limit"`, the generated strategy gives each target it submits a limit price; the same code runs in `atlc run`'s backtests and in any other driver of the strategy.
+- The price is that of the event that ran the handler, taken exactly from the bar (its close): in `on_bar`, the decision bar's close; in `on_open`, the opening price (today's close is not visible there); in `on_close`, the close.
+  Named instruments use each instrument's own bar; a universe keeps each instrument's last event price, so no instrument is priced from another's.
+  The price does not depend on the program reading `close`.
+- The side compares the target in whole shares (truncated toward zero) with the net position, summed over every holding row: above it, a buy; below it, a sell, for shorts and across zero alike (flat to -10 sells, -10 to -5 buys).
+- The limit is `price × (1 + offset)` for a buy and `price × (1 − offset)` for a sell, computed exactly, then put on the instrument's tick grid on the safe side (a buy rounded down, a sell up).
+- A target equal to the position is submitted without a limit, as before, so that the runner still cancels unwanted working orders.
+- An undefined target states nothing and does not erase an earlier valid one in the same handler; the price applies once, to the final target.
+- A target that cannot be priced is not submitted, and is counted by reason in the report's `pricing_refused` and `pricing_refusal_reasons`: the price missing or not positive (`no_basis_price`), no reference data or an unknown price grid (`no_price_grid`), arithmetic that does not fit a decimal (`price_not_representable`; an offset of many digits, such as 0.299999999999999999, makes most products too large), a rounded price that is not positive (`price_not_positive`), or a net position whose rows do not sum (`net_not_representable`).
+  A requested limit never becomes a market order.
+- With market orders, the strategy does nothing more than check the setting once per target.
+
+The backtester fills a limit when the next bar's range reaches it: a buy when the bar's low is at or below the limit, a sell when its high is at or above it.
+The fill is credited at the limit, bounded into the bar (a buy at the lower of the limit and the bar's high), before and after slippage, so slippage never takes it through the limit; a better open is not credited.
+A limit that does not fill is a `DAY` order: it is withdrawn when its session ends (on daily bars, after the next bar) and counted in `caveats.expired`; one still queued at the end is counted in `caveats.unfilled`.
+
+The replay supplies no daily price limits, so a limit is never clamped in a backtest.
+A run that knows the day's band hands the library the rounded limit, which the library clamps to the band when it is more aggressive than the band allows, keeps when it is passive, and refuses when its own rounding after a clamp moves it across the other bound.
+The library sees only the rounded price: with a tick of 10, a band of 101 to 109 and a price of 105 at offset 0, a buy becomes 100 in the strategy and is kept as a passive order below the band.
+A target's limit governs the orders the runner places to reach it; it does not reprice working orders on the same side that already suffice.
+The same strategy computes the same requested price from the same inputs; a backtest and a live run can still differ in their fills, reference data, holdings and working orders.
+
+## Checking a spec
+
+`atlc spec SPEC.toml [-P name=value]... [--json]` reads and checks a spec exactly as `atlc run` prepares it: the spec and the program read, the program checked, its `replay {}` merged under the spec and `-P`, every setting checked, and the `[build]` paths checked as CMake would need them.
+It builds nothing, touches no cache, opens no data, and needs no compiler, CMake or DuckDB.
+Success means the configuration is valid; it does not mean the data exists, that CMake will find the library, or that the parameters are inside their bounds, which the strategy checks when it is built (`atlc run`'s exit code 4).
+
+| Exit code | Meaning |
+| --- | --- |
+| 0 | the spec is valid (warnings allowed) |
+| 1 | the program has errors |
+| 2 | a usage, spec or file error |
+
+Without `--json` it prints the resolved settings for a person, and the warnings and errors on standard error as `atlc run` prints them.
+With `--json` it prints exactly one JSON object on one line of standard output, whatever happened, and nothing on standard error:
+
+```json
+{"atlc_spec":1,"status":"ok","atlc":"0.0.0-9000",
+ "program":{"path":"/abs/mean-reversion.atls","struct":"MeanReversion"},
+ "build":{"algotradelib":null,"duckdb":null,"indicators":"incremental"},
+ "store":false,
+ "orders":{"type":"limit","offset":"0.002"},
+ "args":[["data.source","csv"],["data.file","/abs/bars.csv"],["data.symbol","AAPL"],["orders.type","limit"],["orders.offset","0.002"],["param.lookback","30"]],
+ "warnings":[],"errors":[]}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `atlc_spec` | integer | the format's version, 1 |
+| `status` | `"ok"` or `"error"` | `"error"` exactly when `errors` is not empty |
+| `atlc` | string | the version of `atlc` |
+| `program` | object or null | the program's absolute `path`, and the `struct` its C++ is named (`atls::` omitted) |
+| `build` | object or null | `algotradelib` and `duckdb` as the spec gives them, absolute, or null for the environment and CMake's search ("The build"; `atlc spec` discovers nothing), and `indicators` |
+| `store` | boolean or null | whether the run reads a store, so needs DuckDB |
+| `orders` | object or null | the effective `type` and `offset`, defaults included |
+| `args` | array or null | the replay's arguments, in order, exactly as `atlc run` passes them |
+| `warnings`, `errors` | arrays | diagnostics, below |
+
+With `status` `"error"`, `program`, `build`, `store`, `orders` and `args` are null.
+`args` holds what the layers set, not every effective value: defaults live in the replay driver and a parameter's in the generated strategy, so a consumer passes `args` on as given and does not fill in defaults.
+Each pair `[key, value]` is one argument `key=value` to the built replay (`atls::run::main`), never two.
+Values keep the text and encoding `atlc run` gives them: numbers as written, paths absolute, a setting's boolean as `true` or `false`, a parameter's boolean as `1` or `0`.
+`atlc run`'s own `--fills FILE` adds `output.fills=FILE`, which is not part of the spec.
+
+Each diagnostic is `{"severity", "code", "message", "file", "line", "origin"}`:
+- `severity`: `"error"` or `"warning"`;
+- `code`: a program diagnostic's code ([diagnostics](../diagnostics.md)), or one of `usage` (the command line: an unknown option, a missing or second spec, a malformed or repeated `-P`), `unreadable` (a spec or program that cannot be read), `program-name` (a program file named so that no C++ struct can be), `spec` (any other spec error);
+- `file` and `line`: where it is, a line counted from 1; `line` is null for a file as a whole, and both are null when there is no one place (a setting that no layer gives, or the command line);
+- `origin`: `"file"` (the spec, or the program's `replay {}`), `"command_line"` (an option or `-P`), or `"program"` (the program's own diagnostics).
 
 ## The build
 
