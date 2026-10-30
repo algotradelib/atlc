@@ -202,6 +202,9 @@ pub enum Kind {
     Offset,
     /// Store coordinates, `"SOURCE/INTERVAL/SYMBOL"`, one or a list.
     Coordinates,
+    /// A limit's offset: a fraction at least 0 and below 0.3, written as a plain decimal of at most 18 fractional
+    /// digits, which the replay reads exactly.
+    Fraction,
 }
 
 /// The bar intervals the readers know.
@@ -428,6 +431,20 @@ pub const KEYS: &[Key] = &[
         "bars a year, for the annualized Sharpe ratio",
     ),
     key(
+        "orders.type",
+        Kind::Choice(&["market", "limit"]),
+        ANY,
+        "market",
+        "how a stated target becomes an order: a market order, or a limit priced from the price of the event that ran the handler",
+    ),
+    key(
+        "orders.offset",
+        Kind::Fraction,
+        ANY,
+        "0",
+        "a limit's distance from that price, as a fraction: a buy at price × (1 + offset), a sell at price × (1 − offset)",
+    ),
+    key(
         "build.algotradelib",
         Kind::Path,
         ANY,
@@ -499,6 +516,15 @@ pub enum ParamType {
     Bool,
 }
 
+/// How a stated target becomes an order (`[orders]`), with the defaults filled in.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Orders {
+    /// `market` or `limit`.
+    pub kind: String,
+    /// The limit's offset as written, `0` by default.
+    pub offset: String,
+}
+
 /// A spec checked against its program: the build settings, and the replay's arguments.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Run {
@@ -507,6 +533,8 @@ pub struct Run {
     pub indicators: Indicators,
     /// Whether the run reads a store, so needs DuckDB.
     pub store: bool,
+    /// The effective `[orders]`; `args` holds only what a layer set.
+    pub orders: Orders,
     /// The replay driver's `key=value` arguments, one per key (the last setting of each), parameters as
     /// `param.NAME` and instruments as `instrument.NAME`.
     pub args: Vec<(String, String)>,
@@ -568,7 +596,10 @@ pub fn from_replay(
         }
         let value = match &s.value {
             Lit::Str(v) => Value::Str(v.clone()),
-            Lit::Num(v) => Value::Num(format!("{v}"), *v),
+            Lit::Num(v) => Value::Num(
+                written(source.get(s.span.start..s.span.end).unwrap_or_default(), *v),
+                *v,
+            ),
             Lit::Bool(v) => Value::Bool(*v),
         };
         let mut e = Entry {
@@ -582,6 +613,23 @@ pub fn from_replay(
         }
     }
     if errors.is_empty() { Ok(out) } else { Err(errors) }
+}
+
+/// A number of a `replay {}` setting as written, with its sign: the replay reads the text, as it reads a spec's.
+fn written(setting: &str, value: f64) -> String {
+    use crate::frontend::lexer::{Tok, lex};
+    let token = lex(setting).ok().and_then(|tokens| {
+        tokens
+            .iter()
+            .find(|t| matches!(t.tok, Tok::Num(..)))
+            .and_then(|t| setting.get(t.span.start..t.span.end))
+            .map(str::to_string)
+    });
+    match token {
+        Some(t) if value.is_sign_negative() => format!("-{t}"),
+        Some(t) => t,
+        None => format!("{value}"),
+    }
 }
 
 /// `-P name=value`: a parameter from the command line; a malformed one is a usage error.
@@ -757,6 +805,28 @@ fn check(e: &mut Entry) -> Result<(), Error> {
         Kind::Bool => {
             if !matches!(e.value, Value::Bool(_)) {
                 return Err(bad("`true` or `false`"));
+            }
+        }
+        Kind::Fraction => {
+            // Decided on the text, which the replay parses exactly; the number's double never decides.
+            let Value::Num(t, _) = &e.value else {
+                return Err(bad("a fraction, at least 0 and below 0.3"));
+            };
+            if t.contains(['e', 'E']) {
+                return Err(bad("written as a plain decimal (`0.002`), without an exponent"));
+            }
+            let (negative, body) = match t.strip_prefix('-') {
+                Some(b) => (true, b),
+                None => (false, t.as_str()),
+            };
+            let (int, frac) = body.split_once('.').unwrap_or((body, ""));
+            if frac.len() > 18 {
+                return Err(bad("a plain decimal of at most 18 fractional digits"));
+            }
+            let zero = |d: &str| d.bytes().all(|b| b == b'0');
+            let below = frac.bytes().next().is_none_or(|b| b < b'3');
+            if !zero(int) || !below || (negative && !zero(frac)) {
+                return Err(bad("a fraction, at least 0 and below 0.3"));
             }
         }
         Kind::Date => {
@@ -1090,6 +1160,17 @@ pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Erro
         ));
     }
 
+    // Orders: an offset prices a limit, so it needs one, whichever layer set either.
+    let kind = text("orders.type").unwrap_or_else(|| "market".into());
+    if kind != "limit"
+        && let Some(e) = get("orders.offset")
+    {
+        errors.push(Error::at(
+            &e.origin,
+            format!("`orders.offset` prices a limit: it applies to orders.type = \"limit\", and this run's orders are \"{kind}\""),
+        ));
+    }
+
     // Instruments.
     let instruments: Vec<&Entry> = merged.iter().filter(|e| e.key.starts_with("instruments.")).collect();
     match &program.named {
@@ -1207,6 +1288,10 @@ pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Erro
             .and_then(|i| Indicators::from_name(&i))
             .unwrap_or(Indicators::Incremental),
         store,
+        orders: Orders {
+            kind,
+            offset: text("orders.offset").unwrap_or_else(|| "0".into()),
+        },
         args: run_args,
     })
 }
@@ -1627,5 +1712,117 @@ mod tests {
         assert!(e[0].contains("cannot be set in `replay {}`"));
         assert!(e[1].contains("/p/m.atls:3: `replay.cash` is already set on /p/m.atls:2"));
         assert!(e[2].contains("`replay.fill` is one of"));
+    }
+
+    #[test]
+    fn orders_are_checked_on_their_text() {
+        let p = single();
+        let none = run(WIDE_SPEC, &p).unwrap();
+        assert_eq!(
+            none.orders,
+            Orders {
+                kind: "market".into(),
+                offset: "0".into()
+            }
+        );
+        assert!(none.args.iter().all(|(k, _)| !k.starts_with("orders.")));
+        let limit = run(&format!("{WIDE_SPEC}[orders]\ntype = \"limit\"\n"), &p).unwrap();
+        assert_eq!(
+            (limit.orders.kind.as_str(), limit.orders.offset.as_str()),
+            ("limit", "0")
+        );
+        assert_eq!(arg(&limit, "orders.type"), Some("limit"));
+        assert_eq!(arg(&limit, "orders.offset"), None);
+        // Kept as written: the double nearest 0.299999999999999999 is 0.3, which the check never sees.
+        for offset in ["0", "0.0", "0.002", "0.000_1", "0.299999999999999999", "0.29"] {
+            let r = run(
+                &format!("{WIDE_SPEC}[orders]\ntype = \"limit\"\noffset = {offset}\n"),
+                &p,
+            )
+            .unwrap_or_else(|e| panic!("{offset}: {e:?}"));
+            let written = offset.replace('_', "");
+            assert_eq!(arg(&r, "orders.offset"), Some(written.as_str()));
+            assert_eq!(r.orders.offset, written);
+        }
+        for (offset, says) in [
+            ("2e-3", "without an exponent"),
+            ("2E-3", "without an exponent"),
+            ("0.3", "at least 0 and below 0.3"),
+            ("0.30", "at least 0 and below 0.3"),
+            ("1", "at least 0 and below 0.3"),
+            ("1.0", "at least 0 and below 0.3"),
+            ("-0.001", "at least 0 and below 0.3"),
+            ("0.2999999999999999999", "at most 18 fractional digits"),
+            ("\"0.002\"", "a fraction"),
+            ("true", "a fraction"),
+        ] {
+            let e = run(
+                &format!("{WIDE_SPEC}[orders]\ntype = \"limit\"\noffset = {offset}\n"),
+                &p,
+            )
+            .unwrap_err();
+            assert!(e.len() == 1 && e[0].contains(says), "{offset}: {e:?}");
+            assert!(e[0].starts_with("/specs/s.toml:6: `orders.offset` is "), "{e:?}");
+        }
+        for orders in ["offset = 0.002", "type = \"market\"\noffset = 0"] {
+            let e = run(&format!("{WIDE_SPEC}[orders]\n{orders}\n"), &p).unwrap_err();
+            assert!(e.len() == 1 && e[0].contains("`orders.offset` prices a limit"), "{e:?}");
+        }
+        let e = run(&format!("{WIDE_SPEC}[orders]\ntype = \"stop\"\n"), &p).unwrap_err();
+        assert!(e[0].contains("one of \"market\", \"limit\""), "{e:?}");
+    }
+
+    #[test]
+    fn orders_merge_across_layers_and_replay_numbers_keep_their_text() {
+        let program = "replay {\n  orders.offset = 0.299999999999999999;\n  replay.commission = 1.5e-4;\n}\non_bar {\n  target(1);\n}\n";
+        let ast = crate::frontend::parse(program).unwrap();
+        let settings = ast
+            .items
+            .iter()
+            .find_map(|i| match i {
+                crate::frontend::ast::Item::Replay(s, _) => Some(s.clone()),
+                _ => None,
+            })
+            .unwrap();
+        let layer = from_replay(&settings, Path::new("/p/m.atls"), program).unwrap();
+        assert_eq!(layer[0].value.text(), "0.299999999999999999");
+        assert_eq!(layer[0].origin, Origin::File("/p/m.atls".into(), 2));
+        assert_eq!(layer[1].value.text(), "0.00015");
+        // The program's offset needs a limit, which the spec gives; without it the program's line is named.
+        let spec_layer = spec(&format!("{WIDE_SPEC}[orders]\ntype = \"limit\"\n")).unwrap();
+        let r = resolve(&[layer.clone(), spec_layer], &single()).unwrap();
+        assert_eq!(r.orders.offset, "0.299999999999999999");
+        let e = texts(resolve(&[layer, spec(WIDE_SPEC).unwrap()], &single()).unwrap_err());
+        assert!(e[0].starts_with("/p/m.atls:2: `orders.offset` prices a limit"), "{e:?}");
+        for value in ["2e-3", "-0.5", "0.3"] {
+            let program = format!("replay {{\n  orders.offset = {value};\n}}\non_bar {{\n  target(1);\n}}\n");
+            let ast = crate::frontend::parse(&program).unwrap();
+            let crate::frontend::ast::Item::Replay(settings, _) = &ast.items[0] else {
+                panic!("{program}");
+            };
+            let e = texts(from_replay(settings, Path::new("/p/m.atls"), &program).unwrap_err());
+            assert!(e[0].starts_with("/p/m.atls:2: `orders.offset` is "), "{value}: {e:?}");
+        }
+    }
+
+    #[test]
+    fn build_paths_cmake_cannot_take_are_refused_at_their_setting() {
+        let p = single();
+        let e = run(&format!("{WIDE_SPEC}[build]\nalgotradelib = \"/a;b\"\n"), &p).unwrap_err();
+        assert_eq!(
+            e,
+            [
+                "/specs/s.toml:5: `build.algotradelib` = \"/a;b\": a path holding `\"`, `;` or `$` cannot be passed to CMake"
+            ]
+        );
+        // DuckDB's path reaches CMake only for a store run.
+        assert!(run(&format!("{WIDE_SPEC}[build]\nduckdb = '/a\"b'\n"), &p).is_ok());
+        let store =
+            "strategy = \"m.atls\"\n[data]\nstore = \"a/1d/b\"\nstore_root = \"/s\"\n[build]\nduckdb = '/a$b'\n";
+        let e = run(store, &p).unwrap_err();
+        assert!(
+            e.len() == 1 && e[0].starts_with("/specs/s.toml:6: `build.duckdb`"),
+            "{e:?}"
+        );
     }
 }

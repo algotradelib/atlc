@@ -741,6 +741,10 @@ mod tests {
             duckdb: duckdb.map(PathBuf::from),
             indicators: Indicators::Incremental,
             store,
+            orders: spec::Orders {
+                kind: "market".into(),
+                offset: "0".into(),
+            },
             args: vec![],
         }
     }

@@ -156,6 +156,18 @@ A spec names data only: broker and vendor downloads fill the store in a separate
 The name must be the program's; an `int` takes a whole number of magnitude at most 9e15, a `real` a number, a `bool` `true` or `false`.
 Bounds are checked when the strategy is built, against the final values whatever order they were given in (a bound may name another parameter), and a value outside its bounds stops the replay (exit code 4).
 
+### `[orders]`: how a target becomes an order
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `orders.type` | `"market"` or `"limit"` | `"market"` | a market order, or a limit priced from the price of the event that ran the handler |
+| `orders.offset` | a plain decimal, at least 0 and below 0.3 | 0 | how far a limit lies past that price, as a fraction; only with `orders.type = "limit"` |
+
+The offset is written as a plain decimal of at most 18 fractional digits (`0.002`, `0.299999999999999999`), which the replay reads exactly; an exponent (`2e-3`) is refused, never converted through a binary number.
+The bound 0.3 is a chosen input bound, not an exchange's rule.
+`replay {}` may set both keys; the layers are checked together, so an offset without `orders.type = "limit"` is refused whichever layer sets either.
+Changing `[orders]` does not rebuild: the pricing is an argument, like the parameters.
+
 ### `[build]`
 
 | Key | Type | Default | Meaning |
