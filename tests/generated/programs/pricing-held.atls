@@ -1,0 +1,7 @@
+# Limit pricing in a program that reads `held`: the exact net position the handler read is the one priced against.
+params {
+  real want = 10;
+}
+on_bar {
+  target(held * 0 + want);
+}

@@ -1,0 +1,10 @@
+# Limit pricing with named instruments that read their positions.
+instruments { a; b; }
+params {
+  real want_a = 10;
+  real want_b = -5;
+}
+on_bar {
+  target(a, a.held * 0 + want_a);
+  target(b, b.held * 0 + want_b);
+}

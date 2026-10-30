@@ -7,6 +7,9 @@
 //! AddressSanitizer and UndefinedBehaviorSanitizer. The caches are under the system's temporary directory, outside
 //! any checkout.
 
+#[path = "support/json.rs"]
+mod json;
+
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -745,4 +748,202 @@ fn store_runs() {
     assert_eq!(field(&out.stdout, "bars"), "11");
     let _ = std::fs::remove_dir_all(&work);
     let _ = std::fs::remove_dir_all(&elsewhere);
+}
+
+#[test]
+fn orders_reach_the_replay_without_a_build() {
+    let Some(prefix) = prefix("orders_reach_the_replay_without_a_build") else {
+        return;
+    };
+    let dir = scratch("orders");
+    let cache = outside("orders");
+    let bars = walk(120);
+    write_csv(&bars, &dir.join("bars.csv"));
+    let program = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/programs/mean-reversion.atls");
+    let spec = |name: &str, orders: &str| {
+        std::fs::write(
+            dir.join(name),
+            format!(
+                "strategy = {}\n[data]\nsource = \"csv\"\nfile = \"bars.csv\"\nsymbol = \"AAA\"\n[params]\nentry = 1\nlookback = 5\n\
+                 {orders}[build]\nalgotradelib = {}\n",
+                toml_path(&program),
+                toml_path(&prefix)
+            ),
+        )
+        .unwrap();
+    };
+    spec("none.toml", "");
+    spec("market.toml", "[orders]\ntype = \"market\"\n");
+    spec("limit.toml", "[orders]\ntype = \"limit\"\noffset = 0.002\n");
+    let none = atlc_run(&dir, &cache, &["none.toml"], &[]).ok();
+    assert!(none.built());
+    // Market orders, said or not, are today's run exactly; a limit is an argument, so nothing is built again.
+    let market = atlc_run(&dir, &cache, &["market.toml"], &[]).ok();
+    assert!(!market.built(), "{}", market.stderr);
+    assert_eq!(market.stdout, none.stdout);
+    let fills = dir.join("limit-fills.csv");
+    let limit = atlc_run(&dir, &cache, &["limit.toml", "--fills", fills.to_str().unwrap()], &[]).ok();
+    assert!(!limit.built(), "{}", limit.stderr);
+    assert_ne!(limit.stdout, none.stdout);
+    assert_eq!(field(&limit.stdout, "pricing_refused"), "0");
+    assert_eq!(field(&none.stdout, "pricing_refused"), "0");
+    // Every limit is the decision close times 1.002 for a buy, 0.998 for a sell (whole prices on a free grid), and
+    // fills at most at it for a buy, at least for a sell, on the next bar.
+    let report = json::parse(&limit.stdout).unwrap();
+    assert_eq!(report.get("pricing_refusal_reasons"), &json::Json::Obj(vec![]));
+    let text = std::fs::read_to_string(&fills).unwrap();
+    assert!(text.lines().count() > 2, "the limits must fill sometimes: {text}");
+    for line in text.lines().skip(1) {
+        let c: Vec<&str> = line.split(',').collect();
+        let price: f64 = c[4].parse().unwrap();
+        let (y, m, d) = (&c[0][..4], &c[0][5..7], &c[0][8..10]);
+        assert_eq!(y, "2020");
+        let day = days_into_2020(m.parse().unwrap(), d.parse().unwrap());
+        let decided = bars[(day - 1) as usize].close as f64;
+        if c[2] == "buy" {
+            assert!(price <= decided * 1.002, "{line}");
+        } else {
+            assert!(price >= decided * 0.998, "{line}");
+        }
+    }
+    // A pricing the replay refuses stops it (the spec checker refuses it first; this is a C++ caller's guard).
+    let exe = built_executable(&cache);
+    let refused = Command::new(&exe)
+        .args(["data.source=csv", "orders.type=market", "orders.offset=0.001"])
+        .arg(format!("data.file={}", dir.join("bars.csv").display()))
+        .arg("data.symbol=AAA")
+        .output()
+        .unwrap();
+    assert_eq!(refused.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("an offset prices a limit"));
+    let out = Command::new(&exe)
+        .args(["data.source=csv", "orders.type=limit", "orders.offset=0.3"])
+        .arg(format!("data.file={}", dir.join("bars.csv").display()))
+        .arg("data.symbol=AAA")
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("below 0.3"));
+
+    // Prices that gap up every day: each day's buy limit at its close is never reached, so each expires with its
+    // session, and the last is still queued at the end.
+    let mut gaps = String::from("ts,open,high,low,close,volume\n");
+    for day in 0..4 {
+        let price = 100 * (day + 1);
+        gaps += &format!("{},{price},{price},{price},{price},1000\n", 1577836800 + day * 86400);
+    }
+    std::fs::write(dir.join("gaps.csv"), gaps).unwrap();
+    std::fs::write(dir.join("buy.atls"), "on_bar {\n  target(1);\n}\n").unwrap();
+    let gap_spec = |name: &str, offset: &str| {
+        std::fs::write(
+            dir.join(name),
+            format!(
+                "strategy = 'buy.atls'\n[data]\nsource = \"csv\"\nfile = \"gaps.csv\"\nsymbol = \"AAA\"\n\
+                 [orders]\ntype = \"limit\"\noffset = {offset}\n[build]\nalgotradelib = {}\n",
+                toml_path(&prefix)
+            ),
+        )
+        .unwrap();
+    };
+    gap_spec("gaps.toml", "0");
+    let gaps = atlc_run(&dir, &cache, &["gaps.toml"], &[]).ok();
+    let report = json::parse(&gaps.stdout).unwrap();
+    let caveats = report.get("caveats");
+    assert_eq!(caveats.keys()[..3], ["gaps", "unfilled", "expired"]);
+    assert_eq!(field(&gaps.stdout, "executions"), "0");
+    assert_eq!(caveats.get("expired"), &json::Json::Num(3.0), "{}", gaps.stdout);
+    assert_eq!(caveats.get("unfilled"), &json::Json::Num(1.0), "{}", gaps.stdout);
+    // An offset whose decimal has 19 digits: every price times it overflows, so every target is refused and counted,
+    // and no order is sent at all.
+    gap_spec("wide.toml", "0.299999999999999999");
+    let wide = atlc_run(&dir, &cache, &["wide.toml"], &[]).ok();
+    assert!(!wide.built());
+    let report = json::parse(&wide.stdout).unwrap();
+    assert_eq!(field(&wide.stdout, "pricing_refused"), "4");
+    assert_eq!(
+        report.get("pricing_refusal_reasons"),
+        &json::Json::Obj(vec![("price_not_representable".into(), json::Json::Num(4.0))])
+    );
+    assert_eq!(report.get("caveats").get("unfilled"), &json::Json::Num(0.0));
+    assert_eq!(field(&wide.stdout, "executions"), "0");
+    let _ = std::fs::remove_dir_all(&cache);
+}
+
+/// The one executable built in a cache.
+fn built_executable(cache: &Path) -> PathBuf {
+    let mut found = vec![];
+    for e in std::fs::read_dir(cache).unwrap().flatten() {
+        let exe = e.path().join("bin").join(if cfg!(windows) { "run.exe" } else { "run" });
+        if exe.is_file() {
+            found.push(exe);
+        }
+    }
+    assert_eq!(found.len(), 1, "{found:?}");
+    found.remove(0)
+}
+
+#[test]
+fn spec_arguments_drive_the_replay_as_run_does() {
+    let Some(prefix) = prefix("spec_arguments_drive_the_replay_as_run_does") else {
+        return;
+    };
+    let dir = scratch("spec-args");
+    let cache = outside("spec-args");
+    write_csv(&walk(20), &dir.join("bars.csv"));
+    // Short one share when the parameter says so: only a replay that reads `replay.shorts=true` lets the sale through.
+    std::fs::write(
+        dir.join("short.atls"),
+        "params {\n  bool go_short = false;\n}\non_bar {\n  target(go_short ? -1 : 1);\n}\n",
+    )
+    .unwrap();
+    let spec = |name: &str, shorts: bool| {
+        std::fs::write(
+            dir.join(name),
+            format!(
+                "strategy = 'short.atls'\n[data]\nsource = \"csv\"\nfile = \"bars.csv\"\nsymbol = \"AAA\"\n[replay]\nshorts = {shorts}\n\
+                 [params]\ngo_short = true\n[build]\nalgotradelib = {}\n",
+                toml_path(&prefix)
+            ),
+        )
+        .unwrap();
+    };
+    spec("short.toml", true);
+    spec("long-only.toml", false);
+    let out = Command::new(env!("CARGO_BIN_EXE_atlc"))
+        .current_dir(&dir)
+        .args(["spec", "--json", "short.toml"])
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let v = json::parse(&String::from_utf8(out.stdout).unwrap()).unwrap();
+    let args: Vec<String> = v
+        .get("args")
+        .arr()
+        .iter()
+        .map(|pair| format!("{}={}", pair.arr()[0].str(), pair.arr()[1].str()))
+        .collect();
+    assert!(args.contains(&"replay.shorts=true".to_string()), "{args:?}");
+    assert!(args.contains(&"param.go_short=1".to_string()), "{args:?}");
+    let run = atlc_run(&dir, &cache, &["short.toml"], &[]).ok();
+    assert!(run.built());
+    assert_eq!(field(&run.stdout, "executions"), "1");
+    assert_eq!(field(&run.stdout, "refused"), "0");
+    // The built replay given `atlc spec`'s arguments, each pair one argument, reports exactly what `atlc run` did.
+    let exe = built_executable(&cache);
+    let fills = dir.join("fills.csv");
+    let direct = Command::new(&exe)
+        .args(&args)
+        .arg(format!("output.fills={}", fills.display()))
+        .output()
+        .unwrap();
+    assert_eq!(direct.status.code(), Some(0));
+    assert_eq!(String::from_utf8(direct.stdout).unwrap(), run.stdout);
+    let sold = std::fs::read_to_string(&fills).unwrap();
+    assert_eq!(sold.lines().nth(1).unwrap().split(',').nth(2), Some("sell"), "{sold}");
+    // Without shorts the same sale is refused.
+    let long = atlc_run(&dir, &cache, &["long-only.toml"], &[]).ok();
+    assert!(!long.built());
+    assert_eq!(field(&long.stdout, "executions"), "0");
+    assert_ne!(field(&long.stdout, "refused"), "0");
+    let _ = std::fs::remove_dir_all(&cache);
 }

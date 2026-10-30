@@ -207,6 +207,14 @@ fn generated_strategies() {
         "skip-value",
         "xs-guard",
         "xs-reductions",
+        "pricing",
+        "pricing-held",
+        "pricing-once",
+        "pricing-named",
+        "pricing-named-held",
+        "pricing-universe",
+        "pricing-universe-held",
+        "pricing-legs",
     ] {
         generate(
             &out,
@@ -216,6 +224,24 @@ fn generated_strategies() {
             None,
         );
     }
+    // The universe under each missing-value policy: `restart` (the default), `skip` and `poison`.
+    for policy in ["skip", "poison"] {
+        let options = format!("universe {{}}\noptions {{ missing = {policy}; }}");
+        generate(
+            &out,
+            &format!("pricing_universe_{policy}"),
+            &programs.join("pricing-universe.atls"),
+            &[],
+            Some(("universe {}", options.as_str())),
+        );
+    }
+    generate(
+        &out,
+        "pricing_legs_held",
+        &programs.join("pricing-legs.atls"),
+        &[],
+        Some(("target(at_close);", "target(held * 0 + at_close);")),
+    );
     emit_runtime(&out);
     cmake("generated", &root().join("tests/generated"), Some(&out), &prefix);
 }

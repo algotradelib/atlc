@@ -1,0 +1,13 @@
+# One target, on the first bar only, so that what happens to its order afterwards shows.
+params {
+  real want = 10;
+}
+state {
+  bool done = false;
+}
+on_bar {
+  if (not done) {
+    target(want);
+    done = true;
+  }
+}

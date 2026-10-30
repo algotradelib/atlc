@@ -1,0 +1,8 @@
+# Limit pricing over a universe that reads positions.
+universe {}
+params {
+  real want = 10;
+}
+on_bar {
+  target(held * 0 + want);
+}

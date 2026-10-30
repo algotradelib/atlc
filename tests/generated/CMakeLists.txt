@@ -11,7 +11,7 @@ if(NOT ATLC_OUT)
 endif()
 
 enable_testing()
-add_executable(test-generated test-one.cpp test-several.cpp test-identity.cpp test-edges.cpp)
+add_executable(test-generated test-one.cpp test-several.cpp test-identity.cpp test-edges.cpp test-pricing.cpp)
 target_include_directories(test-generated PRIVATE ${ATLC_OUT} ${CMAKE_CURRENT_SOURCE_DIR}/../support)
 target_link_libraries(test-generated PRIVATE Catch2::Catch2WithMain)
 atlc_test_target(test-generated)

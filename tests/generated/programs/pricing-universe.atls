@@ -1,0 +1,9 @@
+# Limit pricing over a universe: each instrument targets `want` times the number of active instruments, so a
+# target shows which instruments the cross-sectional reduction saw.
+universe {}
+params {
+  real want = 10;
+}
+on_bar {
+  target(want * xs_count(want));
+}

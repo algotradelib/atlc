@@ -1,0 +1,13 @@
+# Limit pricing, from parameters alone: the program reads neither `close` nor `held`, so the price comes from the
+# event; `undefined_after` states an undefined target after a valid one.
+params {
+  real want = 10;
+  real zero = 0;
+  bool undefined_after = false;
+}
+on_bar {
+  target(want);
+  if (undefined_after) {
+    target(want / zero);
+  }
+}

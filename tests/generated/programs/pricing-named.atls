@@ -1,0 +1,10 @@
+# Limit pricing with named instruments: each target is priced from its own instrument's bar.
+instruments { a; b; }
+params {
+  real want_a = 10;
+  real want_b = -5;
+}
+on_bar {
+  target(a, want_a);
+  target(b, want_b);
+}

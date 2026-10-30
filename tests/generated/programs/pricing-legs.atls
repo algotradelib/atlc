@@ -1,0 +1,14 @@
+# Limit pricing at the open and at the close of a universe: the open's target from the open, the close's from the
+# close.
+universe {}
+options { missing = skip; }
+params {
+  real at_open = 10;
+  real at_close = -10;
+}
+on_open {
+  target(at_open * xs_count(at_open));
+}
+on_close {
+  target(at_close);
+}
