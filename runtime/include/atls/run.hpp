@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atls/args.hpp>
 #include <atls/ops.hpp>
 
 #include <algotradelib/backtest>
@@ -55,93 +56,6 @@ namespace run {
 
 namespace atl = algotradelib;
 
-/** @brief The run settings: `key=value` pairs in the order given (later ones win). */
-class Settings {
-public:
-  /**
-   * @brief Reads `key=value` arguments.
-   * @param argc The argument count.
-   * @param argv The arguments; the first is the program.
-   * @return The settings.
-   */
-  static Settings from_args(int argc, char** argv) {
-    Settings s;
-    for (int i = 1; i < argc; ++i) {
-      const std::string arg = argv[i];
-      const auto eq = arg.find('=');
-      if (eq == std::string::npos) {
-        throw std::invalid_argument("expected key=value, got '" + arg + "'");
-      }
-      s.items_.emplace_back(arg.substr(0, eq), arg.substr(eq + 1));
-    }
-    return s;
-  }
-
-  /**
-   * @brief The last value of a key.
-   * @param key The key.
-   * @return Its value, if given.
-   */
-  std::optional<std::string> get(const std::string& key) const {
-    for (auto it = items_.rbegin(); it != items_.rend(); ++it) {
-      if (it->first == key) {
-        return it->second;
-      }
-    }
-    return std::nullopt;
-  }
-
-  /**
-   * @brief The last value of a key, or a fallback.
-   * @param key The key.
-   * @param fallback The value when the key is not given.
-   * @return The value.
-   */
-  std::string get_or(const std::string& key, const std::string& fallback) const {
-    return get(key).value_or(fallback);
-  }
-
-  /**
-   * @brief The value of a key that must be given.
-   * @param key The key.
-   * @return Its value; throws `std::invalid_argument` when it is not given.
-   */
-  std::string need(const std::string& key) const {
-    const auto v = get(key);
-    if (!v) {
-      throw std::invalid_argument("missing setting " + key);
-    }
-    return *v;
-  }
-
-  /**
-   * @brief Every `prefix.name=value`, as (name, value), in order of first appearance, with the last value.
-   * @param prefix The prefix, with its dot.
-   * @return The pairs.
-   */
-  std::vector<std::pair<std::string, std::string>> with_prefix(const std::string& prefix) const {
-    std::vector<std::pair<std::string, std::string>> out;
-    for (const auto& item : items_) {
-      if (item.first.rfind(prefix, 0) != 0) {
-        continue;
-      }
-      const auto name = item.first.substr(prefix.size());
-      const auto found = std::find_if(out.begin(), out.end(), [&name](const auto& p) {
-        return p.first == name;
-      });
-      if (found == out.end()) {
-        out.emplace_back(name, item.second);
-      } else {
-        found->second = item.second;
-      }
-    }
-    return out;
-  }
-
-private:
-  std::vector<std::pair<std::string, std::string>> items_;
-};
-
 /**
  * @brief Removes trailing carriage returns and spaces.
  * @param cell The text, changed in place.
@@ -170,20 +84,6 @@ inline long long whole_of(const std::string& text, const std::string& where) {
     throw std::invalid_argument(where + ": '" + text + "' is not a whole number");
   }
   return value;
-}
-
-/**
- * @brief A decimal read from text, or an error naming where it was read.
- * @param text The text.
- * @param where The file and line, for the error.
- * @return The decimal.
- */
-inline atl::Decimal64 decimal_of(const std::string& text, const std::string& where) {
-  try {
-    return atl::Decimal64::parse(text);
-  } catch (const std::exception& e) {
-    throw std::invalid_argument(where + ": '" + text + "' is not a decimal (" + e.what() + ")");
-  }
 }
 
 /**
@@ -1382,21 +1282,6 @@ inline void write_fills(const atl::backtest::ReplayResult& result, const std::st
 }
 
 /**
- * @brief The order type `orders.type` names.
- * @param text `market` or `limit`.
- * @return The type.
- */
-inline atl::OrderType order_type_of(const std::string& text) {
-  if (text == "market") {
-    return atl::OrderType::MARKET;
-  }
-  if (text == "limit") {
-    return atl::OrderType::LIMIT;
-  }
-  throw std::invalid_argument("orders.type is market or limit, not '" + text + "'");
-}
-
-/**
  * @brief The library's report, and what the replay's result and the strategy add, as one JSON object.
  * @param result The replay's result.
  * @param r The report.
@@ -1491,30 +1376,7 @@ int main(int argc, char** argv) {
     const auto s = Settings::from_args(argc, argv);
     const std::string mode = Strategy::atls_mode;
     const auto market = market_of(s);
-    std::vector<std::string> symbols;
-    const auto named = s.with_prefix("instrument.");
-    if (mode == "named") {
-      for (const auto& name : Strategy::atls_instruments()) {
-        const auto found = std::find_if(named.begin(), named.end(), [&name](const auto& p) {
-          return p.first == name;
-        });
-        if (found == named.end()) {
-          throw std::invalid_argument("the run gives no symbol for instrument '" + name + "' (instruments." + name + " = \"...\")");
-        }
-        symbols.push_back(found->second);
-      }
-    } else if (mode == "single") {
-      if (named.size() > 1) {
-        throw std::invalid_argument("a single-instrument program takes one entry in [instruments]");
-      }
-      if (named.size() == 1) {
-        symbols.push_back(named.front().second);
-      }
-    } else {
-      for (const auto& entry : named) {
-        symbols.push_back(entry.second);
-      }
-    }
+    const auto symbols = symbols_of<Strategy>(s);
     const auto fill = s.get_or("replay.fill", "next-open");
     if (Strategy::atls_legs != (fill == "legs")) {
       throw std::invalid_argument(Strategy::atls_legs ?
@@ -1540,32 +1402,9 @@ int main(int argc, char** argv) {
       ids.push_back(instrument_of(symbol, market).id_);
     }
     Strategy strategy(ids);
-    std::vector<std::pair<std::string, double>> params;
-    for (const auto& param : s.with_prefix("param.")) {
-      std::size_t used = 0;
-      const double value = std::stod(param.second, &used);
-      if (used != param.second.size()) {
-        throw std::invalid_argument("param." + param.first + ": '" + param.second + "' is not a number");
-      }
-      params.emplace_back(param.first, value);
-    }
-    // A generated `set` stores the value, then checks every bound with the values so far, so a bound on another
-    // parameter (`real<upper=entry> exit`) could refuse a value the next one makes valid. Every value is set first,
-    // whatever the checks say, then set again: the second pass checks every bound against the final values.
-    for (const auto& param : params) {
-      try {
-        strategy.set(param.first, param.second);
-      } catch (const std::exception&) {
-      }
-    }
-    for (const auto& param : params) {
-      strategy.set(param.first, param.second);
-    }
+    set_params(strategy, s);
     // After the final parameter values, though `set` keeps the pricing.
-    strategy.set_order_pricing(
-      order_type_of(s.get_or("orders.type", "market")),
-      decimal_of(s.get_or("orders.offset", "0"), "orders.offset")
-    );
+    set_pricing(strategy, s);
     double periods = 252;
     if (const auto p = s.get("replay.periods_per_year")) {
       periods = std::stod(*p);

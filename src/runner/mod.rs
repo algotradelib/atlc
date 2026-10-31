@@ -791,7 +791,10 @@ mod tests {
         assert_ne!(base, key_of(&files("ops"), "c++ 1", &flags), "the environment changed");
         // The embedded runtime is part of every key: each header, as compiled into atlc.
         let runtime: Vec<&str> = backend::RUNTIME.iter().map(|(p, _)| *p).collect();
-        assert_eq!(runtime, ["atls/ops.hpp", "atls/run.hpp", "atls/universe.hpp"]);
+        assert_eq!(
+            runtime,
+            ["atls/args.hpp", "atls/ops.hpp", "atls/run.hpp", "atls/universe.hpp"]
+        );
     }
 
     #[test]
