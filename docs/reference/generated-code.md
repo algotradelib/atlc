@@ -61,16 +61,18 @@ For a runner, the struct also states `warmup_bars()` (the bars before the handle
 | --- | --- |
 | `atls/ops.hpp` | Rings, the built-in indicators in each arithmetic, the three-valued operators on undefined values, the target rule and its pricing (`atls::ops::OrderPricing`) |
 | `atls/universe.hpp` | One single-instrument strategy over several instruments: `atls::Universe<S>` forwards each bar to the strategy trading its instrument, `atls::UniverseBars<S>` each bar of a slice |
+| `atls/args.hpp` | The run's argument rules: `atls::run::Settings` reads `key=value` arguments; `symbols_of<S>(settings)` gives the symbols by `S`'s mode, `set_params(strategy, settings)` sets every `param.NAME` (twice, so each bound is checked against the final values) and `set_pricing(strategy, settings)` the order pricing |
 | `atls/run.hpp` | The replay driver of `atlc run`: `atls::run::main<S>(argc, argv)` reads `key=value` settings, loads the bars, replays `S` in the backtester, prints the report as JSON and writes the fills |
 
 `atlc` carries the runtime headers it generates code for, compiled into it, and `--emit-runtime` writes them out as they are; `atlc run` always uses them.
 A generated header and a runtime from different `atlc` versions are not checked against each other: a project that keeps generated headers must regenerate them and write the runtime out (`atlc build --emit-runtime DIR`) with the same `atlc`.
 The first line of a generated header names the `atlc` that wrote it.
 
-The runtime includes algotradelib's `strategy` headers; `atls/run.hpp` also includes its `backtest` headers.
+The runtime includes algotradelib's `strategy` headers; `atls/run.hpp` also includes its `backtest` headers, and `atls/args.hpp` includes only its `core` headers.
 `atls/run.hpp` reads a Parquet store only when compiled with `ATLS_DUCKDB` defined and DuckDB's C library linked (`duckdb.h`, tested with 1.5); without it a store run stops with a message, and nothing else needs DuckDB.
 `atlc run` writes the settings it passes ([run spec](run-spec.md)); a project that drives `atls::run::main` itself passes the same `key=value` arguments, which `atlc spec --json` lists as `args`: the spec's keys with `data.source` always given, `instrument.NAME` for `instruments.NAME`, `param.NAME` for `params.NAME` (a `bool` as 1 or 0), `orders.type` and `orders.offset`, and `output.fills` for `--fills`.
 The driver sets the parameters, then the pricing.
+A project that drives a generated strategy itself, rather than through `atls::run::main`, includes `atls/args.hpp` and applies the same arguments with `symbols_of`, `set_params` and `set_pricing`, in that order, so its strategy is the one `atlc run` would replay.
 `--indicators naive` solves `ols_slope` and `ols_intercept` with Eigen, so it needs an algotradelib built with Eigen (`ATL_USE_EIGEN=ON`, the default); without it, such a strategy fails to compile with a message saying so.
 
 ## Compiling exported strategies
