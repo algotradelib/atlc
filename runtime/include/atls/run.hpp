@@ -1,7 +1,7 @@
 #pragma once
 
-#include <atls/args.hpp>
-#include <atls/ops.hpp>
+#include "./args.hpp"
+#include "./ops.hpp"
 
 #include <algotradelib/backtest>
 #include <algotradelib/strategy>
