@@ -58,6 +58,10 @@ commission = 0.0005
 `atlc run` builds the strategy once per program shape and keeps the build in a cache, so another parameter or other data replays without compiling again; `--fills FILE` writes every fill.
 [`examples/`](examples) runs each program shape on a small synthetic file, and the [run spec reference](docs/reference/run-spec.md) has every key.
 
+How atlc's parts (Rust) and its runtime headers (C++) use algotradelib's modules:
+
+![atlc and algotradelib](docs/architecture.png)
+
 ## Install
 
 ```sh
