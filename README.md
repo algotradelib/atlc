@@ -69,6 +69,7 @@ cargo install --git https://github.com/algotradelib/atlc
 ```
 
 `atlc check` and `atlc build` need nothing else.
+For continuous integration, `ghcr.io/algotradelib/atlc` holds a build of `main` for Linux (x64, arm64), macOS (arm64) and Windows (x64), and the organization's workflows install it with `uses: algotradelib/.github/actions/setup-atlc@main`; before the first release only the latest build is kept.
 `atlc run` compiles the generated strategy, so it also needs a C++17 compiler, CMake 3.20 or later and an installed algotradelib; see [its install guide](https://github.com/algotradelib/algotradelib#install).
 If algotradelib is installed under a prefix CMake does not search, set `CMAKE_PREFIX_PATH` to that prefix, or name it in the run spec (`[build] algotradelib`).
 Reading bars from a Parquet store also needs [DuckDB's C library](https://duckdb.org/docs/installation/) (`duckdb.h` and the shared library), found by `[build] duckdb` or `DUCKDB_ROOT`; CSV data needs nothing more.

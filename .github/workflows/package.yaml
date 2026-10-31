@@ -1,0 +1,302 @@
+# atlc built for four platforms and pushed to GHCR as an OCI artifact, not a container image, so any runner can pull it:
+#
+#   ghcr.io/algotradelib/atlc:main-linux-x64     x86_64-unknown-linux-musl, statically linked
+#   ghcr.io/algotradelib/atlc:main-linux-arm64   aarch64-unknown-linux-musl, statically linked
+#   ghcr.io/algotradelib/atlc:main-macos-arm64   aarch64-apple-darwin
+#   ghcr.io/algotradelib/atlc:main-windows-x64   x86_64-pc-windows-msvc
+#
+# Each holds atlc-<platform>.tar.gz, with one top-level atlc/ folder (bin/atlc, bin/atlc.exe on Windows, LICENSE and
+# README.md):
+#
+#   oras pull ghcr.io/algotradelib/atlc:main-linux-x64
+#   tar -xzf atlc-linux-x64.tar.gz
+#   ./atlc/bin/atlc --version
+#
+# In the organization's workflows, `uses: algotradelib/.github/actions/setup-atlc@main` does this and puts atlc on PATH.
+# The Linux builds run on any Linux of their architecture, with no glibc requirement. The runtime headers are compiled
+# into atlc; `atlc run` still needs CMake, a C++17 compiler and an installed algotradelib.
+#
+# The annotation org.opencontainers.image.revision names the atlc commit.
+# Before the first release only the latest build is kept: each publish deletes the untagged builds it replaced, so a
+# digest whose tag has moved lasts only until the next publish; a fixed build waits for a release.
+# The four tags are pushed one by one, so after a failed push they can name different commits.
+
+name: package
+
+# Every push to main runs, with no path filter: only a run of main's current head publishes, so the newest push
+# must always have a run of its own, including a docs-only commit or a reset to an older commit.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'src/**'
+      - 'runtime/**'
+      - 'grammar/**'
+      - '.github/workflows/package.yaml'
+
+permissions:
+  contents: read
+
+env:
+  PACKAGE: ghcr.io/algotradelib/atlc
+  ORAS_VERSION: 1.3.4
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-latest, platform: linux-x64, target: x86_64-unknown-linux-musl}
+          - {os: ubuntu-24.04-arm, platform: linux-arm64, target: aarch64-unknown-linux-musl}
+          - {os: macos-latest, platform: macos-arm64, target: aarch64-apple-darwin}
+          - {os: windows-latest, platform: windows-x64, target: x86_64-pc-windows-msvc}
+
+    name: build (${{ matrix.platform }})
+
+    # No concurrency group: cancellation goes by arrival, not by commit, so a rerun of an older commit could
+    # cancel the builds of main's head, which would then never publish.
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      PLATFORM: ${{ matrix.platform }}
+      TARGET: ${{ matrix.target }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --locked --target "$TARGET"
+
+      # The executable of this target, never the host's target/release; relative paths only, since GNU tar in Git
+      # Bash reads D:\... as a remote host.
+      - name: Pack
+        run: |
+          exe=atlc
+          if [ "$RUNNER_OS" = Windows ]; then exe=atlc.exe; fi
+          mkdir -p work/atlc/bin
+          cp "target/$TARGET/release/$exe" work/atlc/bin/
+          cp LICENSE work/atlc/
+          {
+            echo "# atlc ($PLATFORM)"
+            echo
+            echo "The compiler for atls, built from $GITHUB_SERVER_URL/$GITHUB_REPOSITORY at $GITHUB_SHA."
+            echo "The runtime headers are compiled in (\`atlc build --emit-runtime DIR\`); \`atlc run\` needs CMake, a C++17 compiler and an installed algotradelib."
+            echo "Documentation: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+          } > work/atlc/README.md
+          (cd work && tar -czf "../atlc-$PLATFORM.tar.gz" atlc)
+          rm -rf work
+          ls -l "atlc-$PLATFORM.tar.gz"
+
+      # Every check runs the executable unpacked from the archive that is uploaded.
+      - name: Check
+        run: |
+          mkdir check
+          (cd check && tar -xzf "../atlc-$PLATFORM.tar.gz")
+          atlc="$PWD/check/atlc/bin/atlc"
+          if [ "$RUNNER_OS" = Windows ]; then atlc="$atlc.exe"; fi
+
+          expected="atlc $(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)"
+          got=$("$atlc" --version)
+          if [ "$got" != "$expected" ]; then
+            echo "::error::atlc --version printed '$got', not '$expected'"
+            exit 1
+          fi
+
+          "$atlc" check examples/mean-reversion.atls
+          # A program with an error exits 1 exactly: 2 is a usage or file error, 101 a crash.
+          printf 'params {\n  int n = "x";\n}\n' > check/invalid.atls
+          if "$atlc" check check/invalid.atls > /dev/null 2>&1; then status=0; else status=$?; fi
+          if [ "$status" -ne 1 ]; then
+            echo "::error::atlc check of an invalid program exited $status, not 1"
+            exit 1
+          fi
+
+          # The runtime it writes is the checkout's, byte for byte (runtime/include is text eol=lf).
+          mkdir -p check/emit
+          "$atlc" build --emit-runtime check/emit examples/mean-reversion.atls -o check/emit/strategy.hpp
+          for header in runtime/include/atls/*.hpp; do
+            cmp "$header" "check/emit/atls/$(basename "$header")"
+          done
+          emitted=$(find check/emit/atls -type f | wc -l | tr -d ' ')
+          checkout=$(find runtime/include/atls -type f | wc -l | tr -d ' ')
+          if [ "$emitted" -ne "$checkout" ]; then
+            echo "::error::atlc wrote another set of runtime headers than runtime/include/atls"
+            exit 1
+          fi
+
+          if [ "$RUNNER_OS" = Linux ]; then
+            file "$atlc"
+            if ! file "$atlc" | grep -Eq 'statically linked|static-pie linked'; then
+              echo "::error::the Linux executable is not statically linked"
+              exit 1
+            fi
+            if readelf -l "$atlc" | grep -q INTERP || readelf -d "$atlc" | grep -q NEEDED; then
+              echo "::error::the Linux executable names an interpreter or a shared library"
+              exit 1
+            fi
+          fi
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: atlc-${{ matrix.platform }}
+          path: atlc-${{ matrix.platform }}.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  # The only job with packages: write. It runs no repository code: no checkout, only the built tarballs.
+  publish:
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      pushed: ${{ steps.push.outputs.pushed }}
+
+    # One publisher at a time, so the head check and the pushes cannot interleave with another publisher's.
+    # queue: max keeps up to 100 waiting publishers (the default keeps one and cancels the rest), and none is
+    # cancelled mid-push. Past 100, a new publisher is cancelled; dispatch the workflow on main to publish again.
+    concurrency:
+      group: package-publish
+      cancel-in-progress: false
+      queue: max
+
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: atlc-*
+          merge-multiple: true
+
+      # v2.0.2 is the first release whose version table lists ORAS 1.3.4.
+      - uses: oras-project/setup-oras@v2.0.2
+        with:
+          version: ${{ env.ORAS_VERSION }}
+
+      - name: Push
+        id: push
+        shell: bash
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Only main's current head publishes, so a rerun of an older commit cannot replace a newer build. If the
+          # head cannot be read, the step fails and nothing is pushed.
+          head=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          if [ "$head" != "$GITHUB_SHA" ]; then
+            echo "::notice::$GITHUB_SHA is not main's head ($head), whose own run publishes; nothing pushed."
+            exit 0
+          fi
+          for platform in linux-x64 linux-arm64 macos-arm64 windows-x64; do
+            [ -f "atlc-$platform.tar.gz" ] || { echo "::error::atlc-$platform.tar.gz is missing"; exit 1; }
+          done
+          printf '%s' "$TOKEN" | oras login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          for platform in linux-x64 linux-arm64 macos-arm64 windows-x64; do
+            oras push "$PACKAGE:main-$platform" \
+              --artifact-type application/vnd.algotradelib.atlc.v1 \
+              --annotation "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+              --annotation "org.opencontainers.image.revision=$GITHUB_SHA" \
+              "atlc-$platform.tar.gz:application/vnd.oci.image.layer.v1.tar+gzip"
+          done
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+
+      # Each push above leaves the build it replaced as an untagged version; this deletes them, so only the four
+      # tags remain. It runs only after all four pushes succeeded, inside the publish queue, so no other publish of
+      # this workflow interleaves. Untagged is safe to delete here because every version is a standalone manifest
+      # (oras push: no index, no subject), so no tagged version refers to one; a publisher that adds indexes or
+      # referrers must not reuse this as is. Best effort: a refused list or delete warns, and the publish stands.
+      # Deleting needs this repository to have the Admin role in the package's "Manage Actions access".
+      - name: Remove untagged versions
+        if: steps.push.outputs.pushed == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          path="${PACKAGE#ghcr.io/}"
+          endpoint="orgs/${path%%/*}/packages/container/${path#*/}/versions"
+          # Every page is read before anything is deleted, so a deletion cannot shift a page still to be read. Only an
+          # empty tags array counts as untagged: a version whose tags are missing or null is kept.
+          if ! ids=$(gh api --paginate "$endpoint?per_page=100" \
+            --jq '.[] | select((.metadata.container.tags | type) == "array" and (.metadata.container.tags | length) == 0) | .id'); then
+            echo "::warning::the package's versions could not be listed; nothing deleted"
+            exit 0
+          fi
+          while IFS= read -r id; do
+            [ -n "$id" ] || continue
+            if gh api -X DELETE "$endpoint/$id" > /dev/null; then
+              echo "deleted untagged version $id"
+            else
+              echo "::warning::untagged version $id could not be deleted (the error is above); left in place"
+            fi
+          done <<< "$ids"
+
+      # GitHub creates a new container package private, and visibility is not inherited from the repository; the API
+      # cannot change it. A private package publishes, but no consumer can pull it anonymously, so say so here.
+      - name: Visibility
+        if: steps.push.outputs.pushed == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          path="${PACKAGE#ghcr.io/}"
+          if ! visibility=$(gh api "orgs/${path%%/*}/packages/container/${path#*/}" --jq .visibility); then
+            echo "::warning::the package's visibility could not be read"
+            exit 0
+          fi
+          if [ "$visibility" != public ]; then
+            echo "::warning::$PACKAGE is $visibility, so no consumer can pull it anonymously: make it public in the package's settings (Change visibility), then rerun this run's verify jobs."
+          fi
+
+  # The package as a consumer gets it: an anonymous pull through the org's action, atlc found on PATH. It checks the
+  # current channel, not this run's exact bytes: a newer publish can move the tags before this job pulls.
+  verify:
+    needs: publish
+    if: needs.publish.outputs.pushed == 'true'
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
+
+    name: verify (${{ matrix.os }})
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: algotradelib/.github/actions/setup-atlc@main
+
+      - name: Installed atlc
+        run: |
+          expected="atlc $(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)"
+          got=$(atlc --version)
+          if [ "$got" != "$expected" ]; then
+            echo "::error::atlc --version printed '$got', not '$expected'"
+            exit 1
+          fi
+          mkdir -p emit
+          atlc build --emit-runtime emit examples/mean-reversion.atls -o emit/strategy.hpp
+          for header in runtime/include/atls/*.hpp; do
+            cmp "$header" "emit/atls/$(basename "$header")"
+          done
