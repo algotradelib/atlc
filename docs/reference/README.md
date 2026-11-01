@@ -3,6 +3,7 @@
 Draft, for `atlc 0.0.0-9000`; until the first release the language has no version of its own.
 
 This reference defines the language.
+`atlc reference` prints this index and `atlc reference CHAPTER` a chapter (`builtins`, `run-spec`, ...), as the installed atlc carries them.
 Where it and `atlc` disagree, the reference states the intended behaviour and `atlc` has a bug, unless the reference says a behaviour is unspecified.
 The grammar in [syntax.md](syntax.md) is checked against the compiler's parser by the test suite (`grammar/`, an LR(1) copy for LALRPOP, which refuses an ambiguous grammar): both accept and refuse the same programs at the syntax stage and build the same tree.
 

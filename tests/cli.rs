@@ -159,3 +159,51 @@ fn emit_runtime_writes_every_header() {
     assert_eq!(code, 1);
     assert!(!other.exists());
 }
+
+#[test]
+fn reference_prints_the_index_and_each_chapter_unchanged() {
+    let (code, out, _) = atlc(&["reference"]);
+    assert_eq!(code, 0);
+    assert_eq!(out, std::fs::read_to_string("docs/reference/README.md").unwrap());
+    for (name, _) in atlc::reference::CHAPTERS {
+        let (code, out, err) = atlc(&["reference", name]);
+        assert_eq!((code, err.as_str()), (0, ""), "{name}");
+        assert_eq!(
+            out,
+            std::fs::read_to_string(format!("docs/reference/{name}.md")).unwrap(),
+            "{name}"
+        );
+    }
+}
+
+#[test]
+fn reference_refuses_an_unknown_chapter_with_one_and_a_bad_call_with_two() {
+    let (code, out, err) = atlc(&["reference", "indicators"]);
+    assert_eq!((code, out.as_str()), (1, ""));
+    assert!(err.contains("no chapter `indicators`"), "{err}");
+    for (name, _) in atlc::reference::CHAPTERS {
+        assert!(err.contains(name), "{err}");
+    }
+    for args in [
+        &["reference", "syntax", "builtins"][..],
+        &["reference", "--json"][..],
+        &["reference", "-h"][..],
+    ] {
+        let (code, out, _) = atlc(args);
+        assert_eq!((code, out.as_str()), (2, ""), "{args:?}");
+    }
+}
+
+#[test]
+fn every_reference_file_is_a_chapter_and_every_chapter_a_file() {
+    let mut files: Vec<String> = std::fs::read_dir("docs/reference")
+        .unwrap()
+        .map(|e| e.unwrap().file_name().into_string().unwrap())
+        .filter(|f| f.ends_with(".md") && f != "README.md")
+        .map(|f| f.trim_end_matches(".md").to_string())
+        .collect();
+    files.sort();
+    let mut chapters: Vec<String> = atlc::reference::CHAPTERS.iter().map(|(n, _)| n.to_string()).collect();
+    chapters.sort();
+    assert_eq!(files, chapters);
+}

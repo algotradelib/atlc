@@ -18,6 +18,7 @@ commands:
                               replay a strategy from a run spec and print the report as JSON
   spec SPEC.toml [-P name=value]... [--json]
                               check a run spec as `run` would, build nothing, and print its resolved settings
+  reference [CHAPTER]         print the language reference's index, or one chapter
   --version                   print the compiler's version";
 
 /// The checking thread's stack. The parser refuses programs nested deeper than 256 levels; checking the
@@ -53,6 +54,33 @@ fn main() -> ExitCode {
                 }
             }
         }
+        Some("reference") => reference(&args[1..]),
+        _ => usage(),
+    }
+}
+
+/// `atlc reference [CHAPTER]`: exit 0 with the index or the chapter on standard output, 1 for a name that is not a
+/// chapter (the chapters on standard error), 2 on a usage error.
+fn reference(args: &[String]) -> ExitCode {
+    match args {
+        [] => {
+            print!("{}", atlc::reference::INDEX);
+            ExitCode::SUCCESS
+        }
+        [name] if !name.starts_with('-') => match atlc::reference::chapter(name) {
+            Some(text) => {
+                print!("{text}");
+                ExitCode::SUCCESS
+            }
+            None => {
+                let names: Vec<&str> = atlc::reference::CHAPTERS.iter().map(|(n, _)| *n).collect();
+                eprintln!(
+                    "atlc reference: no chapter `{name}`; the chapters are {}",
+                    names.join(", ")
+                );
+                ExitCode::from(1)
+            }
+        },
         _ => usage(),
     }
 }
