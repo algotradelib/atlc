@@ -26,7 +26,7 @@ name: cpp-check
 jobs:
   # The C++ tests (`cargo test` with ATLC_TEST_PREFIX): the runtime's own, generated strategies replayed in the
   # backtester, and the differential gate, against the installed algotradelib that setup-atl pulls (GCC on Linux,
-  # Apple Clang on macOS, MSVC on Windows). Its main channel moves, so the job prints the revision it got.
+  # Apple Clang on macOS, MSVC on Windows).
   cpp:
     strategy:
       fail-fast: false
@@ -48,13 +48,6 @@ jobs:
 
       - id: atl
         uses: algotradelib/.github/actions/setup-atl@main
-
-      - name: Library package revision
-        shell: bash
-        run: |
-          case "$RUNNER_OS" in Linux) p=linux-x64 ;; macOS) p=macos-arm64 ;; Windows) p=windows-x64 ;; esac
-          oras manifest fetch "ghcr.io/algotradelib/algotradelib:main-$p" |
-            python3 -c "import json, sys; print('algotradelib revision:', json.load(sys.stdin).get('annotations', {}).get('org.opencontainers.image.revision'))"
 
       # OpenSSL is not in the package; Linux and Windows runners have it, Homebrew's is keg-only.
       - name: OpenSSL (macOS)
