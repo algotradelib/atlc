@@ -63,13 +63,24 @@ jobs:
         run: echo "OPENSSL_ROOT_DIR=$(brew --prefix openssl@3)" >> "$GITHUB_ENV"
 
       # Catch2 is not in the package either: built here with the runner's compiler and runtime library.
-      - name: Catch2
+      - name: Catch2 source
+        shell: bash
+        run: git clone --depth 1 --branch v3.8.1 https://github.com/catchorg/Catch2.git "$RUNNER_TEMP/catch2-src"
+
+      - uses: threeal/cmake-action@v2.1.0
+        with:
+          source-dir: ${{ runner.temp }}/catch2-src
+          build-dir: ${{ runner.temp }}/catch2-build
+          options: |
+            CMAKE_BUILD_TYPE=Release
+            BUILD_TESTING=OFF
+            CMAKE_CXX_STANDARD=17
+            "CMAKE_INSTALL_PREFIX=${{ runner.temp }}/catch2"
+          build-args: --config Release --parallel 4
+
+      - name: Catch2 install
         shell: bash
         run: |
-          git clone --depth 1 --branch v3.8.1 https://github.com/catchorg/Catch2.git "$RUNNER_TEMP/catch2-src"
-          cmake -S "$RUNNER_TEMP/catch2-src" -B "$RUNNER_TEMP/catch2-build" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
-            -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/catch2"
-          cmake --build "$RUNNER_TEMP/catch2-build" --config Release --parallel 4
           cmake --install "$RUNNER_TEMP/catch2-build" --config Release
           if [ "$RUNNER_OS" = Windows ]; then sep=';'; prefix="$(cygpath -m "$RUNNER_TEMP/catch2")"; else sep=':'; prefix="$RUNNER_TEMP/catch2"; fi
           echo "CMAKE_PREFIX_PATH=$prefix$sep$CMAKE_PREFIX_PATH" >> "$GITHUB_ENV"
@@ -92,7 +103,7 @@ jobs:
         run: cargo test --test cpp --test run -- --nocapture
 
       # An installed atlc, used outside the checkout: the runtime it writes compiles with a header it generates.
-      - name: Installed atlc
+      - name: Installed atlc consumer
         shell: bash
         run: |
           cargo install --path . --root "$RUNNER_TEMP/atlc"
@@ -108,8 +119,18 @@ jobs:
             'target_link_libraries(consumer PRIVATE algotradelib::algotradelib)' \
             'target_compile_options(consumer PRIVATE $<$<CXX_COMPILER_ID:GNU>:-ffp-contract=off> $<$<CXX_COMPILER_ID:MSVC>:/fp:precise>)' \
             > consumer/CMakeLists.txt
-          cmake -S consumer -B consumer/build -DCMAKE_BUILD_TYPE=Release
-          cmake --build consumer/build --config Release
+
+      - uses: threeal/cmake-action@v2.1.0
+        with:
+          source-dir: ${{ runner.temp }}/consumer
+          build-dir: ${{ runner.temp }}/consumer/build
+          options: CMAKE_BUILD_TYPE=Release
+          build-args: --config Release
+
+      - name: Installed atlc consumer run
+        shell: bash
+        run: |
+          cd "$RUNNER_TEMP"
           if [ "$RUNNER_OS" = Windows ]; then consumer/build/Release/consumer.exe; else consumer/build/consumer; fi
 
       # An installed atlc runs a CSV spec outside the checkout, with its cache in the runner's temporary directory.

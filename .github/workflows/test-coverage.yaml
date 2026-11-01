@@ -50,12 +50,22 @@ jobs:
         uses: algotradelib/.github/actions/setup-atl@main
 
       # Catch2 is not in the library's package: built here, as in cpp-check.yaml.
-      - name: Catch2
+      - name: Catch2 source
+        run: git clone --depth 1 --branch v3.8.1 https://github.com/catchorg/Catch2.git "$RUNNER_TEMP/catch2-src"
+
+      - uses: threeal/cmake-action@v2.1.0
+        with:
+          source-dir: ${{ runner.temp }}/catch2-src
+          build-dir: ${{ runner.temp }}/catch2-build
+          options: |
+            CMAKE_BUILD_TYPE=Release
+            BUILD_TESTING=OFF
+            CMAKE_CXX_STANDARD=17
+            "CMAKE_INSTALL_PREFIX=${{ runner.temp }}/catch2"
+          build-args: --parallel 4
+
+      - name: Catch2 install
         run: |
-          git clone --depth 1 --branch v3.8.1 https://github.com/catchorg/Catch2.git "$RUNNER_TEMP/catch2-src"
-          cmake -S "$RUNNER_TEMP/catch2-src" -B "$RUNNER_TEMP/catch2-build" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
-            -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/catch2"
-          cmake --build "$RUNNER_TEMP/catch2-build" --parallel 4
           cmake --install "$RUNNER_TEMP/catch2-build"
           echo "CMAKE_PREFIX_PATH=$RUNNER_TEMP/catch2:$CMAKE_PREFIX_PATH" >> "$GITHUB_ENV"
 
