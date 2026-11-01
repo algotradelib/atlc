@@ -42,7 +42,9 @@ std::vector<double> cents(std::size_t n, unsigned seed) {
   return out;
 }
 
-bool same(double a, double b) { return (std::isnan(a) && std::isnan(b)) || a == b; }
+bool same(double a, double b) {
+  return (std::isnan(a) && std::isnan(b)) || a == b;
+}
 
 } // namespace
 
@@ -337,8 +339,11 @@ TEST_CASE("skip windows: the values that exist in the last n slots, by every rou
       ops::StdevPopSkip pop;
       ops::StdevSkip sd;
       ops::ZscoreSkip z;
-      for (auto* s : {static_cast<ops::SkipSums*>(&sma), static_cast<ops::SkipSums*>(&sum), static_cast<ops::SkipSums*>(&pop),
-                      static_cast<ops::SkipSums*>(&sd), static_cast<ops::SkipSums*>(&z)}) {
+      for (
+        auto* s :
+        {static_cast<ops::SkipSums*>(&sma), static_cast<ops::SkipSums*>(&sum), static_cast<ops::SkipSums*>(&pop),
+          static_cast<ops::SkipSums*>(&sd), static_cast<ops::SkipSums*>(&z)}
+      ) {
         s->set(n);
         s->set_min(min);
         s->reset();
@@ -404,8 +409,11 @@ TEST_CASE("each indicator's arithmetic is the algorithm the reference names") {
   ops::StdevPop pop;
   ops::Zscore z;
   ops::Ema ema;
-  for (auto* w : {static_cast<ops::Window*>(&sma), static_cast<ops::Window*>(&sum), static_cast<ops::Window*>(&rsi),
-                  static_cast<ops::Window*>(&sd), static_cast<ops::Window*>(&pop), static_cast<ops::Window*>(&ema)}) {
+  for (
+    auto* w :
+    {static_cast<ops::Window*>(&sma), static_cast<ops::Window*>(&sum), static_cast<ops::Window*>(&rsi),
+      static_cast<ops::Window*>(&sd), static_cast<ops::Window*>(&pop), static_cast<ops::Window*>(&ema)}
+  ) {
     w->set(n);
   }
   sma_exact.set(n);

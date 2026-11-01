@@ -58,7 +58,9 @@ atl::PriceRule ticks_of(std::int64_t tick) {
 }
 
 /** A decimal from its text. */
-atl::Decimal64 dec(const char* text) { return atl::Decimal64::parse(text); }
+atl::Decimal64 dec(const char* text) {
+  return atl::Decimal64::parse(text);
+}
 
 /** One daily bar, open = high = low = close, `day` days after the first. */
 atl::strategy::BarEvent daily(const std::string& symbol, const atl::Decimal64& close, int day = 0) {
@@ -111,7 +113,8 @@ Ctx probe(const std::vector<std::string>& symbols = {"A"}) {
 
 /** A target as `SYMBOL QUANTITY @ PRICE`, `@ market` without a limit. */
 std::string text_of(const atl::strategy::TargetPosition& target) {
-  return target.instrument_.symbol_ + " " + target.target_quantity_.str() + " @ " + (target.limit_ ? target.limit_->str() : "market");
+  return target.instrument_.symbol_ + " " + target.target_quantity_.str() + " @ " +
+    (target.limit_ ? target.limit_->str() : "market");
 }
 
 /** Every target a probe got, as text. */
@@ -132,7 +135,9 @@ S limit(S strategy, const char* offset) {
 
 /** What the single-instrument program submits on one bar at `close`, holding `rows`. */
 template <class S>
-std::vector<std::string> one_bar(S& strategy, const atl::Decimal64& close, const std::vector<atl::Decimal64>& rows = {}, Ctx ctx = probe()) {
+std::vector<std::string> one_bar(
+  S& strategy, const atl::Decimal64& close, const std::vector<atl::Decimal64>& rows = {}, Ctx ctx = probe()
+) {
   for (const auto& row : rows) {
     hold(ctx, "A", row);
   }
@@ -229,17 +234,21 @@ TEST_CASE("what cannot be priced is refused and counted, never sent as a market 
     const char* offset;
     atl::Decimal64 close;
     std::vector<atl::Instrument> instruments;
-    std::size_t atls::ops::PricingRefusals::*reason;
+    std::size_t atls::ops::PricingRefusals::* reason;
   };
   const auto max = std::numeric_limits<std::int64_t>::max();
   const std::vector<Case> cases{
     {"no reference data", 10, "0", dec("10000"), {}, &atls::ops::PricingRefusals::no_price_grid_},
-    {"an unknown grid", 10, "0", dec("10000"), {instrument("A", atl::PriceRule::unknown("no table"))}, &atls::ops::PricingRefusals::no_price_grid_},
+    {"an unknown grid", 10, "0", dec("10000"), {instrument("A", atl::PriceRule::unknown("no table"))},
+      &atls::ops::PricingRefusals::no_price_grid_},
     {"a price of zero", 10, "0", dec("0"), {instrument("A")}, &atls::ops::PricingRefusals::no_basis_price_},
     {"a negative price", -10, "0", dec("-5"), {instrument("A")}, &atls::ops::PricingRefusals::no_basis_price_},
-    {"a product that does not fit", 10, "0.0015", atl::Decimal64(max / 2, 0), {instrument("A")}, &atls::ops::PricingRefusals::price_not_representable_},
-    {"rounding up that does not fit", -10, "0", atl::Decimal64(max, 0), {instrument("A")}, &atls::ops::PricingRefusals::price_not_representable_},
-    {"a buy rounded down to zero", 10, "0", dec("5"), {instrument("A", ticks_of(10))}, &atls::ops::PricingRefusals::price_not_positive_},
+    {"a product that does not fit", 10, "0.0015", atl::Decimal64(max / 2, 0), {instrument("A")},
+      &atls::ops::PricingRefusals::price_not_representable_},
+    {"rounding up that does not fit", -10, "0", atl::Decimal64(max, 0), {instrument("A")},
+      &atls::ops::PricingRefusals::price_not_representable_},
+    {"a buy rounded down to zero", 10, "0", dec("5"), {instrument("A", ticks_of(10))},
+      &atls::ops::PricingRefusals::price_not_positive_},
   };
   for (const auto& c : cases) {
     INFO(c.what);
@@ -301,7 +310,9 @@ TEST_CASE("named instruments: each target priced from its own instrument's bar")
   CHECK(s.pricing_refusals().no_price_grid_ == 1);
 }
 
-TEST_CASE("a universe prices each lane from its own event, under every missing-value policy, without changing who is active") {
+TEST_CASE(
+  "a universe prices each lane from its own event, under every missing-value policy, without changing who is active"
+) {
   const std::vector<atl::InstrumentId> ids{t::id_of("A"), t::id_of("B"), t::id_of("C")};
   // C has no bar: it is not active, so each active instrument targets 10 × 2.
   const auto slice = slice_of({daily("A", dec("10000")), daily("B", dec("50000"))});
@@ -313,14 +324,24 @@ TEST_CASE("a universe prices each lane from its own event, under every missing-v
   const Texts priced{"A 20 @ 10010", "B 20 @ 50000"};
   const Texts plain{"A 20 @ market", "B 20 @ market"};
   CHECK(run(limit(atls::PricingUniverse(ids), "0.0015"), {"A", "B", "C"}) == std::make_pair(priced, std::size_t{0}));
-  CHECK(run(limit(atls::PricingUniverseSkip(ids), "0.0015"), {"A", "B", "C"}) == std::make_pair(priced, std::size_t{0}));
-  CHECK(run(limit(atls::PricingUniversePoison(ids), "0.0015"), {"A", "B", "C"}) == std::make_pair(priced, std::size_t{0}));
+  CHECK(
+    run(limit(atls::PricingUniverseSkip(ids), "0.0015"), {"A", "B", "C"}) == std::make_pair(priced, std::size_t{0})
+  );
+  CHECK(
+    run(limit(atls::PricingUniversePoison(ids), "0.0015"), {"A", "B", "C"}) == std::make_pair(priced, std::size_t{0})
+  );
   CHECK(run(atls::PricingUniverse(ids), {"A", "B", "C"}) == std::make_pair(plain, std::size_t{0}));
   // Sells: A at 9985 up to 9990, B at 49925 up to 49950.
   const Texts sells{"A -20 @ 9990", "B -20 @ 49950"};
-  CHECK(run(limit(t::with(atls::PricingUniverse(ids), {{"want", -10}}), "0.0015"), {"A", "B", "C"}) == std::make_pair(sells, std::size_t{0}));
+  CHECK(
+    run(limit(t::with(atls::PricingUniverse(ids), {{"want", -10}}), "0.0015"), {"A", "B", "C"}) ==
+    std::make_pair(sells, std::size_t{0})
+  );
   // B refused for want of a grid: A still counts B among the active instruments.
-  CHECK(run(limit(atls::PricingUniverseSkip(ids), "0.0015"), {"A", "C"}) == std::make_pair(Texts{"A 20 @ 10010"}, std::size_t{1}));
+  CHECK(
+    run(limit(atls::PricingUniverseSkip(ids), "0.0015"), {"A", "C"}) ==
+    std::make_pair(Texts{"A 20 @ 10010"}, std::size_t{1})
+  );
   // Reading positions: A's two rows meet its target, B's net does not sum, so B is left out as it always was.
   auto held = limit(atls::PricingUniverseHeld(ids), "0.0015");
   auto ctx = probe({"A", "B", "C"});
@@ -333,7 +354,9 @@ TEST_CASE("a universe prices each lane from its own event, under every missing-v
   CHECK(held.pricing_refusals().total() == 0);
 }
 
-TEST_CASE("session legs: the open's target from the open, the close's from the close, a late listing from its first open") {
+TEST_CASE(
+  "session legs: the open's target from the open, the close's from the close, a late listing from its first open"
+) {
   // A every day; C lists on day 3 with a gap: under `missing = skip` it takes the periods before as missing rows, so it
   // is active at its first open, with no event before it.
   t::Series a{"A", {}};
@@ -438,7 +461,9 @@ TEST_CASE("the requested price through the library's reconciliation against a su
     band.upper_ = dec(upper);
     band.currency_ = atl::Currency{"KRW"};
     inputs.limits_ = band;
-    return std::make_pair(ctx.targets().front(), atl::strategy::reconcile(ctx.targets().front(), ctx.portfolio_, inputs));
+    return std::make_pair(
+      ctx.targets().front(), atl::strategy::reconcile(ctx.targets().front(), ctx.portfolio_, inputs)
+    );
   };
   {
     // Aggressive: a buy at 120 above the band [101, 115], clamped to 115 and rounded down to 110.
@@ -514,7 +539,10 @@ atl::strategy::BarEvent day_of(int day, std::int64_t open, std::int64_t high, st
 }
 
 /** One target on the first day's close, then what the backtester did with its order. */
-t::Outcome once(double want, const char* offset, const std::vector<atl::strategy::BarEvent>& events, int slippage = 0, bool market = false) {
+t::Outcome once(
+  double want, const char* offset, const std::vector<atl::strategy::BarEvent>& events, int slippage = 0,
+  bool market = false
+) {
   auto s = t::with(atls::PricingOnce(t::id_of("A")), {{"want", want}});
   if (!market) {
     s.set_order_pricing(atl::OrderType::LIMIT, dec(offset));
@@ -550,7 +578,8 @@ TEST_CASE("fills: a limit fills only when the next bar reaches it, at the limit 
     REQUIRE(o.result_.executions_.size() == 1);
     CHECK(o.result_.executions_[0].fill_.price_ == dec("10000"));
   }
-  const auto inside = std::vector<atl::strategy::BarEvent>{day_of(0, 10500, 10500, 10500, 10500), day_of(1, 10000, 11000, 9900, 10100)};
+  const auto inside =
+    std::vector<atl::strategy::BarEvent>{day_of(0, 10500, 10500, 10500, 10500), day_of(1, 10000, 11000, 9900, 10100)};
   {
     // Inside the range: credited the limit 10500, not the better open 10000 (`AT_LIMIT`).
     const auto o = once(10, "0", inside);
@@ -580,8 +609,13 @@ TEST_CASE("market pricing set explicitly gives the default's fills exactly") {
   const auto one = t::daily_events({t::walk("A", 1, 1500)});
   auto market = atls::MeanReversionIncremental(t::id_of("A"));
   market.set_order_pricing(atl::OrderType::MARKET, dec("0"));
-  CHECK(t::signature(t::run(market, {"A"}, one)) == t::signature(t::run(atls::MeanReversionIncremental(t::id_of("A")), {"A"}, one)));
-  const std::vector<t::Series> all{t::walk("A", 6, 800, 15), t::walk("B", 7, 800, 15), t::walk("C", 8, 800, 15, 300), t::walk("D", 9, 800, 15)};
+  CHECK(
+    t::signature(t::run(market, {"A"}, one)) ==
+    t::signature(t::run(atls::MeanReversionIncremental(t::id_of("A")), {"A"}, one))
+  );
+  const std::vector<t::Series> all{
+    t::walk("A", 6, 800, 15), t::walk("B", 7, 800, 15), t::walk("C", 8, 800, 15, 300), t::walk("D", 9, 800, 15)
+  };
   const auto legs = t::leg_events(all);
   const std::vector<std::string> symbols{"A", "B", "C", "D"};
   std::vector<atl::InstrumentId> ids;
@@ -590,5 +624,7 @@ TEST_CASE("market pricing set explicitly gives the default's fills exactly") {
   }
   auto universe = atls::UniverseIncremental(ids);
   universe.set_order_pricing(atl::OrderType::MARKET, dec("0"));
-  CHECK(t::signature(t::run(universe, symbols, legs)) == t::signature(t::run(atls::UniverseIncremental(ids), symbols, legs)));
+  CHECK(
+    t::signature(t::run(universe, symbols, legs)) == t::signature(t::run(atls::UniverseIncremental(ids), symbols, legs))
+  );
 }

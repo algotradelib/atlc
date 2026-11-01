@@ -40,7 +40,9 @@ t::Settings settings() {
 }
 
 /** Compares each route with the first; prints one line; whether all agreed. */
-bool compare(const std::string& label, const std::vector<std::pair<std::string, t::Outcome>>& routes, int& comparisons) {
+bool compare(
+  const std::string& label, const std::vector<std::pair<std::string, t::Outcome>>& routes, int& comparisons
+) {
   const auto reference = t::signature(routes.front().second);
   std::string failed;
   for (std::size_t r = 1; r < routes.size(); ++r) {
@@ -49,8 +51,10 @@ bool compare(const std::string& label, const std::vector<std::pair<std::string, 
       failed += " " + routes[r].first;
     }
   }
-  std::printf("%s %s (%zu fills)%s%s\n", failed.empty() ? "ok  " : "DIFF", label.c_str(), routes.front().second.result_.executions_.size(),
-    failed.empty() ? "" : ":", failed.c_str());
+  std::printf(
+    "%s %s (%zu fills)%s%s\n", failed.empty() ? "ok  " : "DIFF", label.c_str(),
+    routes.front().second.result_.executions_.size(), failed.empty() ? "" : ":", failed.c_str()
+  );
   return failed.empty() && !routes.front().second.result_.executions_.empty();
 }
 
@@ -86,13 +90,13 @@ int main() {
         return t::run(strategy, symbols, events, s);
       };
       ++cases;
-      good += compare(tag("sma") + " fast=" + std::to_string(fast) + " slow=" + std::to_string(slow),
+      good += compare(
+        tag("sma") + " fast=" + std::to_string(fast) + " slow=" + std::to_string(slow),
         {{"library SmaCrossover", t::run(atl::strategy::vanilla::SmaCrossover{q}, symbols, events, s)},
-         {"incremental", compiled(atls::SmaIncremental(id))},
-         {"naive", compiled(atls::SmaNaive(id))},
-         {"exact", compiled(atls::SmaExact(id))},
-         {"noshare", compiled(atls::SmaNoshare(id))}},
-        comparisons);
+          {"incremental", compiled(atls::SmaIncremental(id))}, {"naive", compiled(atls::SmaNaive(id))},
+          {"exact", compiled(atls::SmaExact(id))}, {"noshare", compiled(atls::SmaNoshare(id))}},
+        comparisons
+      );
     }
 
     struct PullbackPoint {
@@ -111,18 +115,24 @@ int main() {
         params.exit_ = p.exit;
         return t::run(S(id, params), symbols, events, s);
       };
-      const hand::Pullback::Params h{static_cast<std::size_t>(p.trend), static_cast<std::size_t>(p.fast), p.entry, p.exit, 100};
+      const hand::Pullback::Params h{
+        static_cast<std::size_t>(p.trend), static_cast<std::size_t>(p.fast), p.entry, p.exit, 100
+      };
       ++cases;
-      good += compare(tag("pullback") + " trend=" + std::to_string(p.trend) + " fast=" + std::to_string(p.fast),
+      good += compare(
+        tag("pullback") + " trend=" + std::to_string(p.trend) + " fast=" + std::to_string(p.fast),
         {{"hand Pullback", t::run(hand::Pullback(id, h), symbols, events, s)},
-         {"incremental", compiled(atls::PullbackIncremental(id))},
-         {"naive", compiled(atls::PullbackNaive(id))},
-         {"exact", compiled(atls::PullbackExact(id))},
-         {"noshare", compiled(atls::PullbackNoshare(id))}},
-        comparisons);
+          {"incremental", compiled(atls::PullbackIncremental(id))}, {"naive", compiled(atls::PullbackNaive(id))},
+          {"exact", compiled(atls::PullbackExact(id))}, {"noshare", compiled(atls::PullbackNoshare(id))}},
+        comparisons
+      );
     }
 
-    for (const auto& h : std::vector<hand::TrailingTrend::Params>{{20, 60, 0.05, 120, 30, 100}, {5, 20, 0.02, 30, 5, 100}, {10, 120, 0.1, 400, 0, 100}}) {
+    for (
+      const auto& h : std::vector<hand::TrailingTrend::Params>{
+        {20, 60, 0.05, 120, 30, 100}, {5, 20, 0.02, 30, 5, 100}, {10, 120, 0.1, 400, 0, 100}
+      }
+    ) {
       const auto compiled = [&](auto strategy) {
         using S = decltype(strategy);
         typename S::Params params;
@@ -134,15 +144,18 @@ int main() {
         return t::run(S(id, params), symbols, events, s);
       };
       ++cases;
-      good += compare(tag("trail") + " fast=" + std::to_string(h.fast_) + " slow=" + std::to_string(h.slow_),
+      good += compare(
+        tag("trail") + " fast=" + std::to_string(h.fast_) + " slow=" + std::to_string(h.slow_),
         {{"hand TrailingTrend", t::run(hand::TrailingTrend(id, h), symbols, events, s)},
-         {"incremental", compiled(atls::TrailIncremental(id))},
-         {"naive", compiled(atls::TrailNaive(id))},
-         {"exact", compiled(atls::TrailExact(id))},
-         {"noshare", compiled(atls::TrailNoshare(id))}},
-        comparisons);
+          {"incremental", compiled(atls::TrailIncremental(id))}, {"naive", compiled(atls::TrailNaive(id))},
+          {"exact", compiled(atls::TrailExact(id))}, {"noshare", compiled(atls::TrailNoshare(id))}},
+        comparisons
+      );
     }
   }
-  std::printf("%d/%d cases identical, %d comparisons with the reference (expected %d cases)\n", good, cases, comparisons, EXPECTED_CASES);
+  std::printf(
+    "%d/%d cases identical, %d comparisons with the reference (expected %d cases)\n", good, cases, comparisons,
+    EXPECTED_CASES
+  );
   return good == cases && cases == EXPECTED_CASES ? 0 : 1;
 }

@@ -123,7 +123,8 @@ inline std::chrono::system_clock::time_point epoch_plus(long long secs, const st
   const long long hi = std::min(253402300799LL, clock_max - margin);
   if (secs < lo || secs > hi) {
     throw std::invalid_argument(
-      where + ": " + std::to_string(secs) + " seconds after 1970 is outside the years 1 to 9999 or this platform's clock"
+      where + ": " + std::to_string(secs) +
+      " seconds after 1970 is outside the years 1 to 9999 or this platform's clock"
     );
   }
   return system_clock::time_point{} + seconds(secs);
@@ -169,7 +170,9 @@ inline std::chrono::system_clock::time_point day_of(int yyyymmdd) {
  * @return Whether it is non-empty and all digits.
  */
 inline bool all_digits(const std::string& text) {
-  return !text.empty() && std::all_of(text.begin(), text.end(), [](char c) { return c >= '0' && c <= '9'; });
+  return !text.empty() && std::all_of(text.begin(), text.end(), [](char c) {
+    return c >= '0' && c <= '9';
+  });
 }
 
 /**
@@ -403,7 +406,9 @@ inline atl::BarStamp stamp_of(const std::string& cell, const std::string& where)
  */
 inline void set_stamp(BarSeries& series, atl::BarStamp stamp, const std::string& where) {
   if (!series.bars_.empty() && series.stamp_ != stamp) {
-    throw std::invalid_argument(where + ": the stamp of " + series.symbol_ + " changes; a symbol's bars share one stamp");
+    throw std::invalid_argument(
+      where + ": the stamp of " + series.symbol_ + " changes; a symbol's bars share one stamp"
+    );
   }
   series.stamp_ = stamp;
 }
@@ -463,8 +468,9 @@ inline long offset_of(const std::string& text) {
   if ((text[0] != '+' && text[0] != '-') || text.size() != 6 || text[3] != ':') {
     throw std::invalid_argument("data.timezone is a fixed offset such as \"+09:00\" or \"UTC\", not '" + text + "'");
   }
-  const long seconds = static_cast<long>(whole_of(text.substr(1, 2), "data.timezone") * 3600 +
-    whole_of(text.substr(4, 2), "data.timezone") * 60);
+  const long seconds = static_cast<long>(
+    whole_of(text.substr(1, 2), "data.timezone") * 3600 + whole_of(text.substr(4, 2), "data.timezone") * 60
+  );
   return text[0] == '-' ? -seconds : seconds;
 }
 
@@ -545,10 +551,7 @@ inline std::chrono::system_clock::time_point iso_of(const std::string& cell, lon
  * @return The instant.
  */
 inline std::chrono::system_clock::time_point time_of(
-  const std::string& cell,
-  const std::string& format,
-  long offset,
-  const std::string& where
+  const std::string& cell, const std::string& format, long offset, const std::string& where
 ) {
   if (format == "unix") {
     return epoch_plus(whole_of(cell, where), where);
@@ -557,9 +560,8 @@ inline std::chrono::system_clock::time_point time_of(
     const long long ms = whole_of(cell, where);
     // Floor division keeps the range check exact for times before 1970.
     const long long secs = ms / 1000 - (ms % 1000 < 0 ? 1 : 0);
-    return epoch_plus(secs, where) + std::chrono::duration_cast<std::chrono::system_clock::duration>(
-      std::chrono::milliseconds(ms - secs * 1000)
-    );
+    return epoch_plus(secs, where) +
+      std::chrono::duration_cast<std::chrono::system_clock::duration>(std::chrono::milliseconds(ms - secs * 1000));
   }
   if (format == "yyyymmdd") {
     return epoch_plus(day_seconds(date_of(cell, where)) - offset, where);
@@ -680,7 +682,9 @@ inline std::vector<BarSeries> load_csv_source(const Settings& s) {
     auto col = [&header, &files, f](const std::string& name) -> std::size_t {
       const auto it = std::find(header.begin(), header.end(), name);
       if (it == header.end()) {
-        throw std::invalid_argument(files[f] + ": no column '" + name + "' (data.columns.* or data.time name the columns)");
+        throw std::invalid_argument(
+          files[f] + ": no column '" + name + "' (data.columns.* or data.time name the columns)"
+        );
       }
       return static_cast<std::size_t>(it - header.begin());
     };
@@ -841,7 +845,9 @@ public:
       if (!chunk) {
         break;
       }
-      const std::unique_ptr<duckdb_data_chunk, void (*)(duckdb_data_chunk*)> chunk_owned(&chunk, duckdb_destroy_data_chunk);
+      const std::unique_ptr<duckdb_data_chunk, void (*)(duckdb_data_chunk*)> chunk_owned(
+        &chunk, duckdb_destroy_data_chunk
+      );
       const idx_t size = duckdb_data_chunk_get_size(chunk);
       std::vector<duckdb_string_t*> data(columns);
       std::vector<uint64_t*> validity(columns);
@@ -903,7 +909,8 @@ inline std::vector<BarSeries> load_store_source(const Settings& s) {
       throw std::invalid_argument("the store has no " + coordinate + " (" + path + ")");
     }
     const auto as_of = s.get("data.as_of");
-    const std::string cutoff = as_of ? " WHERE fetched_at <= " + duck::literal(*as_of) + "::TIMESTAMPTZ" : std::string();
+    const std::string cutoff =
+      as_of ? " WHERE fetched_at <= " + duck::literal(*as_of) + "::TIMESTAMPTZ" : std::string();
     const auto rows = con.rows(
       "SELECT epoch(ts)::BIGINT::VARCHAR, stamp::VARCHAR, open::VARCHAR, high::VARCHAR, low::VARCHAR, close::VARCHAR, "
       "volume::VARCHAR FROM (SELECT *, row_number() OVER (PARTITION BY ts ORDER BY fetched_at DESC) AS rn FROM read_parquet(" +
@@ -944,7 +951,9 @@ inline std::vector<BarSeries> load_store_source(const Settings& s) {
  * @param fill `next-open` or `legs`.
  * @return The events, in time order (then series order).
  */
-inline std::vector<atl::strategy::BarEvent> bar_events(const Data& data, const std::string& market, const std::string& fill) {
+inline std::vector<atl::strategy::BarEvent> bar_events(
+  const Data& data, const std::string& market, const std::string& fill
+) {
   struct Tagged {
     std::chrono::system_clock::time_point at_;
     std::size_t series_;
@@ -962,8 +971,10 @@ inline std::vector<atl::strategy::BarEvent> bar_events(const Data& data, const s
     }
     for (std::size_t i = 0; i < series.bars_.size(); ++i) {
       if (fill == "legs") {
-        const auto hours = std::chrono::duration_cast<std::chrono::hours>(series.bars_[i].timestamp_.time_since_epoch()).count();
-        const auto midnight = std::chrono::system_clock::time_point{} + std::chrono::hours(hours - ((hours % 24) + 24) % 24);
+        const auto hours =
+          std::chrono::duration_cast<std::chrono::hours>(series.bars_[i].timestamp_.time_since_epoch()).count();
+        const auto midnight =
+          std::chrono::system_clock::time_point{} + std::chrono::hours(hours - ((hours % 24) + 24) % 24);
         for (int part = 0; part < 3; ++part) {
           order.push_back({midnight + std::chrono::minutes(part), k, i, part});
         }
@@ -1002,7 +1013,9 @@ inline std::vector<atl::strategy::BarEvent> bar_events(const Data& data, const s
       bar.low_ = close;
       bar.close_ = close;
     }
-    out.push_back(atl::strategy::make_bar_event(ids[t.series_], atl::BarInterval::ONE_MINUTE, atl::BarStamp::OPEN, bar));
+    out.push_back(
+      atl::strategy::make_bar_event(ids[t.series_], atl::BarInterval::ONE_MINUTE, atl::BarStamp::OPEN, bar)
+    );
   }
   return out;
 }
@@ -1045,8 +1058,10 @@ inline Data load(const Settings& s, const std::vector<std::string>& symbols) {
     if (names) {
       t.names_ = load_names(*names);
       if (t.names_.size() != t.cells_.size()) {
-        throw std::invalid_argument(*names + " names " + std::to_string(t.names_.size()) + " columns and " + path + " has " +
-          std::to_string(t.cells_.size()));
+        throw std::invalid_argument(
+          *names + " names " + std::to_string(t.names_.size()) + " columns and " + path + " has " +
+          std::to_string(t.cells_.size())
+        );
       }
     }
     const auto from = s.get("replay.from");
@@ -1089,7 +1104,9 @@ inline Data load(const Settings& s, const std::vector<std::string>& symbols) {
  * @param fill `next-open`, `open-prev-close` or `legs`.
  * @return The events, in time order (then symbol order).
  */
-inline std::vector<atl::strategy::BarEvent> events(const Data& data, const std::string& market, const std::string& fill) {
+inline std::vector<atl::strategy::BarEvent> events(
+  const Data& data, const std::string& market, const std::string& fill
+) {
   std::vector<atl::strategy::BarEvent> out;
   const auto& close = data.close_;
   std::vector<atl::InstrumentId> ids;
@@ -1202,7 +1219,8 @@ inline atl::backtest::NextBarFillModel fill_model(const Settings& s) {
   atl::backtest::NextBarFillModel model(commission, slippage);
   const auto tax = decimal_of(s.get_or("replay.sell_tax", "0"), "replay.sell_tax");
   if (!(tax == zero)) {
-    model = model.with_sell_tax(atl::backtest::SellTax{tax, market_of(s) == "kr" ? atl::Country::KR : atl::Country::US});
+    model =
+      model.with_sell_tax(atl::backtest::SellTax{tax, market_of(s) == "kr" ? atl::Country::KR : atl::Country::US});
   }
   return model;
 }
@@ -1273,8 +1291,10 @@ inline void write_fills(const atl::backtest::ReplayResult& result, const std::st
   }
   out << "at,symbol,side,quantity,price,commission,tax\n";
   for (const auto& e : result.executions_) {
-    out << iso(e.fill_.at_) << ',' << e.fill_.instrument_.symbol_ << ',' << (e.fill_.side_ == atl::OrderSide::BUY ? "buy" : "sell")
-        << ',' << e.fill_.quantity_.str() << ',' << e.fill_.price_.str() << ',' << e.commission_.str() << ',' << e.tax_.str() << '\n';
+    out
+      << iso(e.fill_.at_) << ',' << e.fill_.instrument_.symbol_ << ','
+      << (e.fill_.side_ == atl::OrderSide::BUY ? "buy" : "sell") << ',' << e.fill_.quantity_.str() << ','
+      << e.fill_.price_.str() << ',' << e.commission_.str() << ',' << e.tax_.str() << '\n';
   }
   if (!out.flush()) {
     throw std::runtime_error("cannot write " + path);
@@ -1289,9 +1309,7 @@ inline void write_fills(const atl::backtest::ReplayResult& result, const std::st
  * @return The JSON text, one field per line.
  */
 inline std::string report_json(
-  const atl::backtest::ReplayResult& result,
-  const atl::backtest::Report& r,
-  const atls::ops::PricingRefusals& pricing
+  const atl::backtest::ReplayResult& result, const atl::backtest::Report& r, const atls::ops::PricingRefusals& pricing
 ) {
   std::ostringstream o;
   auto opt = [](const auto& value) {
@@ -1332,13 +1350,15 @@ inline std::string report_json(
   o << "  \"pricing_refused\": " << pricing.total() << ",\n";
   o << "  \"pricing_refusal_reasons\": {";
   first = true;
-  for (const auto& [name, count] : {
-         std::pair<const char*, std::size_t>{"no_basis_price", pricing.no_basis_price_},
-         std::pair<const char*, std::size_t>{"no_price_grid", pricing.no_price_grid_},
-         std::pair<const char*, std::size_t>{"price_not_representable", pricing.price_not_representable_},
-         std::pair<const char*, std::size_t>{"price_not_positive", pricing.price_not_positive_},
-         std::pair<const char*, std::size_t>{"net_not_representable", pricing.net_not_representable_},
-       }) {
+  for (
+    const auto& [name, count] : {
+      std::pair<const char*, std::size_t>{"no_basis_price", pricing.no_basis_price_},
+      std::pair<const char*, std::size_t>{"no_price_grid", pricing.no_price_grid_},
+      std::pair<const char*, std::size_t>{"price_not_representable", pricing.price_not_representable_},
+      std::pair<const char*, std::size_t>{"price_not_positive", pricing.price_not_positive_},
+      std::pair<const char*, std::size_t>{"net_not_representable", pricing.net_not_representable_},
+    }
+  ) {
     if (count != 0) {
       o << (first ? "" : ", ") << quoted(name) << ": " << count;
       first = false;
@@ -1346,8 +1366,8 @@ inline std::string report_json(
   }
   o << "},\n";
   const auto& c = r.caveats_;
-  o << "  \"caveats\": {\"gaps\": " << c.gaps_ << ", \"unfilled\": " << c.unfilled_ << ", \"expired\": " << c.expired_day_orders_
-    << ", \"unvalued_bars\": " << c.unvalued_bars_
+  o << "  \"caveats\": {\"gaps\": " << c.gaps_ << ", \"unfilled\": " << c.unfilled_
+    << ", \"expired\": " << c.expired_day_orders_ << ", \"unvalued_bars\": " << c.unvalued_bars_
     << ", \"multiple_instruments\": " << (c.multiple_instruments_ ? "true" : "false")
     << ", \"cost_totals_incomplete\": " << (c.cost_totals_incomplete_ ? "true" : "false")
     << ", \"volume_ignored\": " << (atl::backtest::ReportCaveats::volume_ignored ? "true" : "false")
@@ -1379,9 +1399,11 @@ int main(int argc, char** argv) {
     const auto symbols = symbols_of<Strategy>(s);
     const auto fill = s.get_or("replay.fill", "next-open");
     if (Strategy::atls_legs != (fill == "legs")) {
-      throw std::invalid_argument(Strategy::atls_legs ?
-        "the program has on_open/on_close: set replay.fill = \"legs\"" :
-        "replay.fill = \"legs\" needs a program with on_open/on_close");
+      throw std::invalid_argument(
+        Strategy::atls_legs ?
+          "the program has on_open/on_close: set replay.fill = \"legs\"" :
+          "replay.fill = \"legs\" needs a program with on_open/on_close"
+      );
     }
     const auto data = load(s, symbols);
     if (mode == "single" && data.symbols_.size() != 1) {

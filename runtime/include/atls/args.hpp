@@ -161,7 +161,9 @@ std::vector<std::string> symbols_of(const Settings& s) {
         return p.first == name;
       });
       if (found == named.end()) {
-        throw std::invalid_argument("the run gives no symbol for instrument '" + name + "' (instruments." + name + " = \"...\")");
+        throw std::invalid_argument(
+          "the run gives no symbol for instrument '" + name + "' (instruments." + name + " = \"...\")"
+        );
       }
       symbols.push_back(found->second);
     }
@@ -225,8 +227,7 @@ void set_params(Strategy& strategy, const Settings& s) {
 template <typename Strategy>
 void set_pricing(Strategy& strategy, const Settings& s) {
   strategy.set_order_pricing(
-    order_type_of(s.get_or("orders.type", "market")),
-    decimal_of(s.get_or("orders.offset", "0"), "orders.offset")
+    order_type_of(s.get_or("orders.type", "market")), decimal_of(s.get_or("orders.offset", "0"), "orders.offset")
   );
 }
 

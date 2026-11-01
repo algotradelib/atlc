@@ -62,7 +62,9 @@ struct Closes {
    * @param k Pushes ago.
    * @return The value.
    */
-  double ago(std::size_t k) const { return buffer_[head_ >= k ? head_ - k : head_ + buffer_.size() - k]; }
+  double ago(std::size_t k) const {
+    return buffer_[head_ >= k ? head_ - k : head_ + buffer_.size() - k];
+  }
 };
 
 /**

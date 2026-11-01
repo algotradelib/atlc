@@ -80,7 +80,9 @@ TEST_CASE("parameters are set by name and checked against their bounds") {
   atls::MeanReversionIncremental::Params bad;
   bad.lookback_ = 1;
   CHECK_THROWS_AS(atls::MeanReversionIncremental(id, bad), std::invalid_argument);
-  CHECK(atls::MeanReversionIncremental::atls_params() == std::vector<std::string>{"lookback", "entry", "exit", "quantity"});
+  CHECK(
+    atls::MeanReversionIncremental::atls_params() == std::vector<std::string>{"lookback", "entry", "exit", "quantity"}
+  );
 }
 
 TEST_CASE("trailing stop: state and on_fill, the same fills in every variant") {

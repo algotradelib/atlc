@@ -53,7 +53,9 @@ inline atl::InstrumentId id_of(const std::string& symbol) {
  * @param listed The first day with a bar.
  * @return The series.
  */
-inline Series walk(const std::string& symbol, unsigned seed, std::size_t days, unsigned missing = 0, std::size_t listed = 0) {
+inline Series walk(
+  const std::string& symbol, unsigned seed, std::size_t days, unsigned missing = 0, std::size_t listed = 0
+) {
   std::mt19937 rng(seed);
   const auto draw = [&rng](std::int64_t spread) {
     return static_cast<std::int64_t>(rng() % static_cast<std::uint32_t>(2 * spread + 1)) - spread;
@@ -108,7 +110,11 @@ inline std::vector<atl::strategy::BarEvent> daily_events(const std::vector<Serie
   });
   std::vector<atl::strategy::BarEvent> out;
   for (const auto& [k, i] : order) {
-    out.push_back(atl::strategy::make_bar_event(id_of(all[k].symbol_), atl::BarInterval::ONE_DAY, atl::BarStamp::OPEN, all[k].bars_[i]));
+    out.push_back(
+      atl::strategy::make_bar_event(
+        id_of(all[k].symbol_), atl::BarInterval::ONE_DAY, atl::BarStamp::OPEN, all[k].bars_[i]
+      )
+    );
   }
   return out;
 }
@@ -132,7 +138,9 @@ inline std::vector<atl::strategy::BarEvent> leg_events(const std::vector<Series>
       } else if (part == 2) {
         bar.open_ = bar.high_ = bar.low_ = bar.close_;
       }
-      out.push_back(atl::strategy::make_bar_event(day.instrument_, atl::BarInterval::ONE_MINUTE, atl::BarStamp::OPEN, bar));
+      out.push_back(
+        atl::strategy::make_bar_event(day.instrument_, atl::BarInterval::ONE_MINUTE, atl::BarStamp::OPEN, bar)
+      );
     }
   }
   // Each leg of every instrument before the next leg of any.
@@ -173,7 +181,10 @@ struct Outcome {
  * @return The result and the report.
  */
 template <class S>
-Outcome run(S strategy, const std::vector<std::string>& symbols, const std::vector<atl::strategy::BarEvent>& events, const Settings& settings = {}) {
+Outcome run(
+  S strategy, const std::vector<std::string>& symbols, const std::vector<atl::strategy::BarEvent>& events,
+  const Settings& settings = {}
+) {
   atl::backtest::ReplayConfig config;
   config.cash_ = atl::Decimal64::parse(settings.cash_);
   for (const auto& symbol : symbols) {
@@ -188,10 +199,12 @@ Outcome run(S strategy, const std::vector<std::string>& symbols, const std::vect
   }
   config.limits_.permitted_phases_ = std::nullopt;
   config.limits_.enforce_sellable_quantity_ = !settings.shorts_;
-  const atl::backtest::NextBarFillModel fills = atl::backtest::NextBarFillModel(
-    atl::backtest::CommissionModel::of(atl::Decimal64::parse(settings.commission_), atl::Decimal64(0, 0)),
-    atl::backtest::SlippageModel::of_ticks(settings.slippage_ticks_)
-  ).with_sell_tax(atl::backtest::SellTax{atl::Decimal64::parse(settings.sell_tax_), atl::Country::KR});
+  const atl::backtest::NextBarFillModel fills =
+    atl::backtest::NextBarFillModel(
+      atl::backtest::CommissionModel::of(atl::Decimal64::parse(settings.commission_), atl::Decimal64(0, 0)),
+      atl::backtest::SlippageModel::of_ticks(settings.slippage_ticks_)
+    )
+      .with_sell_tax(atl::backtest::SellTax{atl::Decimal64::parse(settings.sell_tax_), atl::Country::KR});
   atl::backtest::Backtester<S> engine(std::move(strategy), config, fills);
   for (const auto& event : events) {
     engine.feed(event);
@@ -226,19 +239,21 @@ inline std::string signature(const Outcome& outcome) {
   std::string out;
   for (const auto& e : outcome.result_.executions_) {
     const auto at = std::chrono::duration_cast<std::chrono::minutes>(e.fill_.at_.time_since_epoch()).count();
-    out += std::to_string(at) + ' ' + e.fill_.instrument_.symbol_ + (e.fill_.side_ == atl::OrderSide::BUY ? " buy " : " sell ") +
-      e.fill_.quantity_.str() + ' ' + e.fill_.price_.str() + ' ' + e.commission_.str() + ' ' + e.slippage_.str() + ' ' + e.tax_.str() +
-      '\n';
+    out += std::to_string(at) + ' ' + e.fill_.instrument_.symbol_ +
+      (e.fill_.side_ == atl::OrderSide::BUY ? " buy " : " sell ") + e.fill_.quantity_.str() + ' ' +
+      e.fill_.price_.str() + ' ' + e.commission_.str() + ' ' + e.slippage_.str() + ' ' + e.tax_.str() + '\n';
   }
   const auto& r = outcome.report_;
   const auto optional = [](const std::optional<atl::Decimal64>& d) {
     return d ? d->str() : std::string("none");
   };
-  out += "bars " + std::to_string(r.bars_) + " executions " + std::to_string(r.executions_) + " equity " + r.opening_equity_.str() + ' ' +
-    r.closing_equity_.str() + " return " + bits(r.total_return_) + " sharpe " + bits(r.sharpe_) + ' ' + bits(r.annualized_sharpe_) +
-    " sortino " + bits(r.sortino_) + " drawdown " + bits(r.max_drawdown_) + " turnover " + bits(r.total_turnover_) + " commission " +
-    optional(r.commission_paid_) + " slippage " + optional(r.slippage_paid_) + " tax " + optional(r.tax_paid_) + " rejected " +
-    std::to_string(r.rejected_) + " refused " + std::to_string(r.refused_) + " aborted " + std::to_string(r.aborted_) + '\n';
+  out += "bars " + std::to_string(r.bars_) + " executions " + std::to_string(r.executions_) + " equity " +
+    r.opening_equity_.str() + ' ' + r.closing_equity_.str() + " return " + bits(r.total_return_) + " sharpe " +
+    bits(r.sharpe_) + ' ' + bits(r.annualized_sharpe_) + " sortino " + bits(r.sortino_) + " drawdown " +
+    bits(r.max_drawdown_) + " turnover " + bits(r.total_turnover_) + " commission " + optional(r.commission_paid_) +
+    " slippage " + optional(r.slippage_paid_) + " tax " + optional(r.tax_paid_) + " rejected " +
+    std::to_string(r.rejected_) + " refused " + std::to_string(r.refused_) + " aborted " + std::to_string(r.aborted_) +
+    '\n';
   return out;
 }
 

@@ -108,7 +108,10 @@ inline std::int64_t whole(std::string_view name, double value) {
  * @throws std::overflow_error If the sum does not fit in 64 bits.
  */
 inline std::int64_t add_int(std::int64_t a, std::int64_t b) {
-  if ((b > 0 && a > std::numeric_limits<std::int64_t>::max() - b) || (b < 0 && a < std::numeric_limits<std::int64_t>::min() - b)) {
+  if (
+    (b > 0 && a > std::numeric_limits<std::int64_t>::max() - b) ||
+    (b < 0 && a < std::numeric_limits<std::int64_t>::min() - b)
+  ) {
     overflow(a, "+", b);
   }
   return a + b;
@@ -119,7 +122,10 @@ inline std::int64_t add_int(std::int64_t a, std::int64_t b) {
  * @throws std::overflow_error If the difference does not fit in 64 bits.
  */
 inline std::int64_t sub_int(std::int64_t a, std::int64_t b) {
-  if ((b < 0 && a > std::numeric_limits<std::int64_t>::max() + b) || (b > 0 && a < std::numeric_limits<std::int64_t>::min() + b)) {
+  if (
+    (b < 0 && a > std::numeric_limits<std::int64_t>::max() + b) ||
+    (b > 0 && a < std::numeric_limits<std::int64_t>::min() + b)
+  ) {
     overflow(a, "-", b);
   }
   return a - b;
@@ -154,24 +160,40 @@ inline std::int64_t neg_int(std::int64_t a) {
  * @brief `abs(a)`.
  * @throws std::overflow_error For the smallest 64-bit integer, whose magnitude does not fit.
  */
-inline std::int64_t abs_int(std::int64_t a) { return a < 0 ? neg_int(a) : a; }
+inline std::int64_t abs_int(std::int64_t a) {
+  return a < 0 ? neg_int(a) : a;
+}
 
 // Three-valued operators on doubles: NaN is undefined, a bool is 0 or 1.
 
 /** @brief `a / b`, undefined when `b` is 0. */
-inline double div(double a, double b) { return b == 0 ? NaN : a / b; }
+inline double div(double a, double b) {
+  return b == 0 ? NaN : a / b;
+}
 /** @brief `a < b`, undefined when either is. */
-inline double lt(double a, double b) { return std::isnan(a) || std::isnan(b) ? NaN : (a < b ? 1.0 : 0.0); }
+inline double lt(double a, double b) {
+  return std::isnan(a) || std::isnan(b) ? NaN : (a < b ? 1.0 : 0.0);
+}
 /** @brief `a <= b`, undefined when either is. */
-inline double le(double a, double b) { return std::isnan(a) || std::isnan(b) ? NaN : (a <= b ? 1.0 : 0.0); }
+inline double le(double a, double b) {
+  return std::isnan(a) || std::isnan(b) ? NaN : (a <= b ? 1.0 : 0.0);
+}
 /** @brief `a > b`, undefined when either is. */
-inline double gt(double a, double b) { return std::isnan(a) || std::isnan(b) ? NaN : (a > b ? 1.0 : 0.0); }
+inline double gt(double a, double b) {
+  return std::isnan(a) || std::isnan(b) ? NaN : (a > b ? 1.0 : 0.0);
+}
 /** @brief `a >= b`, undefined when either is. */
-inline double ge(double a, double b) { return std::isnan(a) || std::isnan(b) ? NaN : (a >= b ? 1.0 : 0.0); }
+inline double ge(double a, double b) {
+  return std::isnan(a) || std::isnan(b) ? NaN : (a >= b ? 1.0 : 0.0);
+}
 /** @brief `a == b`, undefined when either is. */
-inline double eq(double a, double b) { return std::isnan(a) || std::isnan(b) ? NaN : (a == b ? 1.0 : 0.0); }
+inline double eq(double a, double b) {
+  return std::isnan(a) || std::isnan(b) ? NaN : (a == b ? 1.0 : 0.0);
+}
 /** @brief `a != b`, undefined when either is. */
-inline double ne(double a, double b) { return std::isnan(a) || std::isnan(b) ? NaN : (a != b ? 1.0 : 0.0); }
+inline double ne(double a, double b) {
+  return std::isnan(a) || std::isnan(b) ? NaN : (a != b ? 1.0 : 0.0);
+}
 
 /** @brief Three-valued `and`: a defined false decides it. */
 inline double and3(double a, double b) {
@@ -190,26 +212,44 @@ inline double or3(double a, double b) {
 }
 
 /** @brief Three-valued `not`. */
-inline double not3(double a) { return std::isnan(a) ? NaN : (a == 0 ? 1.0 : 0.0); }
+inline double not3(double a) {
+  return std::isnan(a) ? NaN : (a == 0 ? 1.0 : 0.0);
+}
 
 /** @brief `c ? a : b`, undefined when `c` is. */
-inline double pick(double c, double a, double b) { return std::isnan(c) ? NaN : (c != 0 ? a : b); }
+inline double pick(double c, double a, double b) {
+  return std::isnan(c) ? NaN : (c != 0 ? a : b);
+}
 
 /** @brief `min`, undefined when either is. */
-inline double min3(double a, double b) { return std::isnan(a) || std::isnan(b) ? NaN : std::min(a, b); }
+inline double min3(double a, double b) {
+  return std::isnan(a) || std::isnan(b) ? NaN : std::min(a, b);
+}
 /** @brief `max`, undefined when either is. */
-inline double max3(double a, double b) { return std::isnan(a) || std::isnan(b) ? NaN : std::max(a, b); }
+inline double max3(double a, double b) {
+  return std::isnan(a) || std::isnan(b) ? NaN : std::max(a, b);
+}
 
 /** @brief -1, 0 or 1; undefined when `x` is. */
-inline double sign_of(double x) { return std::isnan(x) ? NaN : static_cast<double>((x > 0) - (x < 0)); }
+inline double sign_of(double x) {
+  return std::isnan(x) ? NaN : static_cast<double>((x > 0) - (x < 0));
+}
 /** @brief Natural logarithm; undefined at or below 0. */
-inline double log_of(double x) { return x > 0 ? std::log(x) : NaN; }
+inline double log_of(double x) {
+  return x > 0 ? std::log(x) : NaN;
+}
 /** @brief Square root; undefined below 0 (IEEE's square root of a negative number is NaN). */
-inline double sqrt_of(double x) { return std::sqrt(x); }
+inline double sqrt_of(double x) {
+  return std::sqrt(x);
+}
 /** @brief The nearest whole number, halves away from zero (as `std::llround`). */
-inline double round_of(double x) { return std::round(x); }
+inline double round_of(double x) {
+  return std::round(x);
+}
 /** @brief Down to a whole number. */
-inline double floor_of(double x) { return std::floor(x); }
+inline double floor_of(double x) {
+  return std::floor(x);
+}
 
 /** @brief The last values of one input since its last restart. `ago(0)` is the newest. */
 class Ring {
@@ -244,13 +284,19 @@ public:
    * @param k Pushes ago; `k < capacity()` and `k < seen()`.
    * @return The value.
    */
-  double ago(std::size_t k) const { return buffer_[head_ >= k ? head_ - k : head_ + capacity() - k]; }
+  double ago(std::size_t k) const {
+    return buffer_[head_ >= k ? head_ - k : head_ + capacity() - k];
+  }
 
   /** @brief Values pushed since the last restart. */
-  std::size_t seen() const { return seen_; }
+  std::size_t seen() const {
+    return seen_;
+  }
 
   /** @brief How many values the ring holds. */
-  std::size_t capacity() const { return buffer_.size(); }
+  std::size_t capacity() const {
+    return buffer_.size();
+  }
 
 private:
   std::vector<double> buffer_;
@@ -264,9 +310,13 @@ struct Window {
    * @brief Sets the length.
    * @param n The length.
    */
-  void set(std::size_t n) { n_ = n; }
+  void set(std::size_t n) {
+    n_ = n;
+  }
   /** @brief The length. */
-  std::size_t n() const { return n_; }
+  std::size_t n() const {
+    return n_;
+  }
   /** @brief The length. */
   std::size_t n_{1};
 };
@@ -274,7 +324,9 @@ struct Window {
 /** @brief Simple moving average. Incremental: a ring of at least n + 1; recompute: at least n. */
 struct Sma : Window {
   /** @brief Restarts. */
-  void reset() { sum_ = 0; }
+  void reset() {
+    sum_ = 0;
+  }
   /**
    * @brief After the ring took the newest value: a running sum.
    * @param ring The input's ring.
@@ -311,7 +363,9 @@ struct Sma : Window {
 /** @brief Sum over the window. Same ring needs as `Sma`. */
 struct TsSum : Window {
   /** @brief Restarts. */
-  void reset() { sum_ = 0; }
+  void reset() {
+    sum_ = 0;
+  }
   /**
    * @brief Running sum.
    * @param ring The input's ring.
@@ -354,13 +408,17 @@ struct Lag : Window {
    * @param ring The input's ring.
    * @return The value n pushes ago, or NaN before n + 1 values.
    */
-  double update(const Ring& ring) const { return ring.seen() > this->n() ? ring.ago(this->n()) : NaN; }
+  double update(const Ring& ring) const {
+    return ring.seen() > this->n() ? ring.ago(this->n()) : NaN;
+  }
   /**
    * @brief The same: a lag has nothing to recompute.
    * @param ring The input's ring.
    * @return As `update`.
    */
-  double recompute(const Ring& ring) const { return update(ring); }
+  double recompute(const Ring& ring) const {
+    return update(ring);
+  }
 };
 
 /** @brief Cutler's RSI over the last n moves, 50 when nothing moved. Incremental: a ring of n + 2. */
@@ -486,7 +544,9 @@ struct Stdev : Window {
  */
 struct Zscore : Window {
   /** @brief Restarts. */
-  void reset() { sd_.reset(); }
+  void reset() {
+    sd_.reset();
+  }
   /**
    * @brief Sets the length.
    * @param n The length.
@@ -607,7 +667,9 @@ struct SkipSums : Window {
    * @brief Sets the fewest values that must exist in the window.
    * @param m The minimum.
    */
-  void set_min(std::size_t m) { min_ = m; }
+  void set_min(std::size_t m) {
+    min_ = m;
+  }
   /** @brief Restarts. */
   void reset() {
     sum_ = 0;
@@ -683,7 +745,9 @@ struct SmaSkip : SkipSums {
    * @param ring The input's ring.
    * @return The mean, or NaN when the window is undefined.
    */
-  double update(const Ring& ring) { return this->take(ring, false) ? this->sum_ / static_cast<double>(this->count_) : NaN; }
+  double update(const Ring& ring) {
+    return this->take(ring, false) ? this->sum_ / static_cast<double>(this->count_) : NaN;
+  }
   /**
    * @brief Summed again, oldest first.
    * @param ring The input's ring.
@@ -703,7 +767,9 @@ struct TsSumSkip : SkipSums {
    * @param ring The input's ring.
    * @return The sum, or NaN when the window is undefined.
    */
-  double update(const Ring& ring) { return this->take(ring, false) ? this->sum_ : NaN; }
+  double update(const Ring& ring) {
+    return this->take(ring, false) ? this->sum_ : NaN;
+  }
   /**
    * @brief Summed again, oldest first.
    * @param ring The input's ring.
@@ -919,7 +985,9 @@ struct OlsSlope : OlsSums {
    * @param x The regressor.
    * @return The slope, or NaN.
    */
-  double update(double y, double x) { return push(y, x) ? slope() : NaN; }
+  double update(double y, double x) {
+    return push(y, x) ? slope() : NaN;
+  }
 };
 
 /** @brief `ols_intercept(y, x, n)`, incremental. */
@@ -994,11 +1062,17 @@ struct KalmanHedge {
     r11_ -= a11;
   }
   /** @brief The slope after the last correction. */
-  double beta() const { return b0_; }
+  double beta() const {
+    return b0_;
+  }
   /** @brief The last forecast error. */
-  double error() const { return e_; }
+  double error() const {
+    return e_;
+  }
   /** @brief The last forecast error's deviation. */
-  double sd() const { return std::sqrt(q_); }
+  double sd() const {
+    return std::sqrt(q_);
+  }
 
   /** @brief The drift variance. */
   double vw_{0};
@@ -1155,7 +1229,9 @@ struct WindowSum : Window {
     return (begin_ < end_ ? suffix_[begin_] : 0.0) + back_sum_;
   }
   /** @brief Values pushed since the last restart. */
-  std::size_t seen() const { return seen_; }
+  std::size_t seen() const {
+    return seen_;
+  }
 
 private:
   std::vector<double> suffix_;
@@ -1389,9 +1465,13 @@ public:
   }
 
   /** @brief Whether anything was stated. */
-  bool stated() const { return stated_; }
+  bool stated() const {
+    return stated_;
+  }
   /** @brief The shares stated. */
-  std::int64_t shares() const { return shares_; }
+  std::int64_t shares() const {
+    return shares_;
+  }
 
 private:
   bool stated_{false};
@@ -1454,7 +1534,9 @@ public:
     const auto buy = atl::decimal_add(one, offset);
     const auto sell = atl::decimal_subtract(one, offset);
     if (!buy || !sell) {
-      throw std::invalid_argument("order pricing: 1 plus or minus the offset " + offset.str() + " does not fit a decimal");
+      throw std::invalid_argument(
+        "order pricing: 1 plus or minus the offset " + offset.str() + " does not fit a decimal"
+      );
     }
     limit_ = type == atl::OrderType::LIMIT;
     buy_ = *buy;
@@ -1465,7 +1547,9 @@ public:
    * @brief Whether targets are priced as limits.
    * @return `true` after `set` with `OrderType::LIMIT`.
    */
-  bool limit() const { return limit_; }
+  bool limit() const {
+    return limit_;
+  }
 
   /**
    * @brief Prices a target as a limit, reading the net position.
@@ -1512,7 +1596,8 @@ public:
       ++refusals_.price_not_representable_;
       return false;
     }
-    auto limit = atl::strategy::Price::rounded(*wanted, instrument->price_rule_, buy ? atl::OrderSide::BUY : atl::OrderSide::SELL);
+    auto limit =
+      atl::strategy::Price::rounded(*wanted, instrument->price_rule_, buy ? atl::OrderSide::BUY : atl::OrderSide::SELL);
     if (!limit) {
       ++refusals_.price_not_representable_;
       return false;
@@ -1529,7 +1614,9 @@ public:
    * @brief The targets not submitted, by reason, since the strategy was made.
    * @return The counts.
    */
-  const PricingRefusals& refusals() const { return refusals_; }
+  const PricingRefusals& refusals() const {
+    return refusals_;
+  }
 
 private:
   bool limit_{false};

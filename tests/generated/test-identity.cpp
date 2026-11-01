@@ -56,7 +56,9 @@ TEST_CASE("ols_slope and ols_intercept restated over a window of pairs give the 
 
 TEST_CASE("under skip and poison, with missing bars, user indicators give the built-ins' bits") {
   // C lists after 200 days; every instrument misses about one day in 10.
-  const std::vector<t::Series> all{t::walk("A", 13, 1200, 10), t::walk("B", 14, 1200, 10), t::walk("C", 15, 1200, 10, 200)};
+  const std::vector<t::Series> all{
+    t::walk("A", 13, 1200, 10), t::walk("B", 14, 1200, 10), t::walk("C", 15, 1200, 10, 200)
+  };
   const auto events = t::daily_events(all);
   const std::vector<std::string> symbols{"A", "B", "C"};
   std::vector<atl::InstrumentId> ids;

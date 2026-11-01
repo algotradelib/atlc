@@ -43,14 +43,21 @@ int main(int argc, char** argv) {
     "'raw' AS basis, TIMESTAMPTZ '{fetched} 00:00:00+00' AS fetched_at FROM range({from}, {to}) t(d)";
   auto version = [&select](const char* up, const char* fetched, const char* from, const char* to) {
     std::string s = select;
-    for (const auto& [key, value] : {std::pair<std::string, std::string>{"{up}", up}, {"{fetched}", fetched}, {"{from}", from}, {"{to}", to}}) {
+    for (
+      const auto& [key, value] :
+      {std::pair<std::string, std::string>{"{up}", up}, {"{fetched}", fetched}, {"{from}", from}, {"{to}", to}}
+    ) {
       s.replace(s.find(key), key.size(), value);
     }
     return s;
   };
   const auto path = (dir / "bars.parquet").generic_string();
   const bool ok = exec(con, "SET TimeZone = 'UTC'") &&
-    exec(con, "CREATE TABLE bars AS " + version("1", "2026-01-01", "0", "10") + " UNION ALL " + version("3", "2026-02-01", "5", "11")) &&
+    exec(
+      con,
+      "CREATE TABLE bars AS " + version("1", "2026-01-01", "0", "10") + " UNION ALL " +
+        version("3", "2026-02-01", "5", "11")
+    ) &&
     exec(con, "COPY (SELECT * FROM bars ORDER BY ts, fetched_at) TO '" + path + "' (FORMAT parquet)");
   duckdb_disconnect(&con);
   duckdb_close(&db);

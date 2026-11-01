@@ -26,17 +26,23 @@ run::Settings settings(std::vector<std::string> args) {
 
 struct Named {
   static constexpr const char* atls_mode = "named";
-  static std::vector<std::string> atls_instruments() { return {"long", "short"}; }
+  static std::vector<std::string> atls_instruments() {
+    return {"long", "short"};
+  }
 };
 
 struct Single {
   static constexpr const char* atls_mode = "single";
-  static std::vector<std::string> atls_instruments() { return {}; }
+  static std::vector<std::string> atls_instruments() {
+    return {};
+  }
 };
 
 struct Universe {
   static constexpr const char* atls_mode = "universe";
-  static std::vector<std::string> atls_instruments() { return {}; }
+  static std::vector<std::string> atls_instruments() {
+    return {};
+  }
 };
 
 // Two parameters with a generated strategy's `set`: the value is stored, then every bound is checked against the
@@ -82,10 +88,14 @@ TEST_CASE("args: settings read key=value, later values winning") {
 }
 
 TEST_CASE("args: a named program takes each declared instrument, in declaration order") {
-  CHECK(run::symbols_of<Named>(settings({"instrument.short=B", "instrument.long=A", "instrument.extra=C"})) ==
-        std::vector<std::string>{"A", "B"});
-  CHECK(run::symbols_of<Named>(settings({"instrument.long=A", "instrument.short=B", "instrument.long=Z"})) ==
-        std::vector<std::string>{"Z", "B"});
+  CHECK(
+    run::symbols_of<Named>(settings({"instrument.short=B", "instrument.long=A", "instrument.extra=C"})) ==
+    std::vector<std::string>{"A", "B"}
+  );
+  CHECK(
+    run::symbols_of<Named>(settings({"instrument.long=A", "instrument.short=B", "instrument.long=Z"})) ==
+    std::vector<std::string>{"Z", "B"}
+  );
   try {
     run::symbols_of<Named>(settings({"instrument.long=A"}));
     FAIL("a missing instrument was accepted");
@@ -107,8 +117,10 @@ TEST_CASE("args: a single program takes at most one instrument, none meaning the
 }
 
 TEST_CASE("args: a universe takes every instrument in order of first appearance") {
-  CHECK(run::symbols_of<Universe>(settings({"instrument.b=B", "instrument.a=A", "instrument.b=C"})) ==
-        std::vector<std::string>{"C", "A"});
+  CHECK(
+    run::symbols_of<Universe>(settings({"instrument.b=B", "instrument.a=A", "instrument.b=C"})) ==
+    std::vector<std::string>{"C", "A"}
+  );
   CHECK(run::symbols_of<Universe>(settings({"other=1"})).empty());
 }
 

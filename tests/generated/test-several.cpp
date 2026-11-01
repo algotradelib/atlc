@@ -64,7 +64,9 @@ TEST_CASE("pairs: two named instruments, long and short, the same fills in every
 
 TEST_CASE("universe: session legs and missing bars, the same fills in every variant") {
   // C lists after 300 days; every instrument misses about one day in 15.
-  const std::vector<t::Series> all{t::walk("A", 6, 800, 15), t::walk("B", 7, 800, 15), t::walk("C", 8, 800, 15, 300), t::walk("D", 9, 800, 15)};
+  const std::vector<t::Series> all{
+    t::walk("A", 6, 800, 15), t::walk("B", 7, 800, 15), t::walk("C", 8, 800, 15, 300), t::walk("D", 9, 800, 15)
+  };
   const auto events = t::leg_events(all);
   const std::vector<std::string> symbols{"A", "B", "C", "D"};
   std::vector<atl::InstrumentId> ids;
@@ -82,7 +84,8 @@ TEST_CASE("universe: session legs and missing bars, the same fills in every vari
   // the close on the close (three minutes past).
   std::set<std::string> traded;
   for (const auto& e : first.result_.executions_) {
-    const auto minute = std::chrono::duration_cast<std::chrono::minutes>(e.fill_.at_.time_since_epoch()).count() % (24 * 60);
+    const auto minute =
+      std::chrono::duration_cast<std::chrono::minutes>(e.fill_.at_.time_since_epoch()).count() % (24 * 60);
     CHECK(minute == (e.fill_.side_ == atl::OrderSide::BUY ? 2 : 3));
     traded.insert(e.fill_.instrument_.symbol_);
   }
