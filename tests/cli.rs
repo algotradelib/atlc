@@ -178,27 +178,47 @@ fn reference_prints_the_index_and_each_chapter_unchanged() {
 
 #[test]
 fn reference_refuses_an_unknown_chapter_with_one_and_a_bad_call_with_two() {
-    let (code, out, err) = atlc(&["reference", "indicators"]);
-    assert_eq!((code, out.as_str()), (1, ""));
-    assert!(err.contains("no chapter `indicators`"), "{err}");
-    for (name, _) in atlc::reference::CHAPTERS {
-        assert!(err.contains(name), "{err}");
+    for name in ["indicators", "", "README", "../README", "diagnostics", "Syntax"] {
+        let (code, out, err) = atlc(&["reference", name]);
+        assert_eq!((code, out.as_str()), (1, ""), "{name}");
+        assert!(err.contains(&format!("no chapter `{name}`")), "{err}");
+        assert_eq!(err.lines().count(), 1, "{err}");
+        for (chapter, _) in atlc::reference::CHAPTERS {
+            assert!(err.contains(chapter), "{err}");
+        }
     }
     for args in [
         &["reference", "syntax", "builtins"][..],
         &["reference", "--json"][..],
         &["reference", "-h"][..],
+        &["reference", "-"][..],
+        &["reference", "--", "syntax"][..],
     ] {
-        let (code, out, _) = atlc(args);
+        let (code, out, err) = atlc(args);
         assert_eq!((code, out.as_str()), (2, ""), "{args:?}");
+        assert!(err.starts_with("atlc reference: "), "{err}");
     }
 }
 
 #[test]
 fn every_reference_file_is_a_chapter_and_every_chapter_a_file() {
-    let mut files: Vec<String> = std::fs::read_dir("docs/reference")
+    for (name, _) in atlc::reference::CHAPTERS {
+        assert!(atlc::reference::is_chapter_name(name), "{name}");
+    }
+    for name in ["", "-h", "1st", "Syntax", "a_b", "../x"] {
+        assert!(!atlc::reference::is_chapter_name(name), "{name}");
+    }
+    let entries: Vec<std::fs::DirEntry> = std::fs::read_dir("docs/reference")
         .unwrap()
-        .map(|e| e.unwrap().file_name().into_string().unwrap())
+        .map(|e| e.unwrap())
+        .collect();
+    // A chapter in a subdirectory would be read by the program tests but never embedded.
+    for e in &entries {
+        assert!(e.file_type().unwrap().is_file(), "{:?}", e.path());
+    }
+    let mut files: Vec<String> = entries
+        .iter()
+        .map(|e| e.file_name().into_string().unwrap())
         .filter(|f| f.ends_with(".md") && f != "README.md")
         .map(|f| f.trim_end_matches(".md").to_string())
         .collect();

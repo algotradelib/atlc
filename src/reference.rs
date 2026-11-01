@@ -26,6 +26,14 @@ pub const CHAPTERS: [(&str, &str); 9] = [
     ),
 ];
 
+/// Whether a name follows the chapters' rule, a lowercase letter then lowercase letters, digits and `-`: the rule
+/// callers such as cmdatl check before they run `atlc reference NAME`, so no chapter may break it.
+pub fn is_chapter_name(name: &str) -> bool {
+    let mut chars = name.chars();
+    chars.next().is_some_and(|c| c.is_ascii_lowercase())
+        && chars.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+}
+
 /// A chapter's text by its name, or `None` for a name that is not a chapter.
 pub fn chapter(name: &str) -> Option<&'static str> {
     CHAPTERS.iter().find(|(n, _)| *n == name).map(|(_, text)| *text)

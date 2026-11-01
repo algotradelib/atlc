@@ -81,7 +81,14 @@ fn reference(args: &[String]) -> ExitCode {
                 ExitCode::from(1)
             }
         },
-        _ => usage(),
+        [_] => {
+            eprintln!("atlc reference: unknown option `{}`", args[0]);
+            usage()
+        }
+        _ => {
+            eprintln!("atlc reference: expected at most one chapter, got {}", args.len());
+            usage()
+        }
     }
 }
 

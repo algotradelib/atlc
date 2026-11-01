@@ -6,3 +6,5 @@
 # compared byte for byte.
 runtime/include/** text eol=lf
 tests/codegen/*.hpp text eol=lf
+# The language reference is compiled into atlc and printed by atlc reference, the same bytes on every OS.
+docs/reference/** text eol=lf
