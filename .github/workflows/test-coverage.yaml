@@ -37,8 +37,6 @@ name: test-coverage
 jobs:
   test-coverage:
     runs-on: ubuntu-latest
-    env:
-      CMAKE_BUILD_PARALLEL_LEVEL: '4'
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
@@ -62,7 +60,6 @@ jobs:
             BUILD_TESTING=OFF
             CMAKE_CXX_STANDARD=17
             "CMAKE_INSTALL_PREFIX=${{ runner.temp }}/catch2"
-          build-args: --parallel 4
 
       - name: Catch2 install
         run: |
