@@ -111,7 +111,7 @@ error[expected-block]: expected a block, found `;`
   |
 4 | ;
   | ^ a program is made of blocks
-  = blocks: instruments {}, universe {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, warmup EXPR;, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}
+  = blocks: instruments {}, universe {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}
 ```
 
 From `tests/ui/syntax/stray-token.atls`.
@@ -126,12 +126,26 @@ error[unknown-block]: unknown block `strategy`
   |
 1 | strategy {
   | ^^^^^^^^ not a block
-  = blocks: instruments {}, universe {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, warmup EXPR;, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}
+  = blocks: instruments {}, universe {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}
 ```
 
 From `tests/ui/syntax/unknown-block.atls`.
 
 `replay` is a reserved word but no block: a `replay {}` is skipped whole and reported once, since a program holds no run settings.
+
+`warmup` is a reserved word but no block either: the warm-up is set in `options {}`.
+The former statement `warmup EXPR;` is reported with a note that prints it as an option:
+
+```
+error[unknown-block]: `warmup` is not a block
+ --> tests/ui/syntax/warmup-statement.atls:4:1
+  |
+4 | warmup slow + 1;
+  | ^^^^^^ not a block
+  = the warm-up is an option: write `warmup = slow + 1;` in `options {}`
+```
+
+From `tests/ui/syntax/warmup-statement.atls`.
 
 ```
 error[unknown-block]: unknown block `replay`
@@ -1484,7 +1498,7 @@ From `tests/ui/check/universe-lifecycle-handler.atls`.
 
 ### `unknown-option`
 
-An option other than `missing` in `options {}`.
+An option other than `missing` and `warmup` in `options {}`.
 
 ```
 error[unknown-option]: unknown option `fill`
@@ -1492,10 +1506,26 @@ error[unknown-option]: unknown option `fill`
   |
 2 |   fill = next;
   |   ^^^^ not an option
-  = options: missing = restart | skip | poison
+  = options: missing = restart | skip | poison, warmup = EXPR
 ```
 
 From `tests/ui/check/unknown-option.atls`.
+
+### `duplicate-option`
+
+`missing` or `warmup` set twice in one `options {}`.
+
+```
+error[duplicate-option]: a second `warmup`
+ --> tests/ui/check/duplicate-option.atls:4:3
+  |
+2 |   warmup = 10;
+  |   ------ first here
+4 |   warmup = 20;
+  |   ^^^^^^ second
+```
+
+From `tests/ui/check/duplicate-option.atls`.
 
 ### `unknown-policy`
 

@@ -1,0 +1,6 @@
+options {
+  warmup = 10;
+  missing = skip;
+  warmup = 20;
+}
+on_bar { target(1); }

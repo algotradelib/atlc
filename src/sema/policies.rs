@@ -15,6 +15,8 @@ impl Checker<'_> {
                     self.ir.missing = p;
                 }
             }
+            // An expression of parameters, checked once they are declared (`warmup_item`).
+            "warmup" => {}
             _ => self.err(
                 Diag::new(
                     Code::UnknownOption,
@@ -22,7 +24,7 @@ impl Checker<'_> {
                     key.span,
                     "not an option",
                 )
-                .note("options: missing = restart | skip | poison"),
+                .note("options: missing = restart | skip | poison, warmup = EXPR"),
             ),
         }
     }
@@ -206,6 +208,19 @@ mod tests {
         assert_eq!(
             errors("options { fill = skip; } on_bar { target(1); }"),
             [Code::UnknownOption]
+        );
+        assert_eq!(
+            errors("options { missing = skip; missing = poison; } on_bar { target(1); }"),
+            [Code::DuplicateOption]
+        );
+        assert_eq!(
+            errors("options { fill = 1; fill = 2; } on_bar { target(1); }"),
+            [Code::UnknownOption, Code::UnknownOption]
+        );
+        // Two blocks are one `duplicate-block`, not a second option too.
+        assert_eq!(
+            errors("options { warmup = 2; } options { warmup = 3; } on_bar { target(1); }"),
+            [Code::DuplicateBlock]
         );
     }
 

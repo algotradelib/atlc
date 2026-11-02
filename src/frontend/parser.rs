@@ -8,6 +8,7 @@ use crate::frontend::lexer::{Tok, Token, lex};
 pub fn parse(source: &str) -> Result<Program, Vec<Diag>> {
     let tokens = lex(source).map_err(|d| vec![d])?;
     let mut p = Parser {
+        source,
         tokens,
         at: 0,
         errors: vec![],
@@ -22,7 +23,9 @@ pub fn parse(source: &str) -> Result<Program, Vec<Diag>> {
     }
 }
 
-struct Parser {
+struct Parser<'a> {
+    /// The program's text, to print a removed form back in its replacement.
+    source: &'a str,
     tokens: Vec<Token>,
     at: usize,
     errors: Vec<Diag>,
@@ -73,11 +76,12 @@ pub const KEYWORDS: [&str; 31] = [
     "return",
 ];
 
-const BLOCKS: [&str; 16] = [
+/// The words error recovery stops at. Not `warmup`: it also begins an option and an indicator's part, which a
+/// broken item may still hold, so stopping there would misreport them as the removed top-level statement.
+const BLOCKS: [&str; 15] = [
     "params",
     "series",
     "state",
-    "warmup",
     "on_start",
     "on_bar",
     "on_fill",
@@ -92,12 +96,12 @@ const BLOCKS: [&str; 16] = [
     "indicator",
 ];
 
-const BLOCKS_NOTE: &str = "blocks: instruments {}, universe {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, warmup EXPR;, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}";
+const BLOCKS_NOTE: &str = "blocks: instruments {}, universe {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}";
 
 const REPLAY_NOTE: &str =
     "a program holds no run settings: data, dates, costs and fills go in cmdatl's run spec or on its command line";
 
-impl Parser {
+impl Parser<'_> {
     fn peek(&self) -> &Token {
         &self.tokens[self.at]
     }
@@ -280,10 +284,23 @@ impl Parser {
                 Ok(if word == "series" { Item::Series(decls, t.span.to(end)) } else { Item::State(decls, t.span.to(end)) })
             }
             "warmup" => {
+                // No longer an item: parsed on purpose so that the error shows the program's own warm-up as an option.
+                // `warmup` is consumed before anything can fail, so recovery never meets it again.
                 self.bump();
-                let e = self.expr()?;
-                let end = self.expect_punct(";", "after the warm-up")?;
-                Ok(Item::Warmup(e, t.span.to(end)))
+                // A half-moved `warmup = n;` is shown the same way.
+                self.eat_punct("=");
+                let first = self.at;
+                let text = match self.expr() {
+                    Ok(_) if self.is_punct(";") => {
+                        let text = &self.source[self.tokens[first].span.start..self.tokens[self.at - 1].span.end];
+                        self.bump();
+                        Some(text)
+                    }
+                    _ => None,
+                }
+                .filter(|s| !s.contains(['\n', '\r', '#']) && !s.contains("//"));
+                Err(Diag::new(Code::UnknownBlock, "`warmup` is not a block", t.span, "not a block")
+                    .note(format!("the warm-up is an option: write `warmup = {};` in `options {{}}`", text.unwrap_or("EXPR"))))
             }
             "instruments" => {
                 self.bump();
@@ -363,7 +380,7 @@ impl Parser {
                 self.expect_punct("{", "after `options`")?;
                 let mut settings = vec![];
                 while !self.is_punct("}") && self.peek().tok != Tok::Eof {
-                    let key = match self.ident("an option name") {
+                    let key = match self.option_name() {
                         Ok(k) => k,
                         Err(d) => {
                             self.errors.push(d);
@@ -402,6 +419,18 @@ impl Parser {
                 .note("live settings (broker, account, limits) belong to the run spec and the operator's configuration, never to the strategy")),
             _ => Err(Diag::new(Code::UnknownBlock, format!("unknown block `{}`", word), t.span, "not a block").note(BLOCKS_NOTE)),
         }
+    }
+
+    /// A key of `options {}`: a name, or `warmup`, the one keyword that is also an option.
+    fn option_name(&mut self) -> R<Ident> {
+        if self.is_word("warmup") {
+            let t = self.bump();
+            return Ok(Ident {
+                name: "warmup".to_string(),
+                span: t.span,
+            });
+        }
+        self.ident("an option name")
     }
 
     /// `(real x, int n)`.
@@ -1173,6 +1202,59 @@ mod tests {
     }
 
     #[test]
+    fn warmup_is_an_option() {
+        let program = parse("options { missing = skip; warmup = n + 1; }").unwrap();
+        let Item::Options(settings, _) = &program.items[0] else {
+            panic!()
+        };
+        assert_eq!(settings[1].0.name, "warmup");
+        assert_eq!(settings[1].0.span, Span::new(26, 32));
+        // The removed statement: one error, whose note is the program's own warm-up as an option.
+        let note = |s: &str| {
+            let e = parse(s).unwrap_err();
+            assert_eq!(e.len(), 1, "{s}: {e:?}");
+            assert_eq!(e[0].code, Code::UnknownBlock);
+            e[0].notes[0].clone()
+        };
+        let rewritten = |x: &str| format!("the warm-up is an option: write `warmup = {x};` in `options {{}}`");
+        assert_eq!(note("warmup slow + 1; on_bar { target(1); }"), rewritten("slow + 1"));
+        assert_eq!(note("warmup  w - (a - b) ;"), rewritten("w - (a - b)"));
+        assert_eq!(note("on_bar { target(1); } warmup 2 * n;"), rewritten("2 * n"));
+        assert_eq!(note("warmup n\n + 1;"), rewritten("EXPR"));
+        assert_eq!(note("warmup n // c\n + 1;"), rewritten("EXPR"));
+        assert_eq!(note("warmup n # c\n + 1;"), rewritten("EXPR"));
+        assert_eq!(note("warmup n + ; on_bar { target(1); }"), rewritten("EXPR"));
+        assert_eq!(note("warmup n on_bar { target(1); }"), rewritten("EXPR"));
+        assert_eq!(note("warmup"), rewritten("EXPR"));
+        assert_eq!(note("warmup series { real a = 1; }"), rewritten("EXPR"));
+        assert_eq!(note("warmup = 3;"), rewritten("3"));
+        // Recovery from a broken item skips the statement: the first error stands for both.
+        assert_eq!(
+            codes("instruments { 1 } warmup n; on_bar { target(1); }"),
+            [Code::ExpectedName]
+        );
+        // A mistake inside a block is recovered there: the statement after it is reported too.
+        assert_eq!(
+            codes("params { int n = ; } warmup n; on_bar { target(1); }"),
+            [Code::ExpectedExpression, Code::UnknownBlock]
+        );
+        // A `warmup` inside a broken item is not taken for the removed statement.
+        assert_eq!(
+            codes("options { missing = skip warmup = 3; } on_bar { target(1); }"),
+            [Code::ExpectedToken]
+        );
+        assert_eq!(
+            codes("indicator e(real x int n) { warmup n; value real v = x; } on_bar { target(1); }"),
+            [Code::ExpectedToken]
+        );
+        // Recovery skips to the next block, past a second statement (two were a `duplicate-block` already).
+        assert_eq!(
+            codes("warmup 1; warmup 2; on_bar { target(1) }"),
+            [Code::UnknownBlock, Code::ExpectedToken]
+        );
+    }
+
+    #[test]
     fn errors_and_recovery() {
         assert_eq!(codes("on_bar { target(1) }"), [Code::ExpectedToken]);
         assert_eq!(
@@ -1198,6 +1280,7 @@ mod tests {
         );
         assert_eq!(codes("1"), [Code::ExpectedBlock]);
         assert_eq!(codes("params { int for = 1; }"), [Code::KeywordAsName]);
+        assert_eq!(codes("options { params = 1; }"), [Code::KeywordAsName]);
         assert_eq!(codes("on_bar {"), [Code::ExpectedToken]);
     }
 

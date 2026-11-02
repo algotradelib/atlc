@@ -6,7 +6,9 @@ params {
   real<lower=0, upper=100> exit = 70;
   int<lower=0> quantity = 100;
 }
-warmup trend + 1;
+options {
+  warmup = trend + 1;
+}
 series {
   real average = sma(close, trend);
   real level = rsi(close, fast);

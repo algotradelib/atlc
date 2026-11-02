@@ -137,6 +137,7 @@ codes! {
     UniverseLifecycleHandler = "universe-lifecycle-handler",
     // Missing-value policies.
     UnknownOption = "unknown-option",
+    DuplicateOption = "duplicate-option",
     UnknownPolicy = "unknown-policy",
     UnknownNamedArgument = "unknown-named-argument",
     NamedArgumentNotAllowed = "named-argument-not-allowed",

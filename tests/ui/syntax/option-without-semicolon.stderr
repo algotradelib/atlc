@@ -1,0 +1,6 @@
+error[expected-token]: expected `;` after the option, found `warmup`
+ --> tests/ui/syntax/option-without-semicolon.atls:1:25
+  |
+1 | options { missing = skip warmup = 3; }
+  |                         ^ add `;` here
+

@@ -4,9 +4,8 @@ params {
   real<upper=-(1 + 2) * 3> lower = -.5e-3;
   bool upper = true;
 }
-options { missing = skip; min = n + 1; }
+options { missing = skip; min = n + 1; warmup = n * (n - 1); }
 instruments { window; value; }
-warmup n * (n - 1);
 functions {
   real none() { return 1; }
   bool many(int a, real b, bool c) { if (c) { return a < b; } else if (not c) { return false; } else { return true; } }

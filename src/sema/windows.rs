@@ -397,7 +397,7 @@ impl Checker<'_> {
         self.ir.live = live;
     }
 
-    /// `warmup EXPR;`: a whole number of bars built from numbers and int parameters.
+    /// `options { warmup = EXPR; }`: a whole number of bars built from numbers and int parameters.
     pub(super) fn warmup_item(&mut self, e: &Expr) {
         if let Some((w, ty)) = self.cexpr(e, "the warm-up", true) {
             if ty != Ty::Int {
@@ -510,7 +510,7 @@ mod tests {
     #[test]
     fn warmup_and_liveness() {
         let ir = ok(
-            "params { int<lower=1> n = 4; } warmup n * 2 + 1; series { real a = sma(close, 3); real unused = sma(close, 9); } on_bar { target(a); }",
+            "params { int<lower=1> n = 4; } options { warmup = n * 2 + 1; } series { real a = sma(close, 3); real unused = sma(close, 9); } on_bar { target(a); }",
         );
         assert_eq!(value(&ir, ir.warmup.as_ref().unwrap()), 9.0);
         assert_eq!(ir.warnings.len(), 1);
@@ -518,8 +518,27 @@ mod tests {
         let unused = ir.series.iter().find(|s| s.0 == "unused").unwrap().1;
         assert!(!ir.live[unused]);
         assert!(ir.live[ir.series[0].1]);
-        assert_eq!(errors("warmup close; on_bar { target(1); }"), [Code::NotConstant]);
-        assert_eq!(errors("warmup 2.5; on_bar { target(1); }"), [Code::NotWholeNumber]);
+        assert_eq!(
+            errors("options { warmup = close; } on_bar { target(1); }"),
+            [Code::NotConstant]
+        );
+        assert_eq!(
+            errors("options { warmup = 2.5; } on_bar { target(1); }"),
+            [Code::NotWholeNumber]
+        );
+        assert_eq!(
+            errors("params { real d = 2.5; } options { warmup = d; } on_bar { target(1); }"),
+            [Code::ConstParamNotInt]
+        );
+        assert_eq!(
+            errors("params { int<lower=1> n = 4; } options { warmup = n / 2; } on_bar { target(1); }"),
+            [Code::CountDivision]
+        );
+        // Checked after the series are declared: a series is not fixed before the run, not an unknown name.
+        assert_eq!(
+            errors("options { warmup = a; } series { real a = sma(close, 3); } on_bar { target(a); }"),
+            [Code::NotConstant]
+        );
         // A series read only by a handler other than on_bar is kept for it.
         let ir =
             ok("series { real a = sma(close, 3); } state { real s = 0; } on_fill { s = a; } on_bar { target(s); }");

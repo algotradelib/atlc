@@ -212,13 +212,12 @@ pub enum Item {
     Params(Vec<ParamDecl>, Span),
     Series(Vec<VarDecl>, Span),
     State(Vec<VarDecl>, Span),
-    Warmup(Expr, Span),
     Handler(HandlerKind, Vec<Stmt>, Span),
     /// `instruments { y; x; }`: named inputs, read as `y.close`.
     Instruments(Vec<Ident>, Span),
     /// `universe {}`: the same program for every instrument the run gives, with cross-sectional operators.
     Universe(Span),
-    /// `options { missing = skip; }`: choices that are part of the strategy (they change decisions).
+    /// `options { missing = skip; warmup = n + 1; }`: choices that are part of the strategy (they change decisions).
     Options(Vec<(Ident, Expr)>, Span),
     /// `functions { real clip(real z, real cap) { ... } }`: pure functions.
     Functions(Vec<FunctionDef>, Span),

@@ -1,0 +1,7 @@
+error[unknown-block]: `warmup` is not a block
+ --> tests/ui/syntax/warmup-statement.atls:4:1
+  |
+4 | warmup slow + 1;
+  | ^^^^^^ not a block
+  = the warm-up is an option: write `warmup = slow + 1;` in `options {}`
+

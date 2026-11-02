@@ -3,5 +3,5 @@ error[unknown-option]: unknown option `fill`
   |
 2 |   fill = next;
   |   ^^^^ not an option
-  = options: missing = restart | skip | poison
+  = options: missing = restart | skip | poison, warmup = EXPR
 

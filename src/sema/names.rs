@@ -141,7 +141,6 @@ impl Checker<'_> {
                 Item::Params(_, s) => ("params", *s),
                 Item::Series(_, s) => ("series", *s),
                 Item::State(_, s) => ("state", *s),
-                Item::Warmup(_, s) => ("warmup", *s),
                 Item::Handler(k, _, s) => (k.name(), *s),
                 Item::Instruments(_, s) => ("instruments", *s),
                 Item::Universe(s) => ("universe", *s),

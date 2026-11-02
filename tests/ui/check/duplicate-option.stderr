@@ -1,0 +1,8 @@
+error[duplicate-option]: a second `warmup`
+ --> tests/ui/check/duplicate-option.atls:4:3
+  |
+2 |   warmup = 10;
+  |   ------ first here
+4 |   warmup = 20;
+  |   ^^^^^^ second
+

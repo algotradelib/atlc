@@ -4,7 +4,9 @@ params {
   int<lower=fast + 1> slow = 50;
   int<lower=0> quantity = 100;
 }
-warmup slow + 1;
+options {
+  warmup = slow + 1;
+}
 series {
   real fast_avg = sma(close, fast);
   real slow_avg = sma(close, slow);

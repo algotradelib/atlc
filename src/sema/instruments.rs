@@ -209,7 +209,22 @@ impl Checker<'_> {
                     self.ir.mode = Mode::Universe;
                 }
                 Item::Options(settings, _) => {
-                    for (key, value) in settings {
+                    for (k, (key, value)) in settings.iter().enumerate() {
+                        // A known option set twice in this block (an unknown one is reported each time anyway).
+                        if matches!(key.name.as_str(), "missing" | "warmup")
+                            && let Some((first, _)) = settings[..k].iter().find(|(f, _)| f.name == key.name)
+                        {
+                            self.err(
+                                Diag::new(
+                                    Code::DuplicateOption,
+                                    format!("a second `{}`", key.name),
+                                    key.span,
+                                    "second",
+                                )
+                                .also(first.span, "first here"),
+                            );
+                            continue;
+                        }
                         self.option(key, value);
                     }
                 }

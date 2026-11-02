@@ -53,7 +53,6 @@ Item: Item = {
     <l:@L> "options" "{" <o:Opt*> "}" <r:@R> => Item::Options(o, Span::new(l, r)),
     <l:@L> "instruments" "{" <n:(<Name> ";")*> "}" <r:@R> => Item::Instruments(n, Span::new(l, r)),
     <l:@L> "universe" "{" "}" <r:@R> => Item::Universe(Span::new(l, r)),
-    <l:@L> "warmup" <e:Expr> ";" <r:@R> => Item::Warmup(e, Span::new(l, r)),
     <l:@L> "functions" "{" <f:Function*> "}" <r:@R> => Item::Functions(f, Span::new(l, r)),
     <l:@L> "indicator" <name:Name> <args:Args> "{" <parts:Part*> "}" <r:@R> =>
         Item::Indicator(IndicatorDef { name, args, parts, span: Span::new(l, r) }),
@@ -99,8 +98,13 @@ Ty: (Ty, Span) = {
     <l:@L> "bool" <r:@R> => (Ty::Bool, Span::new(l, r)),
 };
 
-// option = NAME '=' expr ';' ;
-Opt: (Ident, Expr) = <Name> "=" <Expr> ";";
+// option = ( NAME | 'warmup' ) '=' expr ';' ;
+Opt: (Ident, Expr) = <OptName> "=" <Expr> ";";
+
+OptName: Ident = {
+    Name,
+    <l:@L> "warmup" <r:@R> => Ident { name: "warmup".to_string(), span: Span::new(l, r) },
+};
 
 // function = type NAME args block ;
 Function: FunctionDef = <ret:Ty> <name:Name> <args:Args> <b:Block> =>

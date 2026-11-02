@@ -169,8 +169,11 @@ impl Checker<'_> {
             }
         }
         for item in &program.items {
-            if let Item::Warmup(e, _) = item {
-                self.warmup_item(e);
+            // The first `warmup` only: a second is refused as `duplicate-option`.
+            if let Item::Options(settings, _) = item
+                && let Some((_, value)) = settings.iter().find(|(key, _)| key.name == "warmup")
+            {
+                self.warmup_item(value);
             }
         }
         self.handlers(program);

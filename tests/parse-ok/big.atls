@@ -7,7 +7,7 @@ params {
   bool short = false;
   int plain = 0;
 }
-warmup (slow + 1) * 2;
+options { warmup = (slow + 1) * 2; }
 series {
   real s0 = sma(close, 1) * 2 - ema(close, fast)[0];
   real s1 = sma(close, 2) * 2 - ema(close, fast)[1];
