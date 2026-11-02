@@ -1,4 +1,4 @@
-# Mean reversion on a band written as a user indicator, with a function that caps the position.
+// Mean reversion on a band written as a user indicator, with a function that caps the position.
 functions {
   real capped(real shares, real cap) {
     return min(max(shares, -cap), cap);

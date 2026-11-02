@@ -11,7 +11,7 @@ You write a strategy in a few checked blocks; `atlc` turns it into a C++ strateg
 In the prototype, compiled strategies ran as fast in a backtest as the same strategies written by hand in C++.
 
 ```atls
-# Buy when the price falls well below its recent mean; sell when it comes back.
+// Buy when the price falls well below its recent mean; sell when it comes back.
 params {
   int<lower=2> lookback = 20;
   real<lower=0> entry = 2;
