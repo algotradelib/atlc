@@ -30,7 +30,7 @@ Handlers: `on_start`, `on_bar`, `on_fill`, `on_stop` ([program structure](progra
 
 ## Session legs: `on_open` and `on_close`
 
-- Universe programs only, instead of `on_bar`: either or both; the run feeds each day as an open and a close (`replay.fill = "legs"`, which requires daily bars).
+- Universe programs only, instead of `on_bar`: either or both; the run feeds each day as an open and a close (cmdatl's `replay.fill = "legs"`, which requires daily bars).
 - In `on_open`, only `open` is today's; reading today's `close`, `high` or `low` must not compile; series hold the previous close's values.
 - `held` may be read in both.
 - A target stated in `on_open` fills at the open, one in `on_close` at the close.

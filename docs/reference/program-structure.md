@@ -41,7 +41,7 @@ A universe program with `on_start` or `on_stop` must not compile (the prototype 
 - `target(x)` states the target position in shares; with named instruments `target(y, x)`.
   A finite value of magnitude at most 1e12 is truncated toward zero; an undefined, infinite or larger value states nothing.
   The last valid target stated in a handler wins: `target(keep)` does not erase an earlier one.
-  A target may be negative; whether the run lets a position go below zero is a setting of the run (cmdatl's `replay.shorts`).
+  A target may be negative; whether a position may go below zero is a setting of the run (cmdatl's `replay.shorts`).
 - `held` (the position, a `real`) is read in `on_bar`, and in a universe's `on_open` and `on_close`; with named instruments `y.held`, in `on_bar` only.
   `fill.price`, `fill.quantity` (`real`) and `fill.buy` (`bool`) are read in `on_fill`.
 - There is no I/O, no `while`, no recursion and no order other than a target.
