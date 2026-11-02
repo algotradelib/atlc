@@ -84,10 +84,8 @@ pub fn print(ir: &Ir, options: &Options) -> String {
 
 /// The runtime headers, by path under an include directory, as compiled into this binary: the headers the code it
 /// generates is written for.
-pub const RUNTIME: [(&str, &str); 4] = [
-    ("atls/args.hpp", include_str!("../../runtime/include/atls/args.hpp")),
+pub const RUNTIME: [(&str, &str); 2] = [
     ("atls/ops.hpp", include_str!("../../runtime/include/atls/ops.hpp")),
-    ("atls/run.hpp", include_str!("../../runtime/include/atls/run.hpp")),
     (
         "atls/universe.hpp",
         include_str!("../../runtime/include/atls/universe.hpp"),
