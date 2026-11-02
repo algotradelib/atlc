@@ -1,0 +1,7 @@
+error[unknown-block]: unknown block `replay`
+ --> tests/ui/syntax/replay-block.atls:7:1
+  |
+7 | replay {
+  | ^^^^^^ not a block
+  = a program holds no run settings: data, dates, costs and fills go in cmdatl's run spec or on its command line
+

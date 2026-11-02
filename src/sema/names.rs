@@ -145,7 +145,6 @@ impl Checker<'_> {
                 Item::Handler(k, _, s) => (k.name(), *s),
                 Item::Instruments(_, s) => ("instruments", *s),
                 Item::Universe(s) => ("universe", *s),
-                Item::Replay(_, s) => ("replay", *s),
                 Item::Options(_, s) => ("options", *s),
                 Item::Functions(_, s) => ("functions", *s),
                 Item::Indicator(_) => continue,

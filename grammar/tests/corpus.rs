@@ -73,7 +73,7 @@ fn diagnostic_only(p: &Program) -> bool {
             IndPart::State(v) | IndPart::Value(v) => expr(&v.init),
             IndPart::Update(b, _) | IndPart::Enter(_, b, _) | IndPart::Leave(_, b, _) => stmts(b),
         }),
-        Item::Instruments(..) | Item::Universe(_) | Item::Replay(..) => false,
+        Item::Instruments(..) | Item::Universe(_) => false,
     })
 }
 

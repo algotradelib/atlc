@@ -3,5 +3,5 @@ error[expected-block]: expected a block, found `;`
   |
 4 | ;
   | ^ a program is made of blocks
-  = blocks: instruments {}, universe {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, warmup EXPR;, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}, replay {}
+  = blocks: instruments {}, universe {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, warmup EXPR;, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}
 

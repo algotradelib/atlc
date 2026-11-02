@@ -21,7 +21,8 @@ lalrpop_util::lalrpop_mod!(
 pub enum T {
     Num(f64, bool),
     Ident(String),
-    Str(String),
+    /// A string, which no rule takes.
+    Str,
     Kw(&'static str),
     P(&'static str),
 }
@@ -36,7 +37,7 @@ fn terminal(tok: Tok) -> T {
             Some(k) => T::Kw(k),
             None => T::Ident(s),
         },
-        Tok::Str(s) => T::Str(s),
+        Tok::Str(_) => T::Str,
         Tok::Punct(p) => T::P(p),
         Tok::Eof => unreachable!("the end of the file is not passed to the parser"),
     }

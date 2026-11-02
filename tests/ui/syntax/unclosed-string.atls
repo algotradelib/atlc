@@ -1,4 +1,3 @@
-replay {
-  market = "krx;
+on_bar {
+  target("one);
 }
-on_bar { target(1); }

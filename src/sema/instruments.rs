@@ -176,7 +176,7 @@ impl Checker<'_> {
         Some(Self::h(HKind::Xs(op, Box::new(a), id), Ty::Real, maybe))
     }
 
-    /// `instruments {}`, `universe {}`, `replay {}` and `options {}`: how the program sees instruments,
+    /// `instruments {}`, `universe {}` and `options {}`: how the program sees instruments,
     /// and its missing-value policy.
     pub(super) fn modes(&mut self, program: &Program) {
         let mut named: Option<Span> = None;
@@ -208,7 +208,6 @@ impl Checker<'_> {
                     universe = Some(*span);
                     self.ir.mode = Mode::Universe;
                 }
-                Item::Replay(settings, _) => self.ir.replay = settings.clone(),
                 Item::Options(settings, _) => {
                     for (key, value) in settings {
                         self.option(key, value);

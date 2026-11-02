@@ -18,8 +18,7 @@ pub(super) fn join_ty(a: Ty, b: Ty) -> Ty {
 /// strategy (literals, defaults and parameter values), and the strategy's setter refuses more than this.
 pub(super) const INT_LITERAL_MAX: f64 = 9e15;
 
-/// Calls `f` on every expression of the program, outermost first (`replay {}` holds settings, not
-/// expressions).
+/// Calls `f` on every expression of the program, outermost first.
 fn each_expr(program: &Program, f: &mut dyn FnMut(&Expr)) {
     fn expr(e: &Expr, f: &mut dyn FnMut(&Expr)) {
         f(e);
@@ -85,7 +84,7 @@ fn each_expr(program: &Program, f: &mut dyn FnMut(&Expr)) {
                     }
                 }
             }
-            Item::Instruments(..) | Item::Universe(_) | Item::Replay(..) => {}
+            Item::Instruments(..) | Item::Universe(_) => {}
         }
     }
 }
@@ -373,8 +372,6 @@ mod tests {
         );
         // A real literal of any size is not an `int` literal.
         ok("params { real big = 1e300; } series { real s = close * 1e16; } on_bar { target(s / big); }");
-        // Settings of `replay {}` are run-spec values, not `int`s.
-        ok("replay { cash = 100000000000000000; } on_bar { target(1); }");
     }
 
     #[test]

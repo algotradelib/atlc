@@ -1,0 +1,14 @@
+instruments { y; x; }
+params { real scale = 100; }
+on_bar {
+  target(y, scale);
+  target(x, -scale);
+}
+replay {
+  data.file = "../data/closes.csv";
+  instruments.y = "EWC";
+  instruments.x = "EWA";
+  replay.cash = 100000;
+  replay.fill = "open-prev-close";
+  replay.shorts = true;
+}

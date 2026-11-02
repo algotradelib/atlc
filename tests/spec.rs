@@ -362,17 +362,11 @@ fn layers_and_paths_resolve_from_anywhere() {
     for d in [&programs, &specs, &elsewhere] {
         std::fs::create_dir_all(d).unwrap();
     }
-    std::fs::write(
-        programs.join("layered.atls"),
-        format!(
-            "replay {{\n  data.file = \"closes.csv\";\n  replay.cash = 1;\n  replay.commission = 0.1;\n  orders.offset = 0.002;\n}}\n{PROGRAM}"
-        ),
-    )
-    .unwrap();
+    std::fs::write(programs.join("layered.atls"), PROGRAM).unwrap();
     std::fs::write(
         specs.join("s.toml"),
-        "strategy = '../programs/layered.atls'\n[data]\nopen = 'opens.csv'\n[replay]\ncash = 2\n[params]\nlookback = 10\n\
-         [orders]\ntype = \"limit\"\n",
+        "strategy = '../programs/layered.atls'\n[data]\nfile = '../programs/closes.csv'\nopen = 'opens.csv'\n\
+         [replay]\ncash = 2\ncommission = 0.1\n[params]\nlookback = 10\n[orders]\ntype = \"limit\"\noffset = 0.002\n",
     )
     .unwrap();
     let relative = Path::new("..").join(odd).join("specs").join("s.toml");
@@ -393,7 +387,7 @@ fn layers_and_paths_resolve_from_anywhere() {
             .unwrap_or_else(|| panic!("no {key} in {args:?}"))
             .to_string()
     };
-    // replay {} < spec < -P; each path against the file that sets it.
+    // The spec < -P; each path against the spec.
     assert_eq!(arg("replay.cash"), "2");
     assert_eq!(arg("replay.commission"), "0.1");
     assert_eq!(arg("param.lookback"), "20");

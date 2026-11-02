@@ -69,8 +69,8 @@ pub struct Preparation {
 }
 
 /// Prepares a spec as `atlc run` uses it, building nothing: the spec read (its path made absolute), the program read,
-/// its struct name validated and the program checked, its `replay {}` merged under the spec and `cli` (`-P`), then
-/// resolved, with the build paths CMake will be given checked.
+/// its struct name validated and the program checked, the spec merged under `cli` (`-P`), then resolved, with the
+/// build paths CMake will be given checked.
 pub fn prepare(spec_path: &Path, cli: Vec<Entry>) -> Preparation {
     let spec = std::path::absolute(spec_path).unwrap_or_else(|_| spec_path.to_path_buf());
     let mut p = Preparation {
@@ -101,8 +101,7 @@ fn prepared(p: &mut Preparation, cli: Vec<Entry>) -> Result<Ready, Stop> {
     p.program = Some((strategy.clone(), source.clone()));
     let ir = crate::check(&source).map_err(Stop::Program)?;
     p.warnings = ir.warnings.clone();
-    let replay = spec::from_replay(&ir.replay, &strategy, &source).map_err(Stop::Spec)?;
-    let run = spec::resolve(&[replay, entries, cli], &Program::of(&ir)).map_err(Stop::Spec)?;
+    let run = spec::resolve(&[entries, cli], &Program::of(&ir)).map_err(Stop::Spec)?;
     Ok(Ready { name, ir, run })
 }
 

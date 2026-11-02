@@ -288,8 +288,7 @@ fn the_examples_check() {
         let (strategy, entries) = atlc::spec::read(&path).unwrap_or_else(|e| panic!("{e:?}"));
         let source = std::fs::read_to_string(&strategy).unwrap();
         let ir = atlc::check(&source).unwrap_or_else(|_| panic!("{}", strategy.display()));
-        let replay = atlc::spec::from_replay(&ir.replay, &strategy, &source).unwrap();
-        let run = atlc::spec::resolve(&[replay, entries], &atlc::spec::Program::of(&ir))
+        let run = atlc::spec::resolve(&[entries], &atlc::spec::Program::of(&ir))
             .unwrap_or_else(|e| panic!("{}: {e:?}", path.display()));
         assert!(!run.store);
         let data = run.args.iter().find(|(k, _)| k == "data.file").unwrap();

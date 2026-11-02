@@ -39,8 +39,6 @@ codes! {
     UnknownBlock = "unknown-block",
     V0Syntax = "v0-syntax",
     LiveBlock = "live-block",
-    ExpectedSetting = "expected-setting",
-    ExpectedLiteral = "expected-literal",
     ExpectedIndicatorPart = "expected-indicator-part",
     ExpectedType = "expected-type",
     UnknownType = "unknown-type",

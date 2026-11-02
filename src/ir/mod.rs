@@ -491,8 +491,6 @@ pub struct Ir {
     pub legs: bool,
     /// How many `xs_*` values the handlers compute.
     pub xs_count: usize,
-    /// `replay {}`, as written.
-    pub replay: Vec<crate::frontend::ast::Setting>,
     /// The program's missing-value policy (`options { missing = ...; }`), restart by default.
     pub missing: Policy,
     /// A universe whose policy is skip or poison: every instrument takes every period, and a period
@@ -519,7 +517,6 @@ impl Default for Ir {
             mode: Mode::Single,
             legs: false,
             xs_count: 0,
-            replay: vec![],
             missing: Policy::Restart,
             period_clock: false,
             functions: vec![],

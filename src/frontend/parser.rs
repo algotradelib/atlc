@@ -92,7 +92,10 @@ const BLOCKS: [&str; 16] = [
     "indicator",
 ];
 
-const BLOCKS_NOTE: &str = "blocks: instruments {}, universe {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, warmup EXPR;, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}, replay {}";
+const BLOCKS_NOTE: &str = "blocks: instruments {}, universe {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, warmup EXPR;, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}";
+
+const REPLAY_NOTE: &str =
+    "a program holds no run settings: data, dates, costs and fills go in cmdatl's run spec or on its command line";
 
 impl Parser {
     fn peek(&self) -> &Token {
@@ -302,19 +305,26 @@ impl Parser {
             }
             "replay" => {
                 self.bump();
-                self.expect_punct("{", "after `replay`")?;
-                let mut settings = vec![];
-                while !self.is_punct("}") && self.peek().tok != Tok::Eof {
-                    match self.setting() {
-                        Ok(st) => settings.push(st),
-                        Err(d) => {
-                            self.errors.push(d);
-                            self.recover();
+                // No longer a block: skip its braces (strings and dotted keys included), so that it gives one error.
+                if self.is_punct("{") {
+                    let mut depth = 0usize;
+                    loop {
+                        match &self.peek().tok {
+                            Tok::Eof => break,
+                            Tok::Punct("{") => depth += 1,
+                            Tok::Punct("}") => {
+                                depth -= 1;
+                                if depth == 0 {
+                                    self.bump();
+                                    break;
+                                }
+                            }
+                            _ => {}
                         }
+                        self.bump();
                     }
                 }
-                let end = self.expect_punct("}", "to close `replay`")?;
-                Ok(Item::Replay(settings, t.span.to(end)))
+                Err(Diag::new(Code::UnknownBlock, "unknown block `replay`", t.span, "not a block").note(REPLAY_NOTE))
             }
             "functions" => {
                 self.bump();
@@ -392,67 +402,6 @@ impl Parser {
                 .note("live settings (broker, account, limits) belong to the run spec and the operator's configuration, never to the strategy")),
             _ => Err(Diag::new(Code::UnknownBlock, format!("unknown block `{}`", word), t.span, "not a block").note(BLOCKS_NOTE)),
         }
-    }
-
-    /// `section.key = value;` in `replay {}`.
-    fn setting(&mut self) -> R<Setting> {
-        let first = self.peek().clone();
-        let mut key = match &first.tok {
-            Tok::Ident(s) => s.clone(),
-            _ => {
-                return Err(Diag::new(
-                    Code::ExpectedSetting,
-                    format!("expected a setting name, found {}", first.describe()),
-                    first.span,
-                    "e.g. `cash = 100000;`",
-                ));
-            }
-        };
-        self.bump();
-        let mut span = first.span;
-        while self.eat_punct(".") {
-            let t = self.peek().clone();
-            match &t.tok {
-                Tok::Ident(s) => {
-                    key.push('.');
-                    key.push_str(s);
-                    span = span.to(t.span);
-                    self.bump();
-                }
-                _ => {
-                    return Err(Diag::new(
-                        Code::ExpectedSetting,
-                        format!("expected a name after `.`, found {}", t.describe()),
-                        t.span,
-                        "a dotted key",
-                    ));
-                }
-            }
-        }
-        self.expect_punct("=", &format!("after `{}`", key))?;
-        let t = self.peek().clone();
-        let neg = self.eat_punct("-");
-        let t2 = self.peek().clone();
-        let value = match &t2.tok {
-            Tok::Num(v, _) => Lit::Num(if neg { -*v } else { *v }),
-            Tok::Str(s) if !neg => Lit::Str(s.clone()),
-            Tok::Ident(s) if !neg && (s == "true" || s == "false") => Lit::Bool(s == "true"),
-            _ => {
-                return Err(Diag::new(
-                    Code::ExpectedLiteral,
-                    format!("expected a number, a string or a bool, found {}", t2.describe()),
-                    t2.span,
-                    "a setting's value is a literal",
-                ));
-            }
-        };
-        self.bump();
-        let end = self.expect_punct(";", "after the setting")?;
-        Ok(Setting {
-            key,
-            value,
-            span: span.to(t.span).to(end),
-        })
     }
 
     /// `(real x, int n)`.
@@ -1211,18 +1160,10 @@ mod tests {
 
     #[test]
     fn statements_and_blocks() {
-        let p = parse("params { int<lower=1, upper=n * 2> n = 3; } replay { cash = -1; fill.mode = \"x\"; replay.on = true; } \
+        let p = parse("params { int<lower=1, upper=n * 2> n = 3; } \
                        on_bar { target(y, 1); for (i in 1:n) { } while (true) { } f(1); if (a) { } else if (b) { } else { } return 1; }")
             .unwrap();
-        let Item::Replay(settings, _) = &p.items[1] else {
-            panic!()
-        };
-        assert_eq!(
-            settings.iter().map(|s| s.key.as_str()).collect::<Vec<_>>(),
-            ["cash", "fill.mode", "replay.on"]
-        );
-        assert_eq!(settings[0].value, Lit::Num(-1.0));
-        let Item::Handler(_, body, _) = &p.items[2] else {
+        let Item::Handler(_, body, _) = &p.items[1] else {
             panic!()
         };
         assert!(matches!(&body[0], Stmt::Target { inst: Some(i), .. } if i.name == "y"));
@@ -1244,6 +1185,17 @@ mod tests {
         assert_eq!(codes("param n = 1;"), [Code::V0Syntax]);
         assert_eq!(codes("on_bar { target = 1; }"), [Code::V0Syntax]);
         assert_eq!(codes("live { }"), [Code::LiveBlock]);
+        // A `replay {}` is skipped whole, strings, blocks' names and nested braces included: one error.
+        assert_eq!(
+            codes("replay { data.file = \"a\"; instruments.y = \"Y\"; x = { on_bar }; } on_bar { target(1); }"),
+            [Code::UnknownBlock]
+        );
+        assert_eq!(codes("replay { instruments.y = \"Y\";"), [Code::UnknownBlock]);
+        assert_eq!(codes("replay on_bar { target(1); }"), [Code::UnknownBlock]);
+        assert_eq!(
+            codes("replay {} replay {} on_bar { target(1) }"),
+            [Code::UnknownBlock, Code::UnknownBlock, Code::ExpectedToken]
+        );
         assert_eq!(codes("1"), [Code::ExpectedBlock]);
         assert_eq!(codes("params { int for = 1; }"), [Code::KeywordAsName]);
         assert_eq!(codes("on_bar {"), [Code::ExpectedToken]);

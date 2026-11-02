@@ -8,7 +8,7 @@ pub enum Tok {
     /// A number and whether it was written as an integer.
     Num(f64, bool),
     Ident(String),
-    /// A string, in `replay {}` only.
+    /// A string: no rule takes one, but a program that has one gets a parser's error, not a lexer's.
     Str(String),
     Punct(&'static str),
     Eof,

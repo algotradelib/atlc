@@ -218,8 +218,6 @@ pub enum Item {
     Instruments(Vec<Ident>, Span),
     /// `universe {}`: the same program for every instrument the run gives, with cross-sectional operators.
     Universe(Span),
-    /// `replay { key = value; ... }`: run settings a run spec overrides.
-    Replay(Vec<Setting>, Span),
     /// `options { missing = skip; }`: choices that are part of the strategy (they change decisions).
     Options(Vec<(Ident, Expr)>, Span),
     /// `functions { real clip(real z, real cap) { ... } }`: pure functions.
@@ -270,22 +268,6 @@ pub struct IndicatorDef {
     pub name: Ident,
     pub args: Vec<Arg>,
     pub parts: Vec<IndPart>,
-    pub span: Span,
-}
-
-/// A literal value in `replay {}` or a run spec.
-#[derive(Clone, Debug, PartialEq)]
-pub enum Lit {
-    Num(f64),
-    Str(String),
-    Bool(bool),
-}
-
-/// One `section.key = value;` of `replay {}`.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Setting {
-    pub key: String,
-    pub value: Lit,
     pub span: Span,
 }
 

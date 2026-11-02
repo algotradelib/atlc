@@ -29,14 +29,15 @@ Not reachable today: every token the lexer takes for a number is a valid one.
 
 ### `unclosed-string`
 
-A string (in `replay {}`) without its closing `"` on the same line.
+A string without its closing `"` on the same line.
+A closed string is read as a token, but no rule of the language takes one.
 
 ```
 error[unclosed-string]: this string is never closed
- --> tests/ui/syntax/unclosed-string.atls:2:12
+ --> tests/ui/syntax/unclosed-string.atls:2:10
   |
-2 |   market = "krx;
-  |            ^^^^^ add `"`
+2 |   target("one);
+  |          ^^^^^^ add `"`
 ```
 
 From `tests/ui/syntax/unclosed-string.atls`.
@@ -109,7 +110,7 @@ error[expected-block]: expected a block, found `;`
   |
 4 | ;
   | ^ a program is made of blocks
-  = blocks: instruments {}, universe {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, warmup EXPR;, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}, replay {}
+  = blocks: instruments {}, universe {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, warmup EXPR;, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}
 ```
 
 From `tests/ui/syntax/stray-token.atls`.
@@ -124,10 +125,23 @@ error[unknown-block]: unknown block `strategy`
   |
 1 | strategy {
   | ^^^^^^^^ not a block
-  = blocks: instruments {}, universe {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, warmup EXPR;, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}, replay {}
+  = blocks: instruments {}, universe {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, warmup EXPR;, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}
 ```
 
 From `tests/ui/syntax/unknown-block.atls`.
+
+`replay` is a reserved word but no block: a `replay {}` is skipped whole and reported once, since a program holds no run settings.
+
+```
+error[unknown-block]: unknown block `replay`
+ --> tests/ui/syntax/replay-block.atls:7:1
+  |
+7 | replay {
+  | ^^^^^^ not a block
+  = a program holds no run settings: data, dates, costs and fills go in cmdatl's run spec or on its command line
+```
+
+From `tests/ui/syntax/replay-block.atls`.
 
 ### `v0-syntax`
 
@@ -158,34 +172,6 @@ error[live-block]: a program has no `live {}` block
 ```
 
 From `tests/ui/syntax/live-block.atls`.
-
-### `expected-setting`
-
-A `replay {}` setting does not start with a (dotted) key.
-
-```
-error[expected-setting]: expected a setting name, found a number
- --> tests/ui/syntax/expected-setting.atls:2:3
-  |
-2 |   1 = 2;
-  |   ^ e.g. `cash = 100000;`
-```
-
-From `tests/ui/syntax/expected-setting.atls`.
-
-### `expected-literal`
-
-A `replay {}` setting's value is not a number, a string or a bool.
-
-```
-error[expected-literal]: expected a number, a string or a bool, found `close`
- --> tests/ui/syntax/expected-literal.atls:2:10
-  |
-2 |   cash = close;
-  |          ^^^^^ a setting's value is a literal
-```
-
-From `tests/ui/syntax/expected-literal.atls`.
 
 ### `expected-indicator-part`
 

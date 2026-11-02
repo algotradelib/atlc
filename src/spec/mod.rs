@@ -1,6 +1,5 @@
 //! Run specs ([run spec](../../docs/reference/run-spec.md)): what a program is replayed on, read from a TOML subset
-//! (`toml`), from the program's `replay {}` block and from the command line, checked key by key and then as a
-//! whole against the program, and flattened to the settings the replay driver (`runtime/include/atls/run.hpp`)
+//! (`toml`) and from the command line, checked key by key and then as a whole against the program, and flattened to the settings the replay driver (`runtime/include/atls/run.hpp`)
 //! reads as `key=value` arguments.
 
 mod toml;
@@ -13,7 +12,7 @@ use crate::backend::Indicators;
 /// Where a setting came from, for messages.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Origin {
-    /// A file and a line: the spec, or the program's `replay {}`.
+    /// A line of the spec.
     File(PathBuf, usize),
     /// `-P name=value`.
     CommandLine,
@@ -31,7 +30,7 @@ impl fmt::Display for Origin {
 /// Where an error is.
 #[derive(Clone, Debug, PartialEq)]
 pub enum At {
-    /// A line of a file: the spec, or the program's `replay {}`.
+    /// A line of the spec.
     Line(PathBuf, usize),
     /// A file as a whole: one that cannot be read, or that lacks something.
     File(PathBuf),
@@ -565,73 +564,6 @@ pub fn read(path: &Path) -> Result<(PathBuf, Vec<Entry>), Vec<Error>> {
     Ok((PathBuf::from(strategy), entries))
 }
 
-/// The settings of a program's `replay {}` (paths made absolute against the program's directory).
-pub fn from_replay(
-    settings: &[crate::frontend::ast::Setting],
-    file: &Path,
-    source: &str,
-) -> Result<Vec<Entry>, Vec<Error>> {
-    use crate::frontend::ast::Lit;
-    let mut out: Vec<Entry> = vec![];
-    let mut errors = vec![];
-    for s in settings {
-        let line = source[..s.span.start.min(source.len())].matches('\n').count() + 1;
-        let origin = Origin::File(file.to_path_buf(), line);
-        if s.key == "strategy" || s.key.starts_with("params.") {
-            errors.push(Error::at(
-                &origin,
-                format!(
-                    "`{}` cannot be set in `replay {{}}` (a parameter's default is in `params {{}}`)",
-                    s.key
-                ),
-            ));
-            continue;
-        }
-        if let Some(first) = out.iter().find(|e| e.key == s.key) {
-            errors.push(Error::at(
-                &origin,
-                format!("`{}` is already set on {}", s.key, first.origin),
-            ));
-            continue;
-        }
-        let value = match &s.value {
-            Lit::Str(v) => Value::Str(v.clone()),
-            Lit::Num(v) => Value::Num(
-                written(source.get(s.span.start..s.span.end).unwrap_or_default(), *v),
-                *v,
-            ),
-            Lit::Bool(v) => Value::Bool(*v),
-        };
-        let mut e = Entry {
-            key: s.key.clone(),
-            value,
-            origin,
-        };
-        match check(&mut e) {
-            Ok(()) => out.push(e),
-            Err(m) => errors.push(m),
-        }
-    }
-    if errors.is_empty() { Ok(out) } else { Err(errors) }
-}
-
-/// A number of a `replay {}` setting as written, with its sign: the replay reads the text, as it reads a spec's.
-fn written(setting: &str, value: f64) -> String {
-    use crate::frontend::lexer::{Tok, lex};
-    let token = lex(setting).ok().and_then(|tokens| {
-        tokens
-            .iter()
-            .find(|t| matches!(t.tok, Tok::Num(..)))
-            .and_then(|t| setting.get(t.span.start..t.span.end))
-            .map(str::to_string)
-    });
-    match token {
-        Some(t) if value.is_sign_negative() => format!("-{t}"),
-        Some(t) => t,
-        None => format!("{value}"),
-    }
-}
-
 /// `-P name=value`: a parameter from the command line; a malformed one is a usage error.
 pub fn from_command_line(assignment: &str) -> Result<Entry, Error> {
     let Some((name, text)) = assignment.split_once('=') else {
@@ -978,7 +910,7 @@ fn offset(s: &str) -> bool {
         && b[..2].iter().chain(&b[3..]).all(u8::is_ascii_digit)
 }
 
-/// Merges the layers (later winning: the program's `replay {}`, the spec, the command line) and checks them
+/// Merges the layers (later winning: the spec, then the command line) and checks them
 /// together against the program; every error found.
 pub fn resolve(layers: &[Vec<Entry>], program: &Program) -> Result<Run, Vec<Error>> {
     let mut merged: Vec<Entry> = vec![];
@@ -1484,21 +1416,12 @@ mod tests {
 
     #[test]
     fn layers_merge_later_winning() {
-        let program_layer = vec![
-            Entry {
-                key: "replay.cash".into(),
-                value: Value::Num("5".into(), 5.0),
-                origin: Origin::File("p.atls".into(), 3),
-            },
-            Entry {
-                key: "replay.shorts".into(),
-                value: Value::Bool(true),
-                origin: Origin::File("p.atls".into(), 4),
-            },
-        ];
-        let spec_layer = spec(&format!("{WIDE_SPEC}[replay]\ncash = 7\n[params]\nlookback = 30\n")).unwrap();
+        let spec_layer = spec(&format!(
+            "{WIDE_SPEC}[replay]\ncash = 7\nshorts = true\n[params]\nlookback = 30\n"
+        ))
+        .unwrap();
         let cli = vec![from_command_line("lookback=40").unwrap()];
-        let r = resolve(&[program_layer, spec_layer, cli], &single()).unwrap();
+        let r = resolve(&[spec_layer, cli], &single()).unwrap();
         assert_eq!(arg(&r, "replay.cash"), Some("7"));
         assert_eq!(arg(&r, "replay.shorts"), Some("true"));
         assert_eq!(arg(&r, "param.lookback"), Some("40"));
@@ -1676,50 +1599,6 @@ mod tests {
     }
 
     #[test]
-    fn replay_block_settings() {
-        use crate::frontend::ast::Span;
-        use crate::frontend::ast::{Lit, Setting};
-        let source = "replay {\n  data.file = \"c.csv\";\n  replay.cash = 100;\n}\n";
-        let at = |line_start: usize| Span {
-            start: line_start,
-            end: line_start + 1,
-        };
-        let s = |k: &str, v: Lit, start| Setting {
-            key: k.into(),
-            value: v,
-            span: at(start),
-        };
-        let ok = from_replay(
-            &[
-                s("data.file", Lit::Str("c.csv".into()), 11),
-                s("replay.cash", Lit::Num(1e5), 33),
-            ],
-            Path::new("/p/m.atls"),
-            source,
-        )
-        .unwrap();
-        assert_eq!(ok[0].value.text(), Path::new("/p").join("c.csv").display().to_string());
-        assert_eq!(ok[0].origin.to_string(), "/p/m.atls:2");
-        assert_eq!(ok[1].value.text(), "100000");
-        let e = from_replay(
-            &[
-                s("params.lookback", Lit::Num(3.0), 11),
-                s("replay.cash", Lit::Num(1.0), 11),
-                s("replay.cash", Lit::Num(2.0), 33),
-                s("replay.fill", Lit::Num(2.0), 33),
-            ],
-            Path::new("/p/m.atls"),
-            source,
-        )
-        .unwrap_err();
-        let e = texts(e);
-        assert_eq!(e.len(), 3, "{e:?}");
-        assert!(e[0].contains("cannot be set in `replay {}`"));
-        assert!(e[1].contains("/p/m.atls:3: `replay.cash` is already set on /p/m.atls:2"));
-        assert!(e[2].contains("`replay.fill` is one of"));
-    }
-
-    #[test]
     fn orders_are_checked_on_their_text() {
         let p = single();
         let none = run(WIDE_SPEC, &p).unwrap();
@@ -1778,36 +1657,39 @@ mod tests {
     }
 
     #[test]
-    fn orders_merge_across_layers_and_replay_numbers_keep_their_text() {
-        let program = "replay {\n  orders.offset = 0.299999999999999999;\n  replay.commission = 1.5e-4;\n}\non_bar {\n  target(1);\n}\n";
-        let ast = crate::frontend::parse(program).unwrap();
-        let settings = ast
-            .items
-            .iter()
-            .find_map(|i| match i {
-                crate::frontend::ast::Item::Replay(s, _) => Some(s.clone()),
-                _ => None,
-            })
-            .unwrap();
-        let layer = from_replay(&settings, Path::new("/p/m.atls"), program).unwrap();
-        assert_eq!(layer[0].value.text(), "0.299999999999999999");
-        assert_eq!(layer[0].origin, Origin::File("/p/m.atls".into(), 2));
-        assert_eq!(layer[1].value.text(), "0.00015");
-        // The program's offset needs a limit, which the spec gives; without it the program's line is named.
-        let spec_layer = spec(&format!("{WIDE_SPEC}[orders]\ntype = \"limit\"\n")).unwrap();
-        let r = resolve(&[layer.clone(), spec_layer], &single()).unwrap();
-        assert_eq!(r.orders.offset, "0.299999999999999999");
-        let e = texts(resolve(&[layer, spec(WIDE_SPEC).unwrap()], &single()).unwrap_err());
-        assert!(e[0].starts_with("/p/m.atls:2: `orders.offset` prices a limit"), "{e:?}");
-        for value in ["2e-3", "-0.5", "0.3"] {
-            let program = format!("replay {{\n  orders.offset = {value};\n}}\non_bar {{\n  target(1);\n}}\n");
-            let ast = crate::frontend::parse(&program).unwrap();
-            let crate::frontend::ast::Item::Replay(settings, _) = &ast.items[0] else {
-                panic!("{program}");
+    fn orders_merge_across_layers() {
+        // A setting given on the command line, as a later layer.
+        let cli = |key: &str, value: Value| {
+            let mut e = Entry {
+                key: key.into(),
+                value,
+                origin: Origin::CommandLine,
             };
-            let e = texts(from_replay(settings, Path::new("/p/m.atls"), &program).unwrap_err());
-            assert!(e[0].starts_with("/p/m.atls:2: `orders.offset` is "), "{value}: {e:?}");
-        }
+            check(&mut e).unwrap();
+            vec![e]
+        };
+        let limit = || cli("orders.type", Value::Str("limit".into()));
+        // The offset in the spec, the order type on the command line: the offset keeps its text.
+        let offset = spec(&format!("{WIDE_SPEC}[orders]\noffset = 0.299999999999999999\n")).unwrap();
+        let r = resolve(&[offset.clone(), limit()], &single()).unwrap();
+        assert_eq!(r.orders.offset, "0.299999999999999999");
+        assert_eq!(arg(&r, "orders.type"), Some("limit"));
+        // Without the order type, the offset's own line is named.
+        let e = texts(resolve(&[offset], &single()).unwrap_err());
+        assert!(
+            e[0].starts_with("/specs/s.toml:5: `orders.offset` prices a limit"),
+            "{e:?}"
+        );
+        // The order type in the spec, the offset on the command line.
+        let typed = spec(&format!("{WIDE_SPEC}[orders]\ntype = \"limit\"\n")).unwrap();
+        let offset = cli("orders.offset", Value::Num("0.002".into(), 0.002));
+        let r = resolve(&[typed, offset.clone()], &single()).unwrap();
+        assert_eq!(arg(&r, "orders.offset"), Some("0.002"));
+        let e = texts(resolve(&[spec(WIDE_SPEC).unwrap(), offset], &single()).unwrap_err());
+        assert!(
+            e[0].starts_with("the command line: `orders.offset` prices a limit"),
+            "{e:?}"
+        );
     }
 
     #[test]

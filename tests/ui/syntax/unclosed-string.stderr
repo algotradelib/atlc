@@ -1,6 +1,6 @@
 error[unclosed-string]: this string is never closed
- --> tests/ui/syntax/unclosed-string.atls:2:12
+ --> tests/ui/syntax/unclosed-string.atls:2:10
   |
-2 |   market = "krx;
-  |            ^^^^^ add `"`
+2 |   target("one);
+  |          ^^^^^^ add `"`
 

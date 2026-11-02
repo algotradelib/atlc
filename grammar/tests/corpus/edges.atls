@@ -1,5 +1,4 @@
 # Corners of the grammar that the other programs do not reach; it parses, whatever the checker says.
-replay { replay.on_bar = -1.5; if.else = "x"; window = true; fill = false; target.state.in = 2; }
 params {
   int<lower=1, lower=2, upper=3> n = (20);
   real<upper=-(1 + 2) * 3> lower = -.5e-3;

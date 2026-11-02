@@ -14,11 +14,10 @@ extern {
     enum T {
         Num => T::Num(<f64>, <bool>),
         Id => T::Ident(<String>),
-        Str => T::Str(<String>),
         // Reserved everywhere.
         "params" => T::Kw("params"), "series" => T::Kw("series"), "state" => T::Kw("state"),
         "options" => T::Kw("options"), "functions" => T::Kw("functions"),
-        "instruments" => T::Kw("instruments"), "universe" => T::Kw("universe"), "replay" => T::Kw("replay"),
+        "instruments" => T::Kw("instruments"), "universe" => T::Kw("universe"),
         "warmup" => T::Kw("warmup"), "indicator" => T::Kw("indicator"),
         "on_start" => T::Kw("on_start"), "on_bar" => T::Kw("on_bar"), "on_fill" => T::Kw("on_fill"),
         "on_stop" => T::Kw("on_stop"), "on_open" => T::Kw("on_open"), "on_close" => T::Kw("on_close"),
@@ -54,7 +53,6 @@ Item: Item = {
     <l:@L> "options" "{" <o:Opt*> "}" <r:@R> => Item::Options(o, Span::new(l, r)),
     <l:@L> "instruments" "{" <n:(<Name> ";")*> "}" <r:@R> => Item::Instruments(n, Span::new(l, r)),
     <l:@L> "universe" "{" "}" <r:@R> => Item::Universe(Span::new(l, r)),
-    <l:@L> "replay" "{" <s:Setting*> "}" <r:@R> => Item::Replay(s, Span::new(l, r)),
     <l:@L> "warmup" <e:Expr> ";" <r:@R> => Item::Warmup(e, Span::new(l, r)),
     <l:@L> "functions" "{" <f:Function*> "}" <r:@R> => Item::Functions(f, Span::new(l, r)),
     <l:@L> "indicator" <name:Name> <args:Args> "{" <parts:Part*> "}" <r:@R> =>
@@ -103,37 +101,6 @@ Ty: (Ty, Span) = {
 
 // option = NAME '=' expr ';' ;
 Opt: (Ident, Expr) = <Name> "=" <Expr> ";";
-
-// setting = KEY ( '.' KEY )* '=' ( '-'? NUMBER | STRING | 'true' | 'false' ) ';' ;  KEY: any word.
-Setting: Setting = <l:@L> <first:Key> <rest:("." <Key>)*> "=" <value:Lit> ";" <r:@R> => {
-    let key = std::iter::once(first).chain(rest).collect::<Vec<_>>().join(".");
-    Setting { key, value, span: Span::new(l, r) }
-};
-
-Lit: Lit = {
-    "-" <n:Num> => Lit::Num(-n.0),
-    <n:Num> => Lit::Num(n.0),
-    <s:Str> => Lit::Str(s),
-    "true" => Lit::Bool(true),
-    "false" => Lit::Bool(false),
-};
-
-Key: String = {
-    <Id>,
-    <k:Keyword> => k.to_string(),
-};
-
-Keyword: &'static str = {
-    "params" => "params", "series" => "series", "state" => "state", "options" => "options",
-    "functions" => "functions", "instruments" => "instruments", "universe" => "universe", "replay" => "replay",
-    "warmup" => "warmup", "indicator" => "indicator", "on_start" => "on_start", "on_bar" => "on_bar",
-    "on_fill" => "on_fill", "on_stop" => "on_stop", "on_open" => "on_open", "on_close" => "on_close",
-    "int" => "int", "real" => "real", "bool" => "bool", "true" => "true", "false" => "false", "if" => "if",
-    "else" => "else", "for" => "for", "in" => "in", "return" => "return", "target" => "target",
-    "while" => "while", "and" => "and", "or" => "or", "not" => "not", "window" => "window",
-    "value" => "value", "update" => "update", "enter" => "enter", "leave" => "leave", "lower" => "lower",
-    "upper" => "upper",
-};
 
 // function = type NAME args block ;
 Function: FunctionDef = <ret:Ty> <name:Name> <args:Args> <b:Block> =>
