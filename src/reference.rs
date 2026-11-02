@@ -5,7 +5,7 @@
 pub const INDEX: &str = include_str!("../docs/reference/README.md");
 
 /// Each chapter of `docs/reference/`, by its file stem.
-pub const CHAPTERS: [(&str, &str); 9] = [
+pub const CHAPTERS: [(&str, &str); 8] = [
     ("builtins", include_str!("../docs/reference/builtins.md")),
     (
         "functions-and-indicators",
@@ -18,7 +18,6 @@ pub const CHAPTERS: [(&str, &str); 9] = [
         "program-structure",
         include_str!("../docs/reference/program-structure.md"),
     ),
-    ("run-spec", include_str!("../docs/reference/run-spec.md")),
     ("syntax", include_str!("../docs/reference/syntax.md")),
     (
         "types-and-definedness",

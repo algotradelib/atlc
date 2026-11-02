@@ -31,7 +31,7 @@ The struct passes the library's `ATL_ASSERT_STRATEGY` and runs in its backtester
 
 `on_start` and `on_stop` become handlers of the same names.
 
-A universe with `on_open` or `on_close` reads each day as three one-minute bars stamped 0, 1 and 2 minutes after midnight: the open alone, the day's bar, and the close alone (the run spec's `fill = "legs"`).
+A universe with `on_open` or `on_close` reads each day as three one-minute bars stamped 0, 1 and 2 minutes after midnight: the open alone, the day's bar, and the close alone (cmdatl's `replay.fill = "legs"`).
 `on_open` runs on the first and `on_close` on the second, so a target stated at the open fills at the day's open and one stated at the close fills at the close.
 
 Each handler call submits at most one `TargetPosition` per instrument: the last target it stated, in whole shares, with the struct's name in lower case as the tag.
@@ -39,7 +39,7 @@ A target stated again on a later bar is submitted again.
 
 Targets are market orders unless the strategy is told otherwise:
 - `set_order_pricing(type, offset)` prices every target from then on: `atl::OrderType::MARKET` (the default, with an offset of 0) or `atl::OrderType::LIMIT` with an `atl::Decimal64` offset at least 0 and below 0.3; it throws `std::invalid_argument` for another type, an offset outside that range, or an offset with a market order, and `set` and `setup()` keep it;
-- with a limit, a target is priced from the price of the event that ran the handler, its side from the target against the net position, and a target that cannot be priced is not submitted ([run spec](run-spec.md), "Limit orders");
+- with a limit, a target is priced from the price of the event that ran the handler, its side from the target against the net position, and a target that cannot be priced is not submitted ("Limit orders", below);
 - `pricing_refusals()` counts the targets not submitted, by reason (`atls::ops::PricingRefusals`: `no_basis_price_`, `no_price_grid_`, `price_not_representable_`, `price_not_positive_`, `net_not_representable_`, and `total()`).
 
 With market orders the pricing costs one check per submitted target: no portfolio scan, reference-data lookup or decimal arithmetic, and no change to the series or the warm-up.
@@ -54,6 +54,22 @@ Parameters are run-time fields, so one compiled header runs every point of a tun
 An `int` result that does not fit in 64 bits throws `std::overflow_error` from the handler, constructor or `set` that computes it ([types and definedness](types-and-definedness.md), "Types"); the exception leaves the runner's loop, so the run stops.
 
 For a runner, the struct also states `warmup_bars()` (the bars before the handlers run), `atls_mode` (`"single"`, `"named"` or `"universe"`), `atls_legs`, `atls_instruments()` and `atls_params()`.
+
+### Limit orders
+
+With `set_order_pricing(atl::OrderType::LIMIT, offset)`, the strategy gives each target it submits a limit price; the same code runs in a backtest and in a live run.
+- The price is that of the event that ran the handler, taken exactly from the bar (its close): in `on_bar`, the decision bar's close; in `on_open`, the opening price (today's close is not visible there); in `on_close`, the close.
+  Named instruments use each instrument's own bar; a universe keeps each instrument's last event price, so no instrument is priced from another's.
+  The price does not depend on the program reading `close`.
+- The side compares the target in whole shares (truncated toward zero) with the net position, summed over every holding row: above it, a buy; below it, a sell, for shorts and across zero alike (flat to -10 sells, -10 to -5 buys).
+- The limit is `price × (1 + offset)` for a buy and `price × (1 − offset)` for a sell, computed exactly, then put on the instrument's tick grid on the safe side (a buy rounded down, a sell up).
+- A target equal to the position is submitted without a limit, as with market orders, so that the runner still cancels unwanted working orders.
+- An undefined target states nothing and does not erase an earlier valid one in the same handler; the price applies once, to the final target.
+- A target that cannot be priced is not submitted, and is counted by reason in `pricing_refusals()`: the price missing or not positive (`no_basis_price_`), no reference data or an unknown price grid (`no_price_grid_`), arithmetic that does not fit a decimal (`price_not_representable_`; an offset of many digits, such as 0.299999999999999999, makes most products too large), a rounded price that is not positive (`price_not_positive_`), or a net position whose rows do not sum (`net_not_representable_`).
+  A requested limit never becomes a market order.
+  A program that reads `held` stops before stating any target when the net position does not sum, as it does with market orders, so that case is not counted here.
+
+How a limit fills, and when it expires, is up to the runner; [cmdatl's run settings](https://github.com/algotradelib/cmdatl/blob/main/docs/run-spec.md) describe its backtester.
 
 ## The program's facts
 
@@ -103,18 +119,13 @@ Exit code 101 is an internal error of `atlc`, the one case that writes to standa
 | --- | --- |
 | `atls/ops.hpp` | Rings, the built-in indicators in each arithmetic, the three-valued operators on undefined values, the target rule and its pricing (`atls::ops::OrderPricing`) |
 | `atls/universe.hpp` | One single-instrument strategy over several instruments: `atls::Universe<S>` forwards each bar to the strategy trading its instrument, `atls::UniverseBars<S>` each bar of a slice |
-| `atls/args.hpp` | The run's argument rules: `atls::run::Settings` reads `key=value` arguments; `symbols_of<S>(settings)` gives the symbols by `S`'s mode, `set_params(strategy, settings)` sets every `param.NAME` (twice, so each bound is checked against the final values) and `set_pricing(strategy, settings)` the order pricing |
-| `atls/run.hpp` | The replay driver of `atlc run`: `atls::run::main<S>(argc, argv)` reads `key=value` settings, loads the bars, replays `S` in the backtester, prints the report as JSON and writes the fills |
 
-`atlc` carries the runtime headers it generates code for, compiled into it, and `--emit-runtime` writes them out as they are; `atlc run` always uses them.
+`atlc` carries the runtime headers it generates code for, compiled into it, and `--emit-runtime` writes them out as they are.
 A generated header and a runtime from different `atlc` versions are not checked against each other: a project that keeps generated headers must regenerate them and write the runtime out (`atlc build --emit-runtime DIR`) with the same `atlc`.
 The first line of a generated header names the `atlc` that wrote it.
 
-The runtime includes algotradelib's `strategy` headers; `atls/run.hpp` also includes its `backtest` headers, and `atls/args.hpp` includes only its `core` headers.
-`atls/run.hpp` reads a Parquet store only when compiled with `ATLS_DUCKDB` defined and DuckDB's C library linked (`duckdb.h`, tested with 1.5); without it a store run stops with a message, and nothing else needs DuckDB.
-`atlc run` writes the settings it passes ([run spec](run-spec.md)); a project that drives `atls::run::main` itself passes the same `key=value` arguments, which `atlc spec --json` lists as `args`: the spec's keys with `data.source` always given, `instrument.NAME` for `instruments.NAME`, `param.NAME` for `params.NAME` (a `bool` as 1 or 0), `orders.type` and `orders.offset`, and `output.fills` for `--fills`.
-The driver sets the parameters, then the pricing.
-A project that drives a generated strategy itself, rather than through `atls::run::main`, includes `atls/args.hpp` and applies the same arguments with `symbols_of`, `set_params` and `set_pricing`, in that order, so its strategy is the one `atlc run` would replay.
+The runtime includes algotradelib's `strategy` headers.
+`atlc` runs no strategy: [cmdatl](https://github.com/algotradelib/cmdatl) backtests and runs generated strategies from the command line, and a project's own `main` compiles them as below ("Compiling exported strategies"), with cmdatl's installed `cmdatl/replay/` headers if it wants cmdatl's data loaders and report.
 `--indicators naive` solves `ols_slope` and `ols_intercept` with Eigen, so it needs an algotradelib built with Eigen (`ATL_USE_EIGEN=ON`, the default); without it, such a strategy fails to compile with a message saying so.
 
 ## Compiling exported strategies
