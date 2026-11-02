@@ -43,7 +43,7 @@ Add `--json` to `check` for one JSON object per diagnostic.
 `atlc` runs no strategy.
 [cmdatl](https://github.com/algotradelib/cmdatl) backtests and trades atls programs from the command line, with data, costs and fills in its run settings.
 A project of your own includes `atlc build`'s header and the runtime it writes (`atlc build --emit-runtime DIR`) in its own `main`; [the generated C++](docs/reference/generated-code.md) says how to compile it.
-[`examples/`](examples) holds a program of each shape, with a small synthetic file and cmdatl run settings for each.
+[`examples/`](examples) holds a program of each shape; [cmdatl's examples](https://github.com/algotradelib/cmdatl/tree/main/examples) run them on a small synthetic file.
 
 How atlc's parts (Rust) and its runtime headers (C++) use algotradelib's modules:
 
