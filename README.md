@@ -36,29 +36,14 @@ Status: in development, before its first release; the language may change withou
 atlc check mean-reversion.atls # parse and check, no C++ toolchain needed
 atlc check mean-reversion.atls --info # the struct, mode, instruments and parameters, as one JSON object for tools
 atlc build mean-reversion.atls -o mean-reversion.hpp # the C++ strategy, for your own algotradelib project
-atlc run mean-reversion.toml -P lookback=30 # replay it from a run spec and print the report as JSON
-atlc spec mean-reversion.toml --json # check a run spec and print its resolved settings, building nothing
 atlc reference builtins # a chapter of the language reference, as this atlc has it (no name: the index)
 ```
 
-Add `--json` to `check` for one JSON object per diagnostic, and to `spec` for one JSON object for tools.
-A run spec says what to replay the program on:
-
-```toml
-strategy = "mean-reversion.atls"
-
-[data]
-source = "csv"
-file = "bars.csv" # ts (Unix seconds), open, high, low, close, volume
-symbol = "AAPL"
-
-[replay]
-cash = 100000
-commission = 0.0005
-```
-
-`atlc run` builds the strategy once per program shape and keeps the build in a cache, so another parameter or other data replays without compiling again; `--fills FILE` writes every fill.
-[`examples/`](examples) runs each program shape on a small synthetic file, and the [run spec reference](docs/reference/run-spec.md) has every key.
+Add `--json` to `check` for one JSON object per diagnostic.
+`atlc` runs no strategy.
+[cmdatl](https://github.com/algotradelib/cmdatl) backtests and trades atls programs from the command line, with data, costs and fills in its run settings.
+A project of your own includes `atlc build`'s header and the runtime it writes (`atlc build --emit-runtime DIR`) in its own `main`; [the generated C++](docs/reference/generated-code.md) says how to compile it.
+[`examples/`](examples) holds a program of each shape, with a small synthetic file and cmdatl run settings for each.
 
 How atlc's parts (Rust) and its runtime headers (C++) use algotradelib's modules:
 
@@ -70,11 +55,9 @@ How atlc's parts (Rust) and its runtime headers (C++) use algotradelib's modules
 cargo install --git https://github.com/algotradelib/atlc
 ```
 
-`atlc check` and `atlc build` need nothing else.
+`atlc` needs nothing else.
+Compiling the C++ it writes needs a C++17 compiler and an installed algotradelib (see [its install guide](https://github.com/algotradelib/algotradelib#install)); atlc's own C++ tests also need CMake.
 For continuous integration, `ghcr.io/algotradelib/atlc` holds a build of `main` for Linux (x64, arm64), macOS (arm64) and Windows (x64), and the organization's workflows install it with `uses: algotradelib/.github/actions/setup-atlc@main`; before the first release only the latest build is kept.
-`atlc run` compiles the generated strategy, so it also needs a C++17 compiler, CMake 3.20 or later and an installed algotradelib; see [its install guide](https://github.com/algotradelib/algotradelib#install).
-If algotradelib is installed under a prefix CMake does not search, set `CMAKE_PREFIX_PATH` to that prefix, or name it in the run spec (`[build] algotradelib`).
-Reading bars from a Parquet store also needs [DuckDB's C library](https://duckdb.org/docs/installation/) (`duckdb.h` and the shared library), found by `[build] duckdb` or `DUCKDB_ROOT`; CSV data needs nothing more.
 
 ## The language
 
@@ -91,7 +74,7 @@ A program is a set of blocks:
 | `functions {}`, `indicator` | Your own functions and streaming indicators |
 
 A program has no I/O and no unbounded loop, and cannot read a future bar: the checker refuses it.
-Data, dates, costs and fills come from a run spec, so one program can be replayed on other data or tuned without editing it.
+Data, dates, costs and fills come from whatever runs the strategy, so one program can be replayed on other data or tuned without editing it.
 Live trading is not part of atls yet.
 The full definition is the [language reference](docs/reference/README.md).
 

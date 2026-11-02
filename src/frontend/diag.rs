@@ -359,8 +359,8 @@ pub fn to_json(d: &Diag, file: &str, source: &str) -> String {
     )
 }
 
-/// One diagnostic as `atlc spec --json` lists it, beside the spec's own errors: `severity`, `code`, `message`,
-/// `file`, `line` (of the span's start, from 1) and `origin` (`program`).
+/// One diagnostic as `atlc check --info` lists it: `severity`, `code`, `message`, `file`, `line` (of the span's
+/// start, from 1) and `origin` (`program`).
 pub fn to_flat_json(d: &Diag, file: &str, source: &str) -> String {
     let (line, _, _, _) = line_col(source, clamp(d.span, source).start);
     format!(

@@ -20,7 +20,7 @@ path = "src/lib.rs"
 name = "atlc"
 path = "src/main.rs"
 
-# No dependencies: the lab's compiler needed none, and the run spec is a small TOML subset.
+# No dependencies: the lab's compiler needed none.
 
 [profile.release]
 debug = false

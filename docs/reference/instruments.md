@@ -9,7 +9,7 @@ Handlers: `on_start`, `on_bar`, `on_fill`, `on_stop` ([program structure](progra
 
 ## Named instruments: `instruments { y; x; }`
 
-- Names are the program's inputs, like Stan's `data {}`; the run spec's `[instruments]` maps each to a loaded symbol.
+- Names are the program's inputs, like Stan's `data {}`; the run maps each to a loaded symbol (cmdatl's `instruments.NAME`).
 - Fields are read `y.close`, positions `y.held` (in `on_bar`); targets are `target(y, shares)`.
 - Series are one value per period, so they may combine instruments (`real spread = y.close - hedge * x.close;`).
 - A period missing any named instrument is skipped.
