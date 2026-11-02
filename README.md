@@ -70,7 +70,7 @@ A program is a set of blocks:
 | `state {}` | Values the handlers keep from bar to bar |
 | `on_start`, `on_bar`, `on_fill`, `on_stop` | Handlers; the only output is a target position |
 | `instruments {}`, `universe {}` | Several named instruments, or the same program over many |
-| `options {}` | How missing values enter windows: `restart`, `skip` or `poison` |
+| `options {}` | How missing values enter windows (`missing = skip;`), and a longer warm-up than the indicators need (`warmup = lookback + 1;`) |
 | `functions {}`, `indicator` | Your own functions and streaming indicators |
 
 A program has no I/O and no unbounded loop, and cannot read a future bar: the checker refuses it.
