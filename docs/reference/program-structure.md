@@ -70,6 +70,6 @@ Refusing built-in names for arguments, loop variables and an indicator's window,
   The checker keeps each lookback as an expression of parameters, and refuses a program whose lookback expression is more than 256 levels high, the nesting limit of [syntax](syntax.md); a chain of indicators over indicators deepens it, by several levels for a `skip` window, a pair indicator or a user indicator.
   So `sma(sma(close, 20), 30)` needs 49 periods.
 - The periodic handlers' first call comes after max(1, warmup, the lookbacks of every series any handler reads) periods: one gate for the program.
-  `warmup` is set in `options { warmup = EXPR; }`, a whole number built from integer literals and integer parameters with `+ - *` (as a window's length); it only raises the gate, for a strategy that needs a longer start than its lookbacks.
+  `warmup` is set in `options { warmup = EXPR; }`, a whole number built from integer literals and integer parameters with `+ - *` and negation; unlike a window's length, it is not proved at least 1, and it only raises the gate, for a strategy that needs a longer start than its lookbacks.
   `warmup` is not a block: the former top-level statement `warmup EXPR;` is refused.
 - After that gate the checker treats eventually-defined values as defined, but a handler can still see an undefined value: an undefined input restarts an indicator, and `skip`, `poison` or a domain error (`log(0)`) can leave a value undefined ([types and definedness](types-and-definedness.md)).
