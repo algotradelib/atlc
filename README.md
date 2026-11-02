@@ -90,7 +90,7 @@ A program is a set of blocks:
 | `functions {}`, `indicator` | Your own functions and streaming indicators |
 
 A program has no I/O and no unbounded loop, and cannot read a future bar: the checker refuses it.
-Data, dates, costs and fills come from a run spec, so one program can be replayed on other data or tuned without editing it; a `replay {}` block may carry defaults for sharing one file.
+Data, dates, costs and fills come from a run spec, so one program can be replayed on other data or tuned without editing it.
 Live trading is not part of atls yet.
 The full definition is the [language reference](docs/reference/README.md).
 

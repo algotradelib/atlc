@@ -9,6 +9,7 @@
   An `int` literal has no `.` and no exponent.
 - Keywords are reserved everywhere: `params series state options functions instruments universe replay warmup on_start on_bar on_fill on_stop on_open on_close int real bool true false if else for in return target and or not indicator while`.
   `while` is reserved only so that the compiler can explain why it is refused: every loop is a bounded `for`.
+  `replay` is reserved for the same reason: a program holds no run settings, so `replay {}` is no block.
 - `window value update enter leave` begin the parts of an `indicator` (`window w[n];`, `value real v = ...;`).
   They are not reserved: they are ordinary names everywhere, inside an indicator too (`indicator f(real window)` is valid).
 - `lower` and `upper` are not keywords, but they are reserved as names: no declaration may use them ([program structure](program-structure.md), "Names").
@@ -29,7 +30,6 @@ item       = 'params' '{' param* '}'
            | 'options' '{' option* '}'
            | 'instruments' '{' ( NAME ';' )* '}'
            | 'universe' '{' '}'
-           | 'replay' '{' setting* '}'
            | 'warmup' expr ';'
            | 'functions' '{' function* '}'
            | 'indicator' NAME args '{' part* '}'
@@ -42,7 +42,6 @@ bound      = ( 'lower' | 'upper' ) '=' additive ;        (* stops before a compa
 decl       = type NAME '=' expr ';' ;
 type       = 'int' | 'real' | 'bool' ;
 option     = NAME '=' expr ';' ;
-setting    = KEY ( '.' KEY )* '=' ( '-'? NUMBER | STRING | 'true' | 'false' ) ';' ;   (* KEY: any word, keywords included *)
 
 function   = type NAME args block ;
 args       = '(' ( type NAME ( ',' type NAME )* )? ')' ;

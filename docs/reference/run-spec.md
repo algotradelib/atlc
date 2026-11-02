@@ -19,9 +19,9 @@ Messages, including the build's progress, go to standard error.
 
 `atlc spec` checks a spec as `atlc run` would and prints its resolved settings, building nothing (below, "Checking a spec").
 
-Settings apply in this order, later winning: the program's `replay {}`, the spec, the command line.
-`replay {}` may set any key below but `strategy` and `params.*`; a parameter's default is in `params {}`.
-A relative path is read against the directory of the file that sets it (the spec, or the program for `replay {}`), and `--fills` against the working directory.
+Settings apply in this order, later winning: the spec, then the command line.
+A parameter's default is in the program's `params {}`.
+A relative path in the spec is read against the spec's directory, and `--fills` against the working directory.
 
 ```toml
 strategy = "mean-reversion.atls"
@@ -168,7 +168,7 @@ Bounds are checked when the strategy is built, against the final values whatever
 
 The offset is written as a plain decimal of at most 18 fractional digits (`0.002`, `0.299999999999999999`), which the replay reads exactly; an exponent (`2e-3`) is refused, never converted through a binary number.
 The bound 0.3 is a chosen input bound, not an exchange's rule.
-`replay {}` may set both keys; the layers are checked together, so an offset without `orders.type = "limit"` is refused whichever layer sets either.
+The settings are checked together, so an offset without `orders.type = "limit"` is refused wherever either is set.
 Changing `[orders]` does not rebuild: the pricing is an argument, like the parameters.
 How a limit is priced, and how it fills, is below ("Limit orders").
 
@@ -238,7 +238,7 @@ The same strategy computes the same requested price from the same inputs; a back
 
 ## Checking a spec
 
-`atlc spec SPEC.toml [-P name=value]... [--json]` reads and checks a spec exactly as `atlc run` prepares it: the spec and the program read, the program checked, its `replay {}` merged under the spec and `-P`, every setting checked, and the `[build]` paths checked as CMake would need them.
+`atlc spec SPEC.toml [-P name=value]... [--json]` reads and checks a spec exactly as `atlc run` prepares it: the spec and the program read, the program checked, the spec merged under `-P`, every setting checked, and the `[build]` paths checked as CMake would need them.
 It builds nothing, touches no cache, opens no data, and needs no compiler, CMake or DuckDB.
 Success means the configuration is valid; it does not mean the data exists, that CMake will find the library, or that the parameters are inside their bounds, which the strategy checks when it is built (`atlc run`'s exit code 4).
 
@@ -283,7 +283,7 @@ Each diagnostic is `{"severity", "code", "message", "file", "line", "origin"}`:
 - `severity`: `"error"` or `"warning"`;
 - `code`: a program diagnostic's code ([diagnostics](../diagnostics.md)), or one of `usage` (the command line: an unknown option, a missing or second spec, a malformed or repeated `-P`), `unreadable` (a spec or program that cannot be read), `program-name` (a program file named so that no C++ struct can be), `spec` (any other spec error);
 - `file` and `line`: where it is, a line counted from 1; `line` is null for a file as a whole, and both are null when there is no one place (a setting that no layer gives, or the command line);
-- `origin`: `"file"` (the spec, or the program's `replay {}`), `"command_line"` (an option or `-P`), or `"program"` (the program's own diagnostics).
+- `origin`: `"file"` (the spec), `"command_line"` (an option or `-P`), or `"program"` (the program's own diagnostics).
 
 ## The build
 

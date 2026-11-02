@@ -21,8 +21,7 @@ Each block kind appears at most once, except `indicator`, which appears once per
 - Handlers: see below.
 - `instruments {}`, `universe {}`: see [instruments](instruments.md).
 - `functions {}`, `indicator`: see [functions and indicators](functions-and-indicators.md).
-- `replay {}`: run-spec settings carried in the program for sharing one file ([run spec](run-spec.md)); a run spec overrides them.
-  There is no `live {}` block: live settings belong to the operator, not to a program.
+- There is no `replay {}` or `live {}` block: run settings belong to the run spec ([run spec](run-spec.md)), live settings to the operator, not to a program.
 
 ## Handlers and when they run
 
