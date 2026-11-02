@@ -5,9 +5,6 @@
 /build/
 /build-*/
 
-# atlc run's compiled-strategy cache, when it is kept inside a checkout.
-/.atlc-cache/
-
 # Backup files from rustfmt.
 **/*.rs.bk
 

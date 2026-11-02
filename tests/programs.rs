@@ -1,6 +1,6 @@
 //! Valid programs: one of each kind (`tests/programs/`: one instrument, named instruments, a universe with
 //! session legs, state with `on_fill`, functions and a user indicator) and the code examples of the language
-//! reference and the README must check without a diagnostic.
+//! reference and the README must check without a diagnostic; `examples/` holds the same five programs.
 
 use std::path::{Path, PathBuf};
 
@@ -43,6 +43,23 @@ fn valid_programs() {
     assert_eq!(files.len(), 5);
     for p in files {
         check_clean(&p.display().to_string(), &std::fs::read_to_string(&p).unwrap());
+    }
+}
+
+/// Each example program is one of the tested programs, byte for byte.
+#[test]
+fn the_examples_are_the_tested_programs() {
+    let mut files = vec![];
+    walk(&root().join("examples"), "atls", &mut files);
+    assert_eq!(files.len(), 5);
+    for p in files {
+        let tested = root().join("tests/programs").join(p.file_name().unwrap());
+        assert_eq!(
+            std::fs::read_to_string(&p).unwrap(),
+            std::fs::read_to_string(&tested).unwrap(),
+            "{}",
+            p.display()
+        );
     }
 }
 
