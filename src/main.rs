@@ -4,6 +4,7 @@ use std::process::ExitCode;
 
 use atlc::backend::{self, Indicators};
 use atlc::frontend::diag::{self, Diag, Severity, json_string};
+use atlc::ir::{Ir, Mode};
 use atlc::runner::{Ready, Stop};
 use atlc::spec::{self as runspec, Entry};
 
@@ -205,7 +206,7 @@ fn info(args: &[String]) -> ExitCode {
         |diags: &[Diag]| -> Vec<String> { diags.iter().map(|d| diag::to_flat_json(d, &shown, &source)).collect() };
     match atlc::check(&source) {
         Ok(ir) => {
-            let facts = program_json(&path, &name, &runspec::Program::of(&ir));
+            let facts = program_json(&path, &name, &ir);
             println!("{}", info_json(Some(&facts), &flat(&ir.warnings)));
             ExitCode::SUCCESS
         }
@@ -230,31 +231,24 @@ fn info_json(program: Option<&str>, diagnostics: &[String]) -> String {
 }
 
 /// The facts of a checked program at `path`, whose struct is `name`.
-fn program_json(path: &std::path::Path, name: &str, p: &runspec::Program) -> String {
-    let mode = match (&p.named, p.universe) {
-        (_, true) => "universe",
-        (Some(_), false) => "named",
-        (None, false) => "single",
+fn program_json(path: &std::path::Path, name: &str, ir: &Ir) -> String {
+    let (mode, named) = match &ir.mode {
+        Mode::Single => ("single", &[][..]),
+        Mode::Named(names) => ("named", &names[..]),
+        Mode::Universe => ("universe", &[][..]),
     };
-    let instruments: Vec<String> = p.named.iter().flatten().map(|n| json_string(n)).collect();
-    let params: Vec<String> = p
+    let instruments: Vec<String> = named.iter().map(|n| json_string(n)).collect();
+    let params: Vec<String> = ir
         .params
         .iter()
-        .map(|(n, ty)| {
-            let ty = match ty {
-                runspec::ParamType::Int => "int",
-                runspec::ParamType::Real => "real",
-                runspec::ParamType::Bool => "bool",
-            };
-            format!("{{\"name\":{},\"type\":\"{ty}\"}}", json_string(n))
-        })
+        .map(|p| format!("{{\"name\":{},\"type\":\"{}\"}}", json_string(&p.name), p.ty.name()))
         .collect();
     format!(
         "{{\"path\":{},\"struct\":{},\"mode\":\"{mode}\",\"instruments\":[{}],\"legs\":{},\"params\":[{}]}}",
         json_string(&path.display().to_string()),
         json_string(name),
         instruments.join(","),
-        p.legs,
+        ir.legs,
         params.join(",")
     )
 }
