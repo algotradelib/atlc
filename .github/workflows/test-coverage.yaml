@@ -1,5 +1,5 @@
 # Draft: it runs once the repository has a remote.
-# Coverage of atlc's Rust code by every test, the C++ and store runs of `atlc run` included (tests/cpp.rs, tests/run.rs).
+# Coverage of atlc's Rust code by every test, the C++ tests included (tests/cpp.rs).
 # The C++ runtime headers are compiled by those tests but not measured.
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ on:
       - 'src/**'
       - 'runtime/**'
       - 'tests/**'
-      # Read by the tests: the examples and the specs, the README's and the reference's code blocks, the diagnostics.
+      # Read by the tests: the example programs, the README's and the reference's code blocks, the diagnostics.
       - 'examples/**'
       - 'README.md'
       - 'docs/reference/**'
@@ -24,7 +24,7 @@ on:
       - 'src/**'
       - 'runtime/**'
       - 'tests/**'
-      # Read by the tests: the examples and the specs, the README's and the reference's code blocks, the diagnostics.
+      # Read by the tests: the example programs, the README's and the reference's code blocks, the diagnostics.
       - 'examples/**'
       - 'README.md'
       - 'docs/reference/**'
@@ -65,14 +65,6 @@ jobs:
         run: |
           cmake --install "$RUNNER_TEMP/catch2-build"
           echo "CMAKE_PREFIX_PATH=$RUNNER_TEMP/catch2:$CMAKE_PREFIX_PATH" >> "$GITHUB_ENV"
-
-      # DuckDB's prebuilt C library, for the store runs.
-      - name: DuckDB
-        run: |
-          mkdir -p "$RUNNER_TEMP/duckdb"
-          curl -fsSL -o "$RUNNER_TEMP/duckdb.zip" "https://github.com/duckdb/duckdb/releases/download/v1.5.6/libduckdb-linux-amd64.zip"
-          (cd "$RUNNER_TEMP/duckdb" && cmake -E tar xf ../duckdb.zip)
-          echo "ATLC_TEST_DUCKDB=$RUNNER_TEMP/duckdb" >> "$GITHUB_ENV"
 
       # The tests run the atlc binary as a child process; cargo-llvm-cov measures it too.
       - name: Coverage

@@ -14,7 +14,7 @@
 #
 # In the organization's workflows, `uses: algotradelib/.github/actions/setup-atlc@main` does this and puts atlc on PATH.
 # The Linux builds run on any Linux of their architecture, with no glibc requirement. The runtime headers are compiled
-# into atlc; `atlc run` still needs CMake, a C++17 compiler and an installed algotradelib.
+# into atlc.
 #
 # The annotation org.opencontainers.image.revision names the atlc commit.
 # Before the first release only the latest build is kept: each publish deletes the untagged builds it replaced, so a
@@ -95,7 +95,7 @@ jobs:
             echo "# atlc ($PLATFORM)"
             echo
             echo "The compiler for atls, built from $GITHUB_SERVER_URL/$GITHUB_REPOSITORY at $GITHUB_SHA."
-            echo "The runtime headers are compiled in (\`atlc build --emit-runtime DIR\`); \`atlc run\` needs CMake, a C++17 compiler and an installed algotradelib."
+            echo "The runtime headers are compiled in (\`atlc build --emit-runtime DIR\`); compiling what atlc writes needs a C++17 compiler and an installed algotradelib."
             echo "Documentation: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
           } > work/atlc/README.md
           (cd work && tar -czf "../atlc-$PLATFORM.tar.gz" atlc)
