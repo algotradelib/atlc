@@ -69,6 +69,11 @@ With `set_order_pricing(atl::OrderType::LIMIT, offset)`, the strategy gives each
   A requested limit never becomes a market order.
   A program that reads `held` stops before stating any target when the net position does not sum, as it does with market orders, so that case is not counted here.
 
+A runner that knows the day's price band hands the library the rounded limit, which the library clamps to the band when it is more aggressive than the band allows, keeps when it is passive, and refuses when its own rounding after a clamp moves it across the other bound.
+The library sees only the rounded price: with a tick of 10, a band of 101 to 109 and a price of 105 at offset 0, a buy becomes 100 in the strategy and is kept as a passive order below the band.
+A target's limit governs the orders the runner places to reach it; it does not reprice working orders on the same side that already suffice.
+The same strategy computes the same requested price from the same inputs; a backtest and a live run can still differ in their fills, reference data, holdings and working orders.
+
 How a limit fills, and when it expires, is up to the runner; [cmdatl's run settings](https://github.com/algotradelib/cmdatl/blob/main/docs/run-spec.md) describe its backtester.
 
 ## The program's facts
