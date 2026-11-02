@@ -10,7 +10,8 @@ use atlc::spec::{self as runspec, Entry};
 const USAGE: &str = "usage: atlc <command> [arguments]
 
 commands:
-  check FILE.atls [--json]    parse and check a program
+  check FILE.atls [--json | --info]
+                              parse and check a program; --info prints its facts as one JSON object
   build FILE.atls [-o OUT.hpp] [--indicators incremental|naive|exact] [--share on|off] [--history drop|keep]
                               write the C++ strategy (to standard output without -o)
   build --emit-runtime DIR    write the runtime headers the strategies include into DIR/atls/
@@ -100,6 +101,9 @@ fn usage() -> ExitCode {
 /// `atlc check FILE [--json]`: exit 0 when the program is valid (warnings allowed), 1 when it has errors,
 /// 2 on a usage or file error.
 fn check(args: &[String]) -> ExitCode {
+    if args.iter().any(|a| a == "--info") {
+        return info(args);
+    }
     let mut json = false;
     let mut files = vec![];
     for a in args {
@@ -136,6 +140,137 @@ fn check(args: &[String]) -> ExitCode {
         }
     }
     if failed { ExitCode::from(1) } else { ExitCode::SUCCESS }
+}
+
+/// `atlc check FILE --info`: exactly one JSON object on standard output, whatever happened, and nothing on standard
+/// error. Exit 0 when the program is valid (warnings allowed), 1 when it has errors, 2 on a usage error, a file it
+/// cannot read, or a file name no C++ struct can take.
+fn info(args: &[String]) -> ExitCode {
+    let mut seen = false;
+    let mut files = vec![];
+    let mut problem: Option<String> = None;
+    for a in args {
+        let wrong = match a.as_str() {
+            "--info" if seen => Some("`--info` is given twice".to_string()),
+            "--info" => {
+                seen = true;
+                None
+            }
+            "--json" => Some("`--info` and `--json` print different things: give one".to_string()),
+            "-h" | "--help" => Some(USAGE.to_string()),
+            s if s.starts_with('-') && s.len() > 1 => Some(format!("unknown option `{s}`")),
+            s => {
+                files.push(s);
+                None
+            }
+        };
+        if wrong.is_some() {
+            problem = wrong;
+            break;
+        }
+    }
+    let file = match (problem, &files[..]) {
+        (None, [file]) => file,
+        (problem, _) => {
+            let message = problem.unwrap_or_else(|| format!("expected one file, got {}", files.len()));
+            println!("{}", info_json(None, &[info_error("usage", &message, None)]));
+            return ExitCode::from(2);
+        }
+    };
+    let path = std::path::absolute(file).unwrap_or_else(|_| std::path::PathBuf::from(file));
+    let source = match std::fs::read_to_string(&path) {
+        Ok(s) => s,
+        Err(e) => {
+            let message = format!("cannot read {}: {e}", path.display());
+            println!(
+                "{}",
+                info_json(None, &[info_error("unreadable", &message, Some(&path))])
+            );
+            return ExitCode::from(2);
+        }
+    };
+    let stem = path
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let name = match backend::struct_name(&stem) {
+        Ok(name) => name,
+        Err(m) => {
+            println!("{}", info_json(None, &[info_error("program-name", &m, Some(&path))]));
+            return ExitCode::from(2);
+        }
+    };
+    let shown = path.display().to_string();
+    let flat =
+        |diags: &[Diag]| -> Vec<String> { diags.iter().map(|d| diag::to_flat_json(d, &shown, &source)).collect() };
+    match atlc::check(&source) {
+        Ok(ir) => {
+            let facts = program_json(&path, &name, &runspec::Program::of(&ir));
+            println!("{}", info_json(Some(&facts), &flat(&ir.warnings)));
+            ExitCode::SUCCESS
+        }
+        Err(diags) => {
+            println!("{}", info_json(None, &flat(&diags)));
+            ExitCode::from(1)
+        }
+    }
+}
+
+/// `atlc check --info`'s one object: the program's facts when it checked (else null), and the diagnostics, each
+/// already a JSON object; the status is `error` exactly when one of them is an error.
+fn info_json(program: Option<&str>, diagnostics: &[String]) -> String {
+    let failed = diagnostics.iter().any(|d| d.starts_with("{\"severity\":\"error\""));
+    format!(
+        "{{\"atlc_info\":1,\"status\":\"{}\",\"atlc\":{},\"program\":{},\"diagnostics\":[{}]}}",
+        if failed { "error" } else { "ok" },
+        json_string(atlc::VERSION),
+        program.unwrap_or("null"),
+        diagnostics.join(",")
+    )
+}
+
+/// The facts of a checked program at `path`, whose struct is `name`.
+fn program_json(path: &std::path::Path, name: &str, p: &runspec::Program) -> String {
+    let mode = match (&p.named, p.universe) {
+        (_, true) => "universe",
+        (Some(_), false) => "named",
+        (None, false) => "single",
+    };
+    let instruments: Vec<String> = p.named.iter().flatten().map(|n| json_string(n)).collect();
+    let params: Vec<String> = p
+        .params
+        .iter()
+        .map(|(n, ty)| {
+            let ty = match ty {
+                runspec::ParamType::Int => "int",
+                runspec::ParamType::Real => "real",
+                runspec::ParamType::Bool => "bool",
+            };
+            format!("{{\"name\":{},\"type\":\"{ty}\"}}", json_string(n))
+        })
+        .collect();
+    format!(
+        "{{\"path\":{},\"struct\":{},\"mode\":\"{mode}\",\"instruments\":[{}],\"legs\":{},\"params\":[{}]}}",
+        json_string(&path.display().to_string()),
+        json_string(name),
+        instruments.join(","),
+        p.legs,
+        params.join(",")
+    )
+}
+
+/// An `atlc check --info` error that is not one of the program's own diagnostics: about the program's file at `file`
+/// (`unreadable`, `program-name`), or about the command line when there is no file (`usage`).
+fn info_error(code: &str, message: &str, file: Option<&std::path::Path>) -> String {
+    let (file, origin) = match file {
+        Some(p) => (json_string(&p.display().to_string()), "program"),
+        None => ("null".to_string(), "command_line"),
+    };
+    format!(
+        "{{\"severity\":\"error\",\"code\":{},\"message\":{},\"file\":{file},\"line\":null,\"origin\":\"{origin}\"}}",
+        json_string(code),
+        json_string(message)
+    )
 }
 
 /// `atlc build FILE [-o OUT] [options]` and `atlc build --emit-runtime DIR`: exit 0 when the header (or the
