@@ -1,4 +1,4 @@
-# atlc run mean-reversion.toml -P lookback=30
+# cmdatl strategy backtest mean-reversion.toml params.lookback=30
 strategy = "mean-reversion.atls"
 
 [data]
