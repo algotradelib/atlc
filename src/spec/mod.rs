@@ -1,6 +1,6 @@
 //! Run specs ([run spec](../../docs/reference/run-spec.md)): what a program is replayed on, read from a TOML subset
-//! (`toml`) and from the command line, checked key by key and then as a whole against the program, and flattened to the settings the replay driver (`runtime/include/atls/run.hpp`)
-//! reads as `key=value` arguments.
+//! (`toml`) and from the command line, checked key by key and then as a whole against the program, and flattened
+//! to the settings the replay driver (`runtime/include/atls/run.hpp`) reads as `key=value` arguments.
 
 mod toml;
 

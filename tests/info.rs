@@ -259,8 +259,8 @@ fn usage_errors() {
         (&[program, "--info"], "`--info` is given twice"),
         (&[program, "--json"], "`--info` and `--json`"),
         (&["--json", program], "`--info` and `--json`"),
-        (&[program, "--help"], "usage: atlc"),
-        (&["-h", program], "usage: atlc"),
+        (&[program, "--help"], "`--help` and `--info`"),
+        (&["-h", program], "`--help` and `--info`"),
     ] {
         let (code, v) = info(args);
         assert_eq!(code, 2, "{args:?}");
@@ -268,4 +268,24 @@ fn usage_errors() {
         assert_eq!((d.get("code").str(), d.get("origin").str()), ("usage", "command_line"));
         assert!(d.get("message").str().contains(says), "{args:?}: {d:?}");
     }
+}
+
+/// `program.path` drops `.` components, and the struct is the one `atlc build` names from the same path.
+#[test]
+fn path_form_and_struct_agree_with_build() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let (code, v) = info_in(root, &["--info", "./examples/./pairs.atls"]);
+    assert_eq!(code, 0, "{v:?}");
+    let shown = v.get("program").get("path").str();
+    assert!(!shown.contains("/./"), "{shown}");
+    assert_eq!(Path::new(shown), root.join("examples/pairs.atls"));
+    let out = Command::new(env!("CARGO_BIN_EXE_atlc"))
+        .current_dir(root)
+        .args(["build", "./examples/./pairs.atls"])
+        .output()
+        .unwrap();
+    assert!(out.status.success());
+    let header = String::from_utf8(out.stdout).unwrap();
+    let declared = format!("struct {} {{", v.get("program").get("struct").str());
+    assert!(header.contains(&declared), "{declared} not in the header");
 }

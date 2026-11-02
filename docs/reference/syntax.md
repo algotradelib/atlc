@@ -5,6 +5,7 @@
 - A program is UTF-8 text; files are conventionally named `*.atls` (the compiler does not require it).
 - Comments run from `#` or `//` to the end of the line.
 - Names are ASCII letters, digits and `_`, not starting with a digit.
+- A string `"..."` is read as one token, but no rule takes one.
 - Numbers are decimal: `20`, `0.05`, `1e-4`.
   An `int` literal has no `.` and no exponent.
 - Keywords are reserved everywhere: `params series state options functions instruments universe replay warmup on_start on_bar on_fill on_stop on_open on_close int real bool true false if else for in return target and or not indicator while`.

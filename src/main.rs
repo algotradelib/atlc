@@ -157,7 +157,7 @@ fn info(args: &[String]) -> ExitCode {
                 None
             }
             "--json" => Some("`--info` and `--json` print different things: give one".to_string()),
-            "-h" | "--help" => Some(USAGE.to_string()),
+            "-h" | "--help" => Some("`--help` and `--info` print different things: give one".to_string()),
             s if s.starts_with('-') && s.len() > 1 => Some(format!("unknown option `{s}`")),
             s => {
                 files.push(s);

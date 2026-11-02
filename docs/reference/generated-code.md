@@ -84,7 +84,7 @@ It prints exactly one JSON object on one line of standard output, whatever happe
 Each diagnostic is `{"severity", "code", "message", "file", "line", "origin"}`:
 - `severity`: `"error"` or `"warning"`;
 - `code`: a program diagnostic's code ([diagnostics](../diagnostics.md)), or one of `usage` (the command line), `unreadable` (a program that cannot be read), `program-name` (a program file named so that no struct can be, as `atlc build` refuses it);
-- `file` and `line`: the program's absolute path (links not resolved) and a line counted from 1; `line` is null for `unreadable` and `program-name`, and both are null for `usage`;
+- `file` and `line`: the program's absolute path (`.` components removed, `..` kept, links not resolved), as is `program.path`, and a line counted from 1; `line` is null for `unreadable` and `program-name`, and both are null for `usage`;
 - `origin`: `"program"`, or `"command_line"` for `usage`.
 
 | Exit code | Meaning |
