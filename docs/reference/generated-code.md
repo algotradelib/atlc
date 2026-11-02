@@ -55,6 +55,48 @@ An `int` result that does not fit in 64 bits throws `std::overflow_error` from t
 
 For a runner, the struct also states `warmup_bars()` (the bars before the handlers run), `atls_mode` (`"single"`, `"named"` or `"universe"`), `atls_legs`, `atls_instruments()` and `atls_params()`.
 
+## The program's facts
+
+`atlc check FILE.atls --info` gives a tool what it needs to drive a program's header before building it: the struct's name, the mode, the instruments, the legs and the parameters.
+It prints exactly one JSON object on one line of standard output, whatever happened, and nothing on standard error:
+
+```json
+{"atlc_info":1,"status":"ok","atlc":"0.0.0-9000",
+ "program":{"path":"/abs/pairs.atls","struct":"Pairs","mode":"named","instruments":["y","x"],"legs":false,
+            "params":[{"name":"lookback","type":"int"},{"name":"entry","type":"real"},{"name":"short","type":"bool"}]},
+ "diagnostics":[]}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `atlc_info` | integer | the format's version, 1 |
+| `status` | `"ok"` or `"error"` | `"error"` exactly when a diagnostic is an error |
+| `atlc` | string | the version of `atlc` |
+| `program` | object or null | null on `"error"` |
+| `program.path` | string | the program, absolute |
+| `program.struct` | string | the generated struct's name, `atls::` omitted, as `atlc build` names it from the same path |
+| `program.mode` | `"single"`, `"named"` or `"universe"` | the struct's `atls_mode` |
+| `program.instruments` | array of strings | the names of `instruments {}`, in order; empty for the other modes |
+| `program.legs` | boolean | whether the program has `on_open` or `on_close` (the struct's `atls_legs`) |
+| `program.params` | array | each parameter's `name` and `type` (`"int"`, `"real"` or `"bool"`), in declaration order |
+| `diagnostics` | array | warnings and errors, below |
+
+Each diagnostic is `{"severity", "code", "message", "file", "line", "origin"}`:
+- `severity`: `"error"` or `"warning"`;
+- `code`: a program diagnostic's code ([diagnostics](../diagnostics.md)), or one of `usage` (the command line), `unreadable` (a program that cannot be read), `program-name` (a program file named so that no struct can be, as `atlc build` refuses it);
+- `file` and `line`: the program's absolute path (links not resolved) and a line counted from 1; `line` is null for `unreadable` and `program-name`, and both are null for `usage`;
+- `origin`: `"program"`, or `"command_line"` for `usage`.
+
+| Exit code | Meaning |
+| --- | --- |
+| 0 | the program is valid (warnings allowed) |
+| 1 | the program has errors |
+| 2 | a usage error, a program that cannot be read, or a file name no struct can take |
+
+A usage error is an unknown option, no file or two, `--info` given twice, or `--info` with `--json` or `--help`.
+The file name is checked before the program, so a program named `1x.atls` gives only `program-name` with `--info`, though plain `atlc check` accepts it.
+Exit code 101 is an internal error of `atlc`, the one case that writes to standard error.
+
 ## The runtime
 
 | Header | Contents |
