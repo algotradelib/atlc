@@ -1485,9 +1485,9 @@ impl<'a> Printer<'a> {
         self.line(1, &format!("static constexpr const char* atls_mode = \"{}\";", mode));
         self.line(
             1,
-            "/** Whether the program reads each day as an open and a close (`on_open`, `on_close`). */",
+            "/** Whether the program has `on_open` or `on_close`, run on the bars that open and close each session. */",
         );
-        self.line(1, &format!("static constexpr bool atls_legs = {};", ir.legs));
+        self.line(1, &format!("static constexpr bool atls_session = {};", ir.session));
         let names: Vec<String> = match &ir.mode {
             Mode::Named(n) => n.iter().map(|x| format!("\"{}\"", x)).collect(),
             _ => vec![],
@@ -1914,6 +1914,105 @@ impl<'a> Printer<'a> {
 
     /// A universe handler: each top-level statement runs across every active instrument before the next,
     /// so a cross-sectional value sees every instrument's earlier values.
+    /// A universe's lanes take the slice's bars: each instrument's series move, and those past their warm-up are
+    /// active.
+    fn lane_updates(&mut self, indent: usize) {
+        let ir = self.ir;
+        let bar = if ir.period_clock { "bar" } else { "*bar" };
+        self.line(indent, "for (std::size_t ln = 0; ln < lanes_.size(); ++ln) {");
+        self.line(indent + 1, "active_[ln] = 0;");
+        self.line(indent + 1, "tg_[ln] = atls::ops::Target{};");
+        self.line(indent + 1, "const auto* bar = slice.find(ids_[ln]);");
+        self.line(indent + 1, "if (bar == nullptr) {");
+        if ir.period_clock {
+            // Every instrument takes every period: a missing bar is a row of undefined values.
+            self.line(indent + 2, "lanes_[ln].update(params_, nullptr);");
+        }
+        self.line(indent + 2, "continue;");
+        self.line(indent + 1, "}");
+        self.line(indent + 1, "lanes_[ln].price_ = bar->bar_.close_;");
+        self.line(indent + 1, &format!("lanes_[ln].update(params_, {});", bar));
+        self.line(indent + 1, "active_[ln] = lanes_[ln].bars_ >= warmup_ ? 1 : 0;");
+        self.held_lines(indent + 1);
+        self.line(indent, "}");
+    }
+
+    /// In a lane loop: an active instrument whose holding cannot be read takes no part.
+    fn held_lines(&mut self, indent: usize) {
+        if !self.ir.uses_held {
+            return;
+        }
+        self.line(indent, "if (active_[ln]) {");
+        self.line(
+            indent + 1,
+            "const auto net = ctx.portfolio().net_quantity_of(ids_[ln]);",
+        );
+        self.line(indent + 1, "if (!net) {");
+        self.line(indent + 2, "active_[ln] = 0;");
+        self.line(indent + 1, "} else {");
+        self.line(indent + 2, "lanes_[ln].net_ = *net;");
+        self.line(indent + 2, "lanes_[ln].held_ = atls::ops::to_double(*net);");
+        self.line(indent + 1, "}");
+        self.line(indent, "}");
+    }
+
+    /// Submits the target of every active instrument.
+    fn submit_all(&mut self, indent: usize) {
+        let ir = self.ir;
+        self.line(indent, "for (std::size_t ln = 0; ln < lanes_.size(); ++ln) {");
+        self.line(indent + 1, "if (!active_[ln]) {");
+        self.line(indent + 2, "continue;");
+        self.line(indent + 1, "}");
+        self.submit_lines(
+            indent + 1,
+            "tg_[ln]",
+            "ids_[ln]",
+            "lanes_[ln].price_",
+            ir.uses_held.then_some("lanes_[ln].net_"),
+        );
+        self.line(indent, "}");
+    }
+
+    /// `on_bars` of a universe with `on_open`/`on_close`: the library's `SessionEdges` says which slice opens the
+    /// session and which closes it, by the runner's session window, whatever the interval. `on_open` runs on the
+    /// opening slice before its bars enter the series (only `open` is new), `on_close` on the closing slice after
+    /// they do; a point (one price at the open, as a daily bar split at the open) enters no series.
+    fn session_on_bars(&mut self) {
+        let ir = self.ir;
+        self.line(2, "const auto edge = edges_.next(slice.bars_.front(), ctx.session());");
+        if let Some(body) = &ir.handlers.on_open {
+            self.line(2, "if (edge.opens_) {");
+            self.line(3, "for (std::size_t ln = 0; ln < lanes_.size(); ++ln) {");
+            self.line(4, "active_[ln] = 0;");
+            self.line(4, "tg_[ln] = atls::ops::Target{};");
+            self.line(4, "const auto* bar = slice.find(ids_[ln]);");
+            // An instrument whose opening bar has no open takes no part in `on_open`.
+            self.line(4, "if (bar == nullptr || !bar->bar_.open_) {");
+            self.line(5, "continue;");
+            self.line(4, "}");
+            self.line(4, "lanes_[ln].open_now_ = atls::ops::to_double(*bar->bar_.open_);");
+            self.line(4, "lanes_[ln].price_ = *bar->bar_.open_;");
+            self.line(4, "active_[ln] = lanes_[ln].bars_ >= warmup_ ? 1 : 0;");
+            self.held_lines(4);
+            self.line(3, "}");
+            self.in_on_bar = true;
+            self.universe_body(body, 3);
+            self.submit_all(3);
+            self.line(2, "}");
+        }
+        self.line(2, "if (!edge.point_) {");
+        self.line(3, "++periods_;");
+        self.lane_updates(3);
+        self.line(2, "}");
+        if let Some(body) = &ir.handlers.on_close {
+            self.line(2, "if (edge.closes_) {");
+            self.in_on_bar = true;
+            self.universe_body(body, 3);
+            self.submit_all(3);
+            self.line(2, "}");
+        }
+    }
+
     fn universe_body(&mut self, body: &[HStmt], indent: usize) {
         for s in body {
             let mut xs = vec![];
@@ -2009,7 +2108,7 @@ impl<'a> Printer<'a> {
             2,
             "atl::Decimal64 price_{};  // the price of this instrument's last event, for limit pricing",
         );
-        if ir.legs {
+        if ir.session {
             self.line(2, "double open_now_{atls::ops::NaN};");
         }
         if ir.uses_held {
@@ -2083,14 +2182,6 @@ impl<'a> Printer<'a> {
         self.line(0, "");
         self.set_method();
         self.pricing_methods();
-        if ir.legs {
-            self.line(1, "/** The leg of a day a slice is: 0 the open, 1 the day's bar, 2 the close (minutes past midnight, less one). */");
-            self.line(1, "static int part_of(std::chrono::system_clock::time_point end) {");
-            self.line(2, "const auto midnight = std::chrono::floor<std::chrono::hours>(end);");
-            self.line(2, "return static_cast<int>(std::chrono::duration_cast<std::chrono::minutes>(end - midnight).count()) - 1;");
-            self.line(1, "}");
-            self.line(0, "");
-        }
         self.line(
             1,
             "/** Each instrument's series, then the handlers across every instrument past its warm-up. */",
@@ -2098,99 +2189,17 @@ impl<'a> Printer<'a> {
         self.line(1, "template <class Ctx>");
         self.line(1, "void on_bars(Ctx& ctx, const atl::strategy::BarSlice& slice) {");
         self.fp_contract();
-        if ir.legs {
-            self.line(2, "const int part = part_of(slice.period_end_);");
-            self.line(2, "if (part != 0 && part != 1) {");
-            self.line(3, "return;");
-            self.line(2, "}");
-            self.line(2, "if (part == 1) {");
-            self.line(3, "++periods_;");
-            self.line(2, "}");
+        if ir.session {
+            self.session_on_bars();
         } else {
             self.line(2, "++periods_;");
-        }
-        self.line(2, "for (std::size_t ln = 0; ln < lanes_.size(); ++ln) {");
-        self.line(3, "active_[ln] = 0;");
-        self.line(3, "tg_[ln] = atls::ops::Target{};");
-        self.line(3, "const auto* bar = slice.find(ids_[ln]);");
-        self.line(3, "if (bar == nullptr) {");
-        if ir.period_clock {
-            // Every instrument takes every period: a missing bar is a row of undefined values.
-            if ir.legs {
-                self.line(4, "if (part == 1) {");
-                self.line(5, "lanes_[ln].update(params_, nullptr);");
-                self.line(4, "}");
-            } else {
-                self.line(4, "lanes_[ln].update(params_, nullptr);");
+            self.lane_updates(2);
+            self.in_on_bar = true;
+            if let Some(body) = &ir.handlers.on_bar {
+                self.universe_body(body, 2);
             }
+            self.submit_all(2);
         }
-        self.line(4, "continue;");
-        self.line(3, "}");
-        self.line(3, "lanes_[ln].price_ = bar->bar_.close_;");
-        if ir.legs {
-            self.line(3, "if (part == 0) {");
-            self.line(4, "if (!bar->bar_.open_) {");
-            self.line(5, "continue;");
-            self.line(4, "}");
-            self.line(4, "lanes_[ln].open_now_ = atls::ops::to_double(*bar->bar_.open_);");
-            self.line(3, "} else {");
-            self.line(
-                4,
-                &format!(
-                    "lanes_[ln].update(params_, {});",
-                    if ir.period_clock { "bar" } else { "*bar" }
-                ),
-            );
-            self.line(3, "}");
-        } else {
-            self.line(
-                3,
-                &format!(
-                    "lanes_[ln].update(params_, {});",
-                    if ir.period_clock { "bar" } else { "*bar" }
-                ),
-            );
-        }
-        self.line(3, "active_[ln] = lanes_[ln].bars_ >= warmup_ ? 1 : 0;");
-        if ir.uses_held {
-            self.line(3, "if (active_[ln]) {");
-            self.line(4, "const auto net = ctx.portfolio().net_quantity_of(ids_[ln]);");
-            self.line(4, "if (!net) {");
-            self.line(5, "active_[ln] = 0;");
-            self.line(4, "} else {");
-            self.line(5, "lanes_[ln].net_ = *net;");
-            self.line(5, "lanes_[ln].held_ = atls::ops::to_double(*net);");
-            self.line(4, "}");
-            self.line(3, "}");
-        }
-        self.line(2, "}");
-        self.in_on_bar = true;
-        if ir.legs {
-            if let Some(body) = &ir.handlers.on_open {
-                self.line(2, "if (part == 0) {");
-                self.universe_body(body, 3);
-                self.line(2, "}");
-            }
-            if let Some(body) = &ir.handlers.on_close {
-                self.line(2, "if (part == 1) {");
-                self.universe_body(body, 3);
-                self.line(2, "}");
-            }
-        } else if let Some(body) = &ir.handlers.on_bar {
-            self.universe_body(body, 2);
-        }
-        self.line(2, "for (std::size_t ln = 0; ln < lanes_.size(); ++ln) {");
-        self.line(3, "if (!active_[ln]) {");
-        self.line(4, "continue;");
-        self.line(3, "}");
-        self.submit_lines(
-            3,
-            "tg_[ln]",
-            "ids_[ln]",
-            "lanes_[ln].price_",
-            ir.uses_held.then_some("lanes_[ln].net_"),
-        );
-        self.line(2, "}");
         self.line(1, "}");
         self.line(0, "");
         self.in_on_bar = false;
@@ -2199,6 +2208,9 @@ impl<'a> Printer<'a> {
         self.fp_contract();
         self.bound_checks(2);
         self.line(2, "periods_ = 0;");
+        if ir.session {
+            self.line(2, "edges_ = atl::strategy::SessionEdges{};");
+        }
         self.line(2, "lanes_.assign(ids_.size(), Lane{});");
         self.line(2, "for (auto& lane : lanes_) {");
         self.line(3, "lane.setup(params_);");
@@ -2221,6 +2233,9 @@ impl<'a> Printer<'a> {
         self.line(1, "atls::ops::OrderPricing pricing_;");
         self.line(1, "std::size_t warmup_{0};");
         self.line(1, "std::size_t periods_{0};");
+        if ir.session {
+            self.line(1, "atl::strategy::SessionEdges edges_;");
+        }
         self.line(1, "std::vector<Lane> lanes_;");
         self.line(1, "std::vector<unsigned char> active_;");
         self.line(1, "std::vector<atls::ops::Target> tg_;");

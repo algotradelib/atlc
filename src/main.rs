@@ -233,11 +233,11 @@ fn program_json(path: &std::path::Path, name: &str, ir: &Ir) -> String {
         .map(|p| format!("{{\"name\":{},\"type\":\"{}\"}}", json_string(&p.name), p.ty.name()))
         .collect();
     format!(
-        "{{\"path\":{},\"struct\":{},\"mode\":\"{mode}\",\"instruments\":[{}],\"legs\":{},\"params\":[{}]}}",
+        "{{\"path\":{},\"struct\":{},\"mode\":\"{mode}\",\"instruments\":[{}],\"session\":{},\"params\":[{}]}}",
         json_string(&path.display().to_string()),
         json_string(name),
         instruments.join(","),
-        ir.legs,
+        ir.session,
         params.join(",")
     )
 }

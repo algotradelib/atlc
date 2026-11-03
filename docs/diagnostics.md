@@ -397,7 +397,7 @@ From `tests/ui/check/duplicate-block.atls`.
 
 ### `missing-on-bar`
 
-No `on_bar` (and no session legs): nothing would ever state a target.
+No `on_bar` (and no `on_open` or `on_close`): nothing would ever state a target.
 
 ```
 error[missing-on-bar]: the program has no `on_bar`
@@ -1417,50 +1417,50 @@ error[xs-nested]: `xs_mean` inside `if` or `for`
 
 From `tests/ui/check/xs-under-if.atls`.
 
-### `bar-and-legs`
+### `bar-and-session`
 
 `on_bar` together with `on_open` or `on_close`.
 
 ```
-error[bar-and-legs]: `on_bar` and `on_open`/`on_close` in one program
- --> tests/ui/check/bar-and-legs.atls:2:1
+error[bar-and-session]: `on_bar` and `on_open`/`on_close` in one program
+ --> tests/ui/check/bar-and-session.atls:2:1
   |
 2 | on_bar { target(1); }
   | ^^^^^^ `on_bar`
 3 | on_close { target(0); }
-  | -------- a session leg
-  = a program sees every bar (`on_bar`) or each day as an open and a close (`on_open`, `on_close`), not both
+  | -------- a session handler
+  = a program acts on every bar (`on_bar`) or on the bars that open and close each session (`on_open`, `on_close`), not both yet
 ```
 
-From `tests/ui/check/bar-and-legs.atls`.
+From `tests/ui/check/bar-and-session.atls`.
 
-### `legs-outside-universe`
+### `session-outside-universe`
 
 `on_open` or `on_close` in a program that is not a universe.
 
 ```
-error[legs-outside-universe]: `on_open`/`on_close` are supported in `universe {}` programs only
- --> tests/ui/check/legs-outside-universe.atls:1:1
+error[session-outside-universe]: `on_open`/`on_close` are supported in `universe {}` programs only
+ --> tests/ui/check/session-outside-universe.atls:1:1
   |
 1 | on_open {
   | ^^^^^^^ not here yet
-  = add `universe {}`; a single-instrument program with legs is not built yet
+  = add `universe {}`; a single-instrument program with session handlers is not built yet
 ```
 
-From `tests/ui/check/legs-outside-universe.atls`.
+From `tests/ui/check/session-outside-universe.atls`.
 
 ### `open-reads-future`
 
-Today's `close`, `high`, `low` or `volume` read in `on_open`.
+The opening bar's `close`, `high`, `low` or `volume` read in `on_open`.
 
 ```
-error[open-reads-future]: today's `close` is not known at the open
+error[open-reads-future]: the session's `close` is not known at the open
  --> tests/ui/check/open-reads-close.atls:4:21
   |
 4 |   real gap = open / close - 1;
   |                     ^^^^^ would read the future
-  = in `on_open` only `open` is today's; series hold the last close's values
-  = declare `real last_close = close;` in `series {}` to read the last close's close
+  = in `on_open` only the opening bar's `open` is new; series hold the values of the bar before it
+  = declare `real last_close = close;` in `series {}` to read the last bar's close
 ```
 
 From `tests/ui/check/open-reads-close.atls`.

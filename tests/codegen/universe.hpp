@@ -21,8 +21,8 @@ struct Universe {
 
   /** How the program sees instruments, for a runner: single, named or universe. */
   static constexpr const char* atls_mode = "universe";
-  /** Whether the program reads each day as an open and a close (`on_open`, `on_close`). */
-  static constexpr bool atls_legs = true;
+  /** Whether the program has `on_open` or `on_close`, run on the bars that open and close each session. */
+  static constexpr bool atls_session = true;
   /** The names in `instruments {}`, in order; empty otherwise. */
   static std::vector<std::string> atls_instruments() { return {}; }
   /** The parameter names, in order. */
@@ -89,47 +89,25 @@ struct Universe {
   /** The targets limit pricing did not submit, by reason. */
   const atls::ops::PricingRefusals& pricing_refusals() const { return pricing_.refusals(); }
 
-  /** The leg of a day a slice is: 0 the open, 1 the day's bar, 2 the close (minutes past midnight, less one). */
-  static int part_of(std::chrono::system_clock::time_point end) {
-    const auto midnight = std::chrono::floor<std::chrono::hours>(end);
-    return static_cast<int>(std::chrono::duration_cast<std::chrono::minutes>(end - midnight).count()) - 1;
-  }
-
   /** Each instrument's series, then the handlers across every instrument past its warm-up. */
   template <class Ctx>
   void on_bars(Ctx& ctx, const atl::strategy::BarSlice& slice) {
 #if defined(__clang__)
     #pragma clang fp contract(off)
 #endif
-    const int part = part_of(slice.period_end_);
-    if (part != 0 && part != 1) {
-      return;
-    }
-    if (part == 1) {
-      ++periods_;
-    }
-    for (std::size_t ln = 0; ln < lanes_.size(); ++ln) {
-      active_[ln] = 0;
-      tg_[ln] = atls::ops::Target{};
-      const auto* bar = slice.find(ids_[ln]);
-      if (bar == nullptr) {
-        if (part == 1) {
-          lanes_[ln].update(params_, nullptr);
-        }
-        continue;
-      }
-      lanes_[ln].price_ = bar->bar_.close_;
-      if (part == 0) {
-        if (!bar->bar_.open_) {
+    const auto edge = edges_.next(slice.bars_.front(), ctx.session());
+    if (edge.opens_) {
+      for (std::size_t ln = 0; ln < lanes_.size(); ++ln) {
+        active_[ln] = 0;
+        tg_[ln] = atls::ops::Target{};
+        const auto* bar = slice.find(ids_[ln]);
+        if (bar == nullptr || !bar->bar_.open_) {
           continue;
         }
         lanes_[ln].open_now_ = atls::ops::to_double(*bar->bar_.open_);
-      } else {
-        lanes_[ln].update(params_, bar);
+        lanes_[ln].price_ = *bar->bar_.open_;
+        active_[ln] = lanes_[ln].bars_ >= warmup_ ? 1 : 0;
       }
-      active_[ln] = lanes_[ln].bars_ >= warmup_ ? 1 : 0;
-    }
-    if (part == 0) {
       for (std::size_t ln = 0; ln < lanes_.size(); ++ln) {
         if (!active_[ln]) {
           continue;
@@ -170,8 +148,37 @@ struct Universe {
           }
         }
       }
+      for (std::size_t ln = 0; ln < lanes_.size(); ++ln) {
+        if (!active_[ln]) {
+          continue;
+        }
+        if (tg_[ln].stated()) {
+          atl::strategy::TargetPosition order;
+          order.instrument_ = ids_[ln];
+          order.tag_ = tag_;
+          order.target_quantity_ = atl::Decimal64(tg_[ln].shares(), 0);
+          if (!pricing_.limit() || pricing_.price(ctx, order, lanes_[ln].price_)) {
+            ctx.submit(order);
+          }
+        }
+      }
     }
-    if (part == 1) {
+    if (!edge.point_) {
+      ++periods_;
+      for (std::size_t ln = 0; ln < lanes_.size(); ++ln) {
+        active_[ln] = 0;
+        tg_[ln] = atls::ops::Target{};
+        const auto* bar = slice.find(ids_[ln]);
+        if (bar == nullptr) {
+          lanes_[ln].update(params_, nullptr);
+          continue;
+        }
+        lanes_[ln].price_ = bar->bar_.close_;
+        lanes_[ln].update(params_, bar);
+        active_[ln] = lanes_[ln].bars_ >= warmup_ ? 1 : 0;
+      }
+    }
+    if (edge.closes_) {
       for (std::size_t ln = 0; ln < lanes_.size(); ++ln) {
         if (!active_[ln]) {
           continue;
@@ -179,18 +186,18 @@ struct Universe {
         [[maybe_unused]] auto& L = lanes_[ln];
         tg_[ln].state(static_cast<std::int64_t>(0));
       }
-    }
-    for (std::size_t ln = 0; ln < lanes_.size(); ++ln) {
-      if (!active_[ln]) {
-        continue;
-      }
-      if (tg_[ln].stated()) {
-        atl::strategy::TargetPosition order;
-        order.instrument_ = ids_[ln];
-        order.tag_ = tag_;
-        order.target_quantity_ = atl::Decimal64(tg_[ln].shares(), 0);
-        if (!pricing_.limit() || pricing_.price(ctx, order, lanes_[ln].price_)) {
-          ctx.submit(order);
+      for (std::size_t ln = 0; ln < lanes_.size(); ++ln) {
+        if (!active_[ln]) {
+          continue;
+        }
+        if (tg_[ln].stated()) {
+          atl::strategy::TargetPosition order;
+          order.instrument_ = ids_[ln];
+          order.tag_ = tag_;
+          order.target_quantity_ = atl::Decimal64(tg_[ln].shares(), 0);
+          if (!pricing_.limit() || pricing_.price(ctx, order, lanes_[ln].price_)) {
+            ctx.submit(order);
+          }
         }
       }
     }
@@ -208,6 +215,7 @@ struct Universe {
       throw std::invalid_argument("quantity = " + atls::ops::text(params_.quantity_) + " is below its lower bound 0 = " + atls::ops::text(0));
     }
     periods_ = 0;
+    edges_ = atl::strategy::SessionEdges{};
     lanes_.assign(ids_.size(), Lane{});
     for (auto& lane : lanes_) {
       lane.setup(params_);
@@ -225,6 +233,7 @@ struct Universe {
   atls::ops::OrderPricing pricing_;
   std::size_t warmup_{0};
   std::size_t periods_{0};
+  atl::strategy::SessionEdges edges_;
   std::vector<Lane> lanes_;
   std::vector<unsigned char> active_;
   std::vector<atls::ops::Target> tg_;

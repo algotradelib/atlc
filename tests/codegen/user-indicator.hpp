@@ -22,8 +22,8 @@ struct UserIndicator {
 
   /** How the program sees instruments, for a runner: single, named or universe. */
   static constexpr const char* atls_mode = "single";
-  /** Whether the program reads each day as an open and a close (`on_open`, `on_close`). */
-  static constexpr bool atls_legs = false;
+  /** Whether the program has `on_open` or `on_close`, run on the bars that open and close each session. */
+  static constexpr bool atls_session = false;
   /** The names in `instruments {}`, in order; empty otherwise. */
   static std::vector<std::string> atls_instruments() { return {}; }
   /** The parameter names, in order. */

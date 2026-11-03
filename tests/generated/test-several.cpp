@@ -1,4 +1,4 @@
-// Programs over several instruments (tests/programs/): named instruments, and a universe with session legs
+// Programs over several instruments (tests/programs/): named instruments, and a universe with session handlers
 // whose instruments miss bars under `missing = skip`, each generated in every variant.
 #include "replay.hpp"
 
@@ -16,6 +16,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <chrono>
+#include <map>
 #include <set>
 
 namespace {
@@ -62,31 +63,50 @@ TEST_CASE("pairs: two named instruments, long and short, the same fills in every
   CHECK_THROWS_AS(atls::PairsIncremental({ids[0]}), std::invalid_argument);
 }
 
-TEST_CASE("universe: session legs and missing bars, the same fills in every variant") {
+TEST_CASE("universe: session handlers and missing bars, the same fills in every variant") {
   // C lists after 300 days; every instrument misses about one day in 15.
   const std::vector<t::Series> all{
     t::walk("A", 6, 800, 15), t::walk("B", 7, 800, 15), t::walk("C", 8, 800, 15, 300), t::walk("D", 9, 800, 15)
   };
-  const auto events = t::leg_events(all);
+  const auto events = t::session_events(all);
   const std::vector<std::string> symbols{"A", "B", "C", "D"};
   std::vector<atl::InstrumentId> ids;
   for (const auto& s : symbols) {
     ids.push_back(t::id_of(s));
   }
+  t::Settings close;
+  close.decision_close_ = true;
+  close.slippage_ticks_ = 0;
   const auto first = same_fills({
-    t::run(atls::UniverseIncremental(ids), symbols, events),
-    t::run(atls::UniverseNaive(ids), symbols, events),
-    t::run(atls::UniverseExact(ids), symbols, events),
-    t::run(atls::UniverseNoshare(ids), symbols, events),
-    t::run(atls::UniverseKeep(ids), symbols, events),
+    t::run(atls::UniverseIncremental(ids), symbols, events, close),
+    t::run(atls::UniverseNaive(ids), symbols, events, close),
+    t::run(atls::UniverseExact(ids), symbols, events, close),
+    t::run(atls::UniverseNoshare(ids), symbols, events, close),
+    t::run(atls::UniverseKeep(ids), symbols, events, close),
   });
-  // A target stated at the open fills on the day's bar (stamped at its end, two minutes past midnight), one stated at
-  // the close on the close (three minutes past).
+  // A target stated at the open fills on the day's bar (stamped at the close, 06:30 UTC) at that day's open; one
+  // stated at the close fills on the instrument's next open point (00:00 UTC) at the close it was decided on.
+  std::map<std::string, std::vector<atl::Bar>> bars;
+  for (const auto& s : all) {
+    bars[s.symbol_] = s.bars_;
+  }
+  const auto day_of = [](std::chrono::system_clock::time_point at) {
+    return std::chrono::duration_cast<std::chrono::hours>(at.time_since_epoch()).count() / 24;
+  };
   std::set<std::string> traded;
   for (const auto& e : first.result_.executions_) {
-    const auto minute =
-      std::chrono::duration_cast<std::chrono::minutes>(e.fill_.at_.time_since_epoch()).count() % (24 * 60);
-    CHECK(minute == (e.fill_.side_ == atl::OrderSide::BUY ? 2 : 3));
+    const auto minutes = std::chrono::duration_cast<std::chrono::minutes>(e.fill_.at_.time_since_epoch()).count();
+    const bool buy = e.fill_.side_ == atl::OrderSide::BUY;
+    CHECK(minutes % (24 * 60) == (buy ? 390 : 0));
+    const auto& own = bars[e.fill_.instrument_.symbol_];
+    const atl::Bar* decided = nullptr;
+    for (const auto& b : own) {
+      if (buy ? day_of(b.timestamp_) == day_of(e.fill_.at_) : day_of(b.timestamp_) < day_of(e.fill_.at_)) {
+        decided = &b;
+      }
+    }
+    REQUIRE(decided != nullptr);
+    CHECK(e.fill_.price_ == (buy ? *decided->open_ : decided->close_));
     traded.insert(e.fill_.instrument_.symbol_);
   }
   CHECK(traded == std::set<std::string>{"A", "B", "C", "D"});

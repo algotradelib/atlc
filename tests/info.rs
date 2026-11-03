@@ -56,7 +56,7 @@ fn info_in(cwd: &Path, args: &[&str]) -> (i32, Json) {
     }
     if let Json::Obj(_) = v.get("program") {
         let p = v.get("program");
-        assert_eq!(p.keys(), ["path", "struct", "mode", "instruments", "legs", "params"]);
+        assert_eq!(p.keys(), ["path", "struct", "mode", "instruments", "session", "params"]);
         assert!(Path::new(p.get("path").str()).is_absolute(), "{p:?}");
         for param in p.get("params").arr() {
             assert_eq!(param.keys(), ["name", "type"]);
@@ -129,7 +129,7 @@ fn a_single_instrument_program() {
     assert_eq!(p.get("struct").str(), "MyMeanRev2");
     assert_eq!(p.get("mode").str(), "single");
     assert!(instruments(&v).is_empty());
-    assert_eq!(p.get("legs"), &Json::Bool(false));
+    assert_eq!(p.get("session"), &Json::Bool(false));
     assert_eq!(
         params(&v),
         [("lookback", "int"), ("entry", "real"), ("flag", "bool")].map(|(n, t)| (n.to_string(), t.to_string()))
@@ -144,7 +144,7 @@ fn named_instruments_in_order() {
     let p = v.get("program");
     assert_eq!((p.get("struct").str(), p.get("mode").str()), ("Pairs", "named"));
     assert_eq!(instruments(&v), ["y", "x"]);
-    assert_eq!(p.get("legs"), &Json::Bool(false));
+    assert_eq!(p.get("session"), &Json::Bool(false));
     let dir = scratch("named");
     std::fs::write(
         dir.join("three.atls"),
@@ -159,13 +159,13 @@ fn named_instruments_in_order() {
 }
 
 #[test]
-fn a_universe_with_legs() {
+fn a_universe_with_session_handlers() {
     let (code, v) = info(&["examples/universe.atls"]);
     assert_eq!(code, 0);
     let p = v.get("program");
     assert_eq!((p.get("struct").str(), p.get("mode").str()), ("Universe", "universe"));
     assert!(instruments(&v).is_empty());
-    assert_eq!(p.get("legs"), &Json::Bool(true));
+    assert_eq!(p.get("session"), &Json::Bool(true));
 }
 
 #[test]

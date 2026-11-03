@@ -1,5 +1,5 @@
 //! Valid programs: one of each kind (`tests/programs/`: one instrument, named instruments, a universe with
-//! session legs, state with `on_fill`, functions and a user indicator) and the code examples of the language
+//! session handlers, state with `on_fill`, functions and a user indicator) and the code examples of the language
 //! reference and the README must check without a diagnostic; `examples/` holds the same five programs.
 
 use std::path::{Path, PathBuf};

@@ -29,8 +29,8 @@ Each block kind appears at most once, except `indicator`, which appears once per
 | Handler | Programs | When |
 | --- | --- | --- |
 | `on_start` | one instrument, named instruments | once, before the first period, with no warm-up gate |
-| `on_bar` | all; required unless the program uses legs | each period, after the series are updated, once the warm-up gate has passed |
-| `on_open`, `on_close` | universes only, either or both, instead of `on_bar` | at each day's open and close; at the open, series hold the previous close's values |
+| `on_bar` | all; required unless the program has `on_open` or `on_close` | each period, after the series are updated, once the warm-up gate has passed |
+| `on_open`, `on_close` | universes only, either or both, instead of `on_bar` | on the bar that opens each session and the bar that closes it, whatever the interval ([instruments](instruments.md)); at the open, series hold the values of the bar before |
 | `on_fill` | one instrument only | after a fill; no series update precedes it |
 | `on_stop` | one instrument, named instruments | once, after the last period |
 

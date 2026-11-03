@@ -458,19 +458,19 @@ impl Checker<'_> {
                     }
                     if k == HandlerKind::OnOpen {
                         if f == Field::Open {
-                            // An instrument whose open bar has no open takes no part in `on_open`.
+                            // An instrument whose opening bar has no open takes no part in `on_open`.
                             return Some(Self::h(HKind::OpenNow, Ty::Real, false));
                         }
                         self.err(
                             Diag::new(
                                 Code::OpenReadsFuture,
-                                format!("today's `{}` is not known at the open", n),
+                                format!("the session's `{}` is not known at the open", n),
                                 e.span,
                                 "would read the future",
                             )
-                            .note("in `on_open` only `open` is today's; series hold the last close's values")
+                            .note("in `on_open` only the opening bar's `open` is new; series hold the values of the bar before it")
                             .note(format!(
-                                "declare `real last_{} = {};` in `series {{}}` to read the last close's {}",
+                                "declare `real last_{} = {};` in `series {{}}` to read the last bar's {}",
                                 n, n, n
                             )),
                         );

@@ -12,7 +12,7 @@ The grammar in [syntax.md](syntax.md) is checked against the compiler's parser b
 | [Syntax](syntax.md) | Lexical rules and the grammar |
 | [Program structure](program-structure.md) | The blocks, the order they run in, warm-up and lookback |
 | [Types and definedness](types-and-definedness.md) | `int`, `real`, `bool`; undefined values; `defined` and narrowing |
-| [Instruments](instruments.md) | One instrument, named instruments, universes; cross-sectional operators; session legs |
+| [Instruments](instruments.md) | One instrument, named instruments, universes; cross-sectional operators; session handlers |
 | [Missing values](missing-values.md) | `restart`, `skip`, `poison`, and how a window treats a missing value |
 | [Built-in functions and indicators](builtins.md) | Every built-in, its definition and its arithmetic |
 | [Functions and indicators](functions-and-indicators.md) | `functions {}` and user-defined `indicator`s |

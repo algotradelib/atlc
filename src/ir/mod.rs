@@ -310,11 +310,11 @@ pub enum HKind {
     Held,
     /// `y.held` in a program with `instruments {}`.
     HeldOf(usize),
-    /// Today's `open`, in `on_open`.
+    /// The opening bar's `open`, in `on_open`.
     OpenNow,
     /// In a universe handler: this instrument's bars so far.
     Bars,
-    /// In a universe handler: the periods so far (the days, with legs).
+    /// In a universe handler: the periods so far (bars that entered the series; a point at the open is none).
     Periods,
     /// A cross-sectional value: the operator, its per-instrument argument, and its id.
     Xs(XsOp, Box<HExpr>, usize),
@@ -487,8 +487,8 @@ pub struct Ir {
     pub live: Vec<bool>,
     pub warnings: Vec<crate::frontend::diag::Diag>,
     pub mode: Mode,
-    /// `on_open`/`on_close` instead of `on_bar`: the run feeds each day as an open and a close.
-    pub legs: bool,
+    /// `on_open`/`on_close` instead of `on_bar`: run on the bars that open and close each session.
+    pub session: bool,
     /// How many `xs_*` values the handlers compute.
     pub xs_count: usize,
     /// The program's missing-value policy (`options { missing = ...; }`), restart by default.
@@ -515,7 +515,7 @@ impl Default for Ir {
             live: vec![],
             warnings: vec![],
             mode: Mode::Single,
-            legs: false,
+            session: false,
             xs_count: 0,
             missing: Policy::Restart,
             period_clock: false,

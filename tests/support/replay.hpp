@@ -120,30 +120,31 @@ inline std::vector<atl::strategy::BarEvent> daily_events(const std::vector<Serie
 }
 
 /**
- * @brief Each daily bar as three one-minute legs stamped 0, 1 and 2 minutes after midnight: the open alone,
- *   the day's bar, the close alone. A target stated at the open fills at the day's open, one stated at the
- *   close at the close (a program with `on_open` and `on_close`).
+ * @brief Each daily bar (stamped at a UTC midnight) as two close-stamped daily bars on the KRX session: a point at
+ *   the open (09:00 KST, its open alone) and the day's bar at the close (15:30 KST). A program's `on_open` runs on
+ *   the first, its `on_close` on the second.
  * @param all The series.
  * @return The events, in time order.
  */
-inline std::vector<atl::strategy::BarEvent> leg_events(const std::vector<Series>& all) {
+inline std::vector<atl::strategy::BarEvent> session_events(const std::vector<Series>& all) {
   std::vector<atl::strategy::BarEvent> out;
+  const auto session = atl::strategy::SessionWindow::krx();
   const auto days = daily_events(all);
   for (const auto& day : days) {
-    for (int part = 0; part < 3; ++part) {
-      atl::Bar bar = day.bar_;
-      bar.timestamp_ = day.bar_.timestamp_ + std::chrono::minutes(part);
-      if (part == 0) {
-        bar.high_ = bar.low_ = bar.close_ = *bar.open_;
-      } else if (part == 2) {
-        bar.open_ = bar.high_ = bar.low_ = bar.close_;
-      }
-      out.push_back(
-        atl::strategy::make_bar_event(day.instrument_, atl::BarInterval::ONE_MINUTE, atl::BarStamp::OPEN, bar)
-      );
-    }
+    const auto noon = day.bar_.timestamp_ + std::chrono::hours(3);
+    atl::Bar point = day.bar_;
+    point.timestamp_ = session.opens_at(noon);
+    point.high_ = point.low_ = point.close_ = *point.open_;
+    out.push_back(
+      atl::strategy::make_bar_event(day.instrument_, atl::BarInterval::ONE_DAY, atl::BarStamp::CLOSE, point)
+    );
+    atl::Bar whole = day.bar_;
+    whole.timestamp_ = session.closes_at(noon);
+    out.push_back(
+      atl::strategy::make_bar_event(day.instrument_, atl::BarInterval::ONE_DAY, atl::BarStamp::CLOSE, whole)
+    );
   }
-  // Each leg of every instrument before the next leg of any.
+  // Every instrument's open before any day's bar.
   std::stable_sort(out.begin(), out.end(), [](const auto& a, const auto& b) {
     return a.bar_.timestamp_ < b.bar_.timestamp_;
   });
@@ -162,6 +163,8 @@ struct Settings {
   int slippage_ticks_{1};
   /** @brief Whether a position may go below zero. */
   bool shorts_{false};
+  /** @brief Whether a market order fills at the close it was decided on (a market-price rule) instead of the open. */
+  bool decision_close_{false};
 };
 
 /** @brief A replay's result and report. */
@@ -199,12 +202,21 @@ Outcome run(
   }
   config.limits_.permitted_phases_ = std::nullopt;
   config.limits_.enforce_sellable_quantity_ = !settings.shorts_;
-  const atl::backtest::NextBarFillModel fills =
+  auto fills =
     atl::backtest::NextBarFillModel(
       atl::backtest::CommissionModel::of(atl::Decimal64::parse(settings.commission_), atl::Decimal64(0, 0)),
       atl::backtest::SlippageModel::of_ticks(settings.slippage_ticks_)
     )
       .with_sell_tax(atl::backtest::SellTax{atl::Decimal64::parse(settings.sell_tax_), atl::Country::KR});
+  if (settings.decision_close_) {
+    fills = fills.with_market_price(
+      [](
+        const atl::strategy::PlannedOrder&, const std::optional<atl::Decimal64>& last, const atl::strategy::BarEvent&
+      ) {
+        return last;
+      }
+    );
+  }
   atl::backtest::Backtester<S> engine(std::move(strategy), config, fills);
   for (const auto& event : events) {
     engine.feed(event);

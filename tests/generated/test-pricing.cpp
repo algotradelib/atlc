@@ -355,7 +355,7 @@ TEST_CASE(
 }
 
 TEST_CASE(
-  "session legs: the open's target from the open, the close's from the close, a late listing from its first open"
+  "session handlers: the open's target from the open, the close's from the close, a late listing from its first open"
 ) {
   // A every day; C lists on day 3 with a gap: under `missing = skip` it takes the periods before as missing rows, so it
   // is active at its first open, with no event before it.
@@ -383,7 +383,7 @@ TEST_CASE(
   auto held = limit(atls::PricingLegsHeld(ids), "0.0015");
   atls::PricingLegs plain(ids);
   std::vector<Texts> got;
-  for (const auto& slice : slices_of(t::leg_events({a, c}))) {
+  for (const auto& slice : slices_of(t::session_events({a, c}))) {
     auto ctx_priced = probe({"A", "C"});
     auto ctx_held = probe({"A", "C"});
     auto ctx_plain = probe({"A", "C"});
@@ -392,7 +392,7 @@ TEST_CASE(
     plain.on_bars(ctx_plain, slice);
     // Reading `held` in `on_close` reads the position the pricing compares with: the same targets and prices.
     CHECK(targets_of(ctx_held) == targets_of(ctx_priced));
-    // The same targets, on the same legs, for the same instruments: pricing changes only the price.
+    // The same targets, on the same slices, for the same instruments: pricing changes only the price.
     REQUIRE(ctx_priced.targets().size() == ctx_plain.targets().size());
     for (std::size_t k = 0; k < ctx_plain.targets().size(); ++k) {
       CHECK(ctx_priced.targets()[k].instrument_ == ctx_plain.targets()[k].instrument_);
@@ -401,24 +401,21 @@ TEST_CASE(
     }
     got.push_back(targets_of(ctx_priced));
   }
-  // Three legs a day; the third (the close alone) runs no handler.
-  REQUIRE(got.size() == 15);
+  // Two slices a day: the open point, then the day's bar at the close.
+  REQUIRE(got.size() == 10);
   CHECK(got[0].empty());
   // Day 0's close: 10050 × 0.9985 = 10034.925, up to 10040.
   CHECK(got[1] == Texts{"A -10 @ 10040"});
   // Day 1's open: 10100 × 1.0015 = 10115.15, down to 10110.
-  CHECK(got[3] == Texts{"A 10 @ 10110"});
+  CHECK(got[2] == Texts{"A 10 @ 10110"});
   // Day 3's open: C at its first event, 12000 × 1.0015 = 12018 down to 12010; both active, so 10 × 2 each.
-  CHECK(got[9] == Texts{"A 20 @ 10310", "C 20 @ 12010"});
+  CHECK(got[6] == Texts{"A 20 @ 10310", "C 20 @ 12010"});
   // Day 3's close: each from its own close.
-  CHECK(got[10] == Texts{"A -10 @ 10340", "C -10 @ 12040"});
-  for (std::size_t k = 2; k < got.size(); k += 3) {
-    CHECK(got[k].empty());
-  }
+  CHECK(got[7] == Texts{"A -10 @ 10340", "C -10 @ 12040"});
   CHECK(priced.pricing_refusals().total() == 0);
 }
 
-TEST_CASE("session legs over missing days: pricing changes no target's quantity, instrument or leg") {
+TEST_CASE("session handlers over missing days: pricing changes no target's quantity, instrument or slice") {
   const std::vector<t::Series> all{t::walk("A", 21, 300, 9), t::walk("B", 22, 300, 9), t::walk("C", 23, 300, 9, 100)};
   std::vector<atl::InstrumentId> ids;
   for (const auto& s : all) {
@@ -427,7 +424,7 @@ TEST_CASE("session legs over missing days: pricing changes no target's quantity,
   auto priced = limit(atls::PricingLegs(ids), "0.01");
   atls::PricingLegs plain(ids);
   std::size_t targets = 0;
-  for (const auto& slice : slices_of(t::leg_events(all))) {
+  for (const auto& slice : slices_of(t::session_events(all))) {
     auto ctx_priced = probe({"A", "B", "C"});
     auto ctx_plain = probe({"A", "B", "C"});
     priced.on_bars(ctx_priced, slice);
@@ -616,7 +613,7 @@ TEST_CASE("market pricing set explicitly gives the default's fills exactly") {
   const std::vector<t::Series> all{
     t::walk("A", 6, 800, 15), t::walk("B", 7, 800, 15), t::walk("C", 8, 800, 15, 300), t::walk("D", 9, 800, 15)
   };
-  const auto legs = t::leg_events(all);
+  const auto legs = t::session_events(all);
   const std::vector<std::string> symbols{"A", "B", "C", "D"};
   std::vector<atl::InstrumentId> ids;
   for (const auto& s : symbols) {

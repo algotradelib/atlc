@@ -1,0 +1,9 @@
+error[bar-and-session]: `on_bar` and `on_open`/`on_close` in one program
+ --> tests/ui/check/bar-and-session.atls:2:1
+  |
+2 | on_bar { target(1); }
+  | ^^^^^^ `on_bar`
+3 | on_close { target(0); }
+  | -------- a session handler
+  = a program acts on every bar (`on_bar`) or on the bars that open and close each session (`on_open`, `on_close`), not both yet
+

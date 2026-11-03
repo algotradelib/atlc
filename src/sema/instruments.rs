@@ -16,25 +16,25 @@ impl Checker<'_> {
                 _ => None,
             })
         };
-        let legs = span_of(HandlerKind::OnOpen).or(span_of(HandlerKind::OnClose));
-        if let Some(l) = legs {
+        let session = span_of(HandlerKind::OnOpen).or(span_of(HandlerKind::OnClose));
+        if let Some(l) = session {
             if let Some(b) = span_of(HandlerKind::OnBar) {
-                self.err(Diag::new(Code::BarAndLegs, "`on_bar` and `on_open`/`on_close` in one program", b, "`on_bar`")
-                    .also(l, "a session leg")
-                    .note("a program sees every bar (`on_bar`) or each day as an open and a close (`on_open`, `on_close`), not both"));
+                self.err(Diag::new(Code::BarAndSession, "`on_bar` and `on_open`/`on_close` in one program", b, "`on_bar`")
+                    .also(l, "a session handler")
+                    .note("a program acts on every bar (`on_bar`) or on the bars that open and close each session (`on_open`, `on_close`), not both yet"));
             }
             if self.ir.mode != Mode::Universe {
                 self.err(
                     Diag::new(
-                        Code::LegsOutsideUniverse,
+                        Code::SessionOutsideUniverse,
                         "`on_open`/`on_close` are supported in `universe {}` programs only",
                         l,
                         "not here yet",
                     )
-                    .note("add `universe {}`; a single-instrument program with legs is not built yet"),
+                    .note("add `universe {}`; a single-instrument program with session handlers is not built yet"),
                 );
             }
-            self.ir.legs = true;
+            self.ir.session = true;
         } else if self.ir.handlers.on_bar.is_none() {
             self.err(
                 Diag::new(
@@ -279,11 +279,11 @@ mod tests {
         assert_eq!(errors("state { int n = 0; } on_start { n = 1; }"), [Code::MissingOnBar]);
         assert_eq!(
             errors("universe {} on_bar { target(1); } on_open { target(1); }"),
-            [Code::BarAndLegs]
+            [Code::BarAndSession]
         );
-        assert_eq!(errors("on_close { target(1); }"), [Code::LegsOutsideUniverse]);
-        assert!(ok("universe {} on_open { target(1); }").legs);
-        assert!(ok("universe {} on_close { target(held); }").legs);
+        assert_eq!(errors("on_close { target(1); }"), [Code::SessionOutsideUniverse]);
+        assert!(ok("universe {} on_open { target(1); }").session);
+        assert!(ok("universe {} on_close { target(held); }").session);
         assert_eq!(
             errors("universe {} on_bar { target(1); } on_fill { }"),
             [Code::OnFillOutsideSingle]

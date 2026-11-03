@@ -31,8 +31,8 @@ The struct passes the library's `ATL_ASSERT_STRATEGY` and runs in its backtester
 
 `on_start` and `on_stop` become handlers of the same names.
 
-A universe with `on_open` or `on_close` reads each day as three one-minute bars stamped 0, 1 and 2 minutes after midnight: the open alone, the day's bar, and the close alone (cmdatl's `replay.fill = "legs"`).
-`on_open` runs on the first and `on_close` on the second, so a target stated at the open fills at the day's open and one stated at the close fills at the close.
+A universe with `on_open` or `on_close` asks the library's `atl::strategy::SessionEdges` which slice opens its session and which closes it, by the runner's session window (`ctx.session()`).
+On the opening slice it runs `on_open` before the slice's bars enter the series; on the closing slice, `on_close` after they do; a point at the open (a daily bar stamped at the open) enters no series.
 
 Each handler call submits at most one `TargetPosition` per instrument: the last target it stated, in whole shares, with the struct's name in lower case as the tag.
 A target stated again on a later bar is submitted again.
@@ -53,7 +53,7 @@ Parameters are run-time fields, so one compiled header runs every point of a tun
 
 An `int` result that does not fit in 64 bits throws `std::overflow_error` from the handler, constructor or `set` that computes it ([types and definedness](types-and-definedness.md), "Types"); the exception leaves the runner's loop, so the run stops.
 
-For a runner, the struct also states `warmup_bars()` (the bars before the handlers run), `atls_mode` (`"single"`, `"named"` or `"universe"`), `atls_legs`, `atls_instruments()` and `atls_params()`.
+For a runner, the struct also states `warmup_bars()` (the bars before the handlers run), `atls_mode` (`"single"`, `"named"` or `"universe"`), `atls_session`, `atls_instruments()` and `atls_params()`.
 
 ### Limit orders
 
@@ -78,12 +78,12 @@ How a limit fills, and when it expires, is up to the runner; [cmdatl's run setti
 
 ## The program's facts
 
-`atlc check FILE.atls --info` gives a tool what it needs to drive a program's header before building it: the struct's name, the mode, the instruments, the legs and the parameters.
+`atlc check FILE.atls --info` gives a tool what it needs to drive a program's header before building it: the struct's name, the mode, the instruments, whether it has session handlers and the parameters.
 It prints exactly one JSON object on one line of standard output, whatever happened, and nothing on standard error:
 
 ```json
 {"atlc_info":1,"status":"ok","atlc":"0.0.0-9000",
- "program":{"path":"/abs/pairs.atls","struct":"Pairs","mode":"named","instruments":["y","x"],"legs":false,
+ "program":{"path":"/abs/pairs.atls","struct":"Pairs","mode":"named","instruments":["y","x"],"session":false,
             "params":[{"name":"lookback","type":"int"},{"name":"entry","type":"real"},{"name":"short","type":"bool"}]},
  "diagnostics":[]}
 ```
@@ -98,7 +98,7 @@ It prints exactly one JSON object on one line of standard output, whatever happe
 | `program.struct` | string | the generated struct's name, `atls::` omitted, as `atlc build` names it from the same path |
 | `program.mode` | `"single"`, `"named"` or `"universe"` | the struct's `atls_mode` |
 | `program.instruments` | array of strings | the names of `instruments {}`, in order; empty for the other modes |
-| `program.legs` | boolean | whether the program has `on_open` or `on_close` (the struct's `atls_legs`) |
+| `program.session` | boolean | whether the program has `on_open` or `on_close` (the struct's `atls_session`) |
 | `program.params` | array | each parameter's `name` and `type` (`"int"`, `"real"` or `"bool"`), in declaration order |
 | `diagnostics` | array | warnings and errors, below |
 
