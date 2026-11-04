@@ -32,7 +32,7 @@ Handlers: `on_start`, `on_bar`, `on_fill`, `on_stop` ([program structure](progra
 
 - Universe programs only, instead of `on_bar`: either or both.
 - They run on whatever bars the run feeds, by the run's session window (the library's `SessionEdges`): `on_open` on the bar that opens each session, `on_close` on the bar that closes it.
-  - On minute or hourly bars, the session's first bar (known at its end, a period after the open) and the bar whose period holds the close (on KRX minute data, the 15:30 closing print).
+  - On minute or hourly bars, the session's first bar (known at its end, a period after the open) and the first bar whose period holds the close: of start-stamped KRX minute bars the 15:29 bar (15:29 to 15:30), of end-stamped ones the bar stamped 15:30.
   - On daily bars split at the open (cmdatl's `data.open_point`), the point at the open and the day's bar at the close.
   - On plain daily bars a session is one bar, which runs both: `on_open`'s targets are replaced by `on_close`'s, so cmdatl asks for `data.open_point` or intraday bars.
   - A session with no bar reaching its close runs no `on_close`.
