@@ -30,6 +30,9 @@ struct Universe {
 
   /** Bars before the handlers run: the stated warm-up or what the series need, whichever is longer. */
   std::size_t warmup_bars() const { return warmup_; }
+  /** Sessions a bar has opened and closed so far, for a runner to tell a program that met none. */
+  std::size_t session_opens() const { return edges_.opened(); }
+  std::size_t session_closes() const { return edges_.closed(); }
 
   /** One instrument's series, indicators and state. */
   struct Lane {

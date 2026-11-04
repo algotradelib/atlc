@@ -1515,6 +1515,14 @@ impl<'a> Printer<'a> {
             "/** Bars before the handlers run: the stated warm-up or what the series need, whichever is longer. */",
         );
         self.line(1, "std::size_t warmup_bars() const { return warmup_; }");
+        if ir.session {
+            self.line(
+                1,
+                "/** Sessions a bar has opened and closed so far, for a runner to tell a program that met none. */",
+            );
+            self.line(1, "std::size_t session_opens() const { return edges_.opened(); }");
+            self.line(1, "std::size_t session_closes() const { return edges_.closed(); }");
+        }
         self.line(0, "");
     }
 

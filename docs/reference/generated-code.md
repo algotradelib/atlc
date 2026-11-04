@@ -54,6 +54,7 @@ Parameters are run-time fields, so one compiled header runs every point of a tun
 An `int` result that does not fit in 64 bits throws `std::overflow_error` from the handler, constructor or `set` that computes it ([types and definedness](types-and-definedness.md), "Types"); the exception leaves the runner's loop, so the run stops.
 
 For a runner, the struct also states `warmup_bars()` (the bars before the handlers run), `atls_mode` (`"single"`, `"named"` or `"universe"`), `atls_session`, `atls_instruments()` and `atls_params()`.
+A program with `on_open` or `on_close` also states `session_opens()` and `session_closes()`, the sessions a bar has opened and closed so far, so a runner can refuse a run that met none.
 
 ### Limit orders
 
