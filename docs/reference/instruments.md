@@ -39,6 +39,6 @@ Handlers: `on_start`, `on_bar`, `on_fill`, `on_stop` ([program structure](progra
 - In `on_open`, only the opening bar's `open` is new: reading its `close`, `high` or `low` must not compile, and series hold the values of the bar before it; the bar enters the series after `on_open`.
 - A point at the open (one price, a daily bar stamped at the open) enters no series; every other bar does, whether or not a handler runs on it.
 - `held` may be read in both.
-- When a target fills is the run's fill rule: at the next bar's open by default, or at the price the handler decided on (cmdatl's `replay.fill = "close"`).
+- When a target fills is the run's fill rule: at the next bar's open by default, or at the price the handler decided on with a decision-close rule (cmdatl's `fill_header` and `fill_function`).
 
 Not available yet: session handlers for one-instrument and named programs, and with `on_bar` in one program.

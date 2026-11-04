@@ -209,13 +209,9 @@ Outcome run(
     )
       .with_sell_tax(atl::backtest::SellTax{atl::Decimal64::parse(settings.sell_tax_), atl::Country::KR});
   if (settings.decision_close_) {
-    fills = fills.with_market_price(
-      [](
-        const atl::strategy::PlannedOrder&, const std::optional<atl::Decimal64>& last, const atl::strategy::BarEvent&
-      ) {
-        return last;
-      }
-    );
+    fills = fills.with_market_price("decision-close", [](const atl::backtest::MarketPriceInput& in) {
+      return in.decision_price_;
+    });
   }
   atl::backtest::Backtester<S> engine(std::move(strategy), config, fills);
   for (const auto& event : events) {
