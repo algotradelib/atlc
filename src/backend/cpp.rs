@@ -1488,6 +1488,24 @@ impl<'a> Printer<'a> {
             "/** Whether the program has `on_open` or `on_close`, run on the bars that open and close each session. */",
         );
         self.line(1, &format!("static constexpr bool atls_session = {};", ir.session));
+        self.line(
+            1,
+            "/** Whether the program has `on_open`, and whether it has `on_close`. */",
+        );
+        self.line(
+            1,
+            &format!(
+                "static constexpr bool atls_on_open = {};",
+                ir.handlers.on_open.is_some()
+            ),
+        );
+        self.line(
+            1,
+            &format!(
+                "static constexpr bool atls_on_close = {};",
+                ir.handlers.on_close.is_some()
+            ),
+        );
         let names: Vec<String> = match &ir.mode {
             Mode::Named(n) => n.iter().map(|x| format!("\"{}\"", x)).collect(),
             _ => vec![],
@@ -1522,6 +1540,14 @@ impl<'a> Printer<'a> {
             );
             self.line(1, "std::size_t session_opens() const { return edges_.opened(); }");
             self.line(1, "std::size_t session_closes() const { return edges_.closed(); }");
+            self.line(
+                1,
+                "/** Bars wholly outside their session (pre-market or after-hours), which still enter the series. */",
+            );
+            self.line(
+                1,
+                "std::size_t session_outside_bars() const { return edges_.outside(); }",
+            );
         }
         self.line(0, "");
     }

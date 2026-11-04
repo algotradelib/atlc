@@ -23,6 +23,9 @@ struct Universe {
   static constexpr const char* atls_mode = "universe";
   /** Whether the program has `on_open` or `on_close`, run on the bars that open and close each session. */
   static constexpr bool atls_session = true;
+  /** Whether the program has `on_open`, and whether it has `on_close`. */
+  static constexpr bool atls_on_open = true;
+  static constexpr bool atls_on_close = true;
   /** The names in `instruments {}`, in order; empty otherwise. */
   static std::vector<std::string> atls_instruments() { return {}; }
   /** The parameter names, in order. */
@@ -33,6 +36,8 @@ struct Universe {
   /** Sessions a bar has opened and closed so far, for a runner to tell a program that met none. */
   std::size_t session_opens() const { return edges_.opened(); }
   std::size_t session_closes() const { return edges_.closed(); }
+  /** Bars wholly outside their session (pre-market or after-hours), which still enter the series. */
+  std::size_t session_outside_bars() const { return edges_.outside(); }
 
   /** One instrument's series, indicators and state. */
   struct Lane {

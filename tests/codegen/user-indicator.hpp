@@ -24,6 +24,9 @@ struct UserIndicator {
   static constexpr const char* atls_mode = "single";
   /** Whether the program has `on_open` or `on_close`, run on the bars that open and close each session. */
   static constexpr bool atls_session = false;
+  /** Whether the program has `on_open`, and whether it has `on_close`. */
+  static constexpr bool atls_on_open = false;
+  static constexpr bool atls_on_close = false;
   /** The names in `instruments {}`, in order; empty otherwise. */
   static std::vector<std::string> atls_instruments() { return {}; }
   /** The parameter names, in order. */
