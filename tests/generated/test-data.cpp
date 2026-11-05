@@ -74,7 +74,7 @@ TEST_CASE("data: the program states what it reads") {
   CHECK(atls::DataSingle::atls_data() == std::vector<std::string>{"level"});
 }
 
-TEST_CASE("data: undefined before the first record, then the latest known by each bar's end") {
+TEST_CASE("data: undefined before the first record and then the latest known by each bar's end") {
   atls::DataSingle strategy(t::id_of("A"));
   atl::strategy::MinimalContext ctx;
   CHECK(bar(strategy, ctx, day(0)) == std::nullopt);
@@ -91,7 +91,7 @@ TEST_CASE("data: undefined before the first record, then the latest known by eac
   CHECK(bar(strategy, ctx, day(5)) == std::nullopt);
 }
 
-TEST_CASE("data: several records between two bars, the bar reads the last") {
+TEST_CASE("data: several records between two bars and the bar reads the last") {
   atls::DataSingle strategy(t::id_of("A"));
   atl::strategy::MinimalContext ctx;
   strategy.on_data(ctx, record(day(0) + std::chrono::minutes(5), 1));
@@ -100,7 +100,7 @@ TEST_CASE("data: several records between two bars, the bar reads the last") {
   CHECK(bar(strategy, ctx, day(1)) == std::optional<std::string>("3"));
 }
 
-TEST_CASE("data: a series over a value counts bars, and a later record never changes an earlier bar") {
+TEST_CASE("data: a series over a value counts bars and a later record never changes an earlier bar") {
   atls::DataSeries strategy(t::id_of("A"));
   atl::strategy::MinimalContext ctx;
   strategy.on_data(ctx, record(day(0), 10));
@@ -112,7 +112,7 @@ TEST_CASE("data: a series over a value counts bars, and a later record never cha
   CHECK(bar(strategy, ctx, day(4)) == std::optional<std::string>("20"));
 }
 
-TEST_CASE("data: a record naming another instrument, or no value of data {}, is refused") {
+TEST_CASE("data: a record naming another instrument or no value of data {} is refused") {
   atls::DataSingle strategy(t::id_of("A"));
   atl::strategy::MinimalContext ctx;
   CHECK_NOTHROW(strategy.on_data(ctx, record(day(0), 1, 0, "A")));
@@ -141,7 +141,7 @@ TEST_CASE("data: a named program takes market-wide values only") {
   CHECK(ctx.targets()[0].target_quantity_.str() == "4");
 }
 
-TEST_CASE("data: a universe's value is per instrument; a record naming none sets every one") {
+TEST_CASE("data: a universe's value is per instrument and a record naming none sets every one") {
   atls::DataUniverse strategy({t::id_of("A"), t::id_of("B")});
   atl::strategy::MinimalContext ctx;
   strategy.on_data(ctx, record(day(0), 1));
