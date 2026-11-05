@@ -11,7 +11,7 @@ Each block kind appears at most once, except `indicator`, which appears once per
   A default outside its bounds must not compile; a value given at run time outside its bounds is refused when the strategy is built.
   Parameters are run-time values: changing one does not recompile.
 - `series {}`: `real` or `bool` declarations (not `int`), recomputed every period, in dependency order.
-  A series reads bar fields (`open high low close volume`), parameters and earlier series; it must not read `state` or `held`.
+  A series reads bar fields (`open high low close volume`), values of `data {}`, parameters and earlier series; it must not read `state` or `held`.
   Indicators are allowed only here: a streaming indicator must see every period, so it must not sit under an `if`.
   A series no handler reads, directly or through another series, is not computed, and the checker warns about it.
 - `state {}`: typed values kept between periods, written only by handlers.
@@ -21,6 +21,24 @@ Each block kind appears at most once, except `indicator`, which appears once per
   - `warmup = EXPR;`: at least this many periods before the periodic handlers' first call, which may come later for the lookbacks (below, "Lookback and warm-up").
 - Handlers: see below.
 - `instruments {}`, `universe {}`: see [instruments](instruments.md).
+- `data {}`: values from outside the bars, `real NAME;` each (any data the strategy uses: a vendor's series, a file of events), given by the run (cmdatl's `[data.NAME]`):
+  - a value is read like a bar field, in `series` and in the handlers a bar drives (`on_bar`, `on_open`, `on_close`, and `on_fill`, which reads the last bar's): the latest value known by the bar's end, undefined before the first, so indicators, lookbacks, warm-up and missing-value policies apply to it unchanged;
+  - an indicator over a value counts bars, not records: under daily bars a monthly value repeats for a month, and `lag(x, 1)` is the previous bar's value;
+  - in `on_open` it is the value known at the opening bar (unlike a bar field, whose series hold the bar before);
+  - in a universe each instrument has its own value; with named instruments a value is the program's;
+  - a value is never assigned, and `on_start` and `on_stop` cannot read it.
+
+  ```atls
+  data { real level; }
+  series { real mean = sma(level, 5); }
+  on_bar {
+    if (level > mean) {
+      target(1);
+    } else {
+      target(0);
+    }
+  }
+  ```
 - `functions {}`, `indicator`: see [functions and indicators](functions-and-indicators.md).
 - There is no `replay {}` or `live {}` block: run settings belong to whatever runs the strategy (cmdatl's run settings, for one), live settings to the operator, not to a program.
 

@@ -16,7 +16,7 @@
 
 ## Undefined values
 
-A `real` may be undefined (NaN): a window not yet full, a division by zero, a missing value, a missing `open`, `log(0)`.
+A `real` may be undefined (NaN): a window not yet full, a division by zero, a missing value, a missing `open`, a value of `data {}` before its first record, `log(0)`.
 
 - Arithmetic with an undefined operand is undefined.
 - A comparison with an undefined side is undefined.

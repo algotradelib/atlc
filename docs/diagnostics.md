@@ -1033,7 +1033,7 @@ From `tests/ui/check/assign-local.atls`.
 
 ### `assign-read-only`
 
-An assignment to a bar field or `held`.
+An assignment to a bar field, `held` or a value of `data {}`.
 
 ```
 error[assign-read-only]: cannot assign to `close`
@@ -1493,6 +1493,21 @@ error[universe-lifecycle-handler]: `on_start` is not supported in `universe {}` 
 ```
 
 From `tests/ui/check/universe-lifecycle-handler.atls`.
+
+### `data-not-real`
+
+A value of `data {}` declared `int` or `bool`.
+
+```
+error[data-not-real]: data value `announced` is `bool`
+ --> tests/ui/check/data-not-real.atls:1:8
+  |
+1 | data { bool announced; }
+  |        ^^^^ write `real`
+  = a data value is undefined until its first record, which only a `real` can hold; compare a flag with `> 0`
+```
+
+From `tests/ui/check/data-not-real.atls`.
 
 ## Missing-value policies
 

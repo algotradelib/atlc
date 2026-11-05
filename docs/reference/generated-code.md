@@ -31,6 +31,13 @@ The struct passes the library's `ATL_ASSERT_STRATEGY` and runs in its backtester
 
 `on_start` and `on_stop` become handlers of the same names.
 
+A program with `data {}` also states `using data_type = atls::DataRecord;` and `on_data`, the library's handler for external data (`atl::strategy::DataEvent<atls::DataRecord>`):
+- `atls::DataRecord` holds `name_` (the value's index in `data {}`, the order of `atls_data()`), `instrument_` (optional) and `value_` (a `double`; NaN is an undefined value);
+- `on_data` keeps the value with the record's `known_at_`; at each bar, before its series, every value is taken as known by the bar's `period_end_`, so a record received before a bar that ended earlier (a live backlog, warm-up history) is not read by that bar;
+- one instrument: a record names no instrument or the program's; named instruments: no instrument (one value for the program); a universe: an instrument of the universe (that instrument's value) or none (every instrument's);
+- any other record, or a `name_` outside `data {}`, throws `std::invalid_argument`, so a run stops rather than drop a value;
+- `setup()` (and so `set`) forgets every value received.
+
 A universe with `on_open` or `on_close` asks the library's `atl::strategy::SessionEdges` which slice opens its session and which closes it, by the runner's session window (`ctx.session()`).
 On the opening slice it runs `on_open` before the slice's bars enter the series; on the closing slice, `on_close` after they do; a point at the open (a daily bar stamped at the open) enters no series.
 
@@ -53,7 +60,7 @@ Parameters are run-time fields, so one compiled header runs every point of a tun
 
 An `int` result that does not fit in 64 bits throws `std::overflow_error` from the handler, constructor or `set` that computes it ([types and definedness](types-and-definedness.md), "Types"); the exception leaves the runner's loop, so the run stops.
 
-For a runner, the struct also states `warmup_bars()` (the bars before the handlers run), `atls_mode` (`"single"`, `"named"` or `"universe"`), `atls_session`, `atls_instruments()` and `atls_params()`.
+For a runner, the struct also states `warmup_bars()` (the bars before the handlers run), `atls_mode` (`"single"`, `"named"` or `"universe"`), `atls_session`, `atls_instruments()`, `atls_params()`, `atls_reads_data` (whether it has `data {}`) and `atls_data()` (its names, in order; empty without it).
 It also states `atls_on_open` and `atls_on_close`, whether the program has each; a program with either also states `session_opens()` and `session_closes()`, the sessions a bar has opened and closed so far, so a runner can refuse a run that met none, and `session_outside_bars()`, the bars wholly before a session's open or after its close (pre-market or after-hours data, which still enter the series).
 
 ### Limit orders
@@ -79,13 +86,14 @@ How a limit fills, and when it expires, is up to the runner; [cmdatl's run setti
 
 ## The program's facts
 
-`atlc check FILE.atls --info` gives a tool what it needs to drive a program's header before building it: the struct's name, the mode, the instruments, whether it has session handlers and the parameters.
+`atlc check FILE.atls --info` gives a tool what it needs to drive a program's header before building it: the struct's name, the mode, the instruments, whether it has session handlers, the parameters and the data values.
 It prints exactly one JSON object on one line of standard output, whatever happened, and nothing on standard error:
 
 ```json
 {"atlc_info":1,"status":"ok","atlc":"0.0.0-9000",
  "program":{"path":"/abs/pairs.atls","struct":"Pairs","mode":"named","instruments":["y","x"],"session":false,
-            "params":[{"name":"lookback","type":"int"},{"name":"entry","type":"real"},{"name":"short","type":"bool"}]},
+            "params":[{"name":"lookback","type":"int"},{"name":"entry","type":"real"},{"name":"short","type":"bool"}],
+            "data":[]},
  "diagnostics":[]}
 ```
 
@@ -101,6 +109,7 @@ It prints exactly one JSON object on one line of standard output, whatever happe
 | `program.instruments` | array of strings | the names of `instruments {}`, in order; empty for the other modes |
 | `program.session` | boolean | whether the program has `on_open` or `on_close` (the struct's `atls_session`) |
 | `program.params` | array | each parameter's `name` and `type` (`"int"`, `"real"` or `"bool"`), in declaration order |
+| `program.data` | array | each value of `data {}`, its `name` and `type` (`"real"`), in declaration order (a record's `name_`) |
 | `diagnostics` | array | warnings and errors, below |
 
 Each diagnostic is `{"severity", "code", "message", "file", "line", "origin"}`:
