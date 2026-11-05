@@ -1,0 +1,3 @@
+data { real a; }
+data { real b; }
+on_bar { target(a + b); }

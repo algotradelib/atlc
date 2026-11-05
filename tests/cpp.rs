@@ -215,6 +215,10 @@ fn generated_strategies() {
         "pricing-universe",
         "pricing-universe-held",
         "pricing-legs",
+        "data-single",
+        "data-series",
+        "data-named",
+        "data-universe",
     ] {
         generate(
             &out,

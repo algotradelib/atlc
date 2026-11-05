@@ -372,6 +372,7 @@ impl<'a> Printer<'a> {
                 Mode::Named(names) => format!("f_{}_{}", names[*k], f.name()),
                 _ => format!("f_{}", f.name()),
             },
+            NodeKind::Data(k) => format!("d_{}", self.ir.data[*k]),
             _ => format!("n{}", i),
         }
     }
@@ -656,6 +657,11 @@ impl<'a> Printer<'a> {
             },
             HKind::OpenNow => V {
                 code: format!("{}open_now_", self.prefix),
+                ty: Ty::Real,
+                repr: Repr::Plain,
+            },
+            HKind::Data(k) => V {
+                code: format!("{}dv_{}_", self.prefix, self.ir.data[*k]),
                 ty: Ty::Real,
                 repr: Repr::Plain,
             },
@@ -1111,6 +1117,11 @@ impl<'a> Printer<'a> {
                     let name = self.node_name(i);
                     self.decl(indent, "double", &name, &code);
                 }
+                NodeKind::Data(k) => {
+                    let code = format!("dv_{}_", self.ir.data[*k]);
+                    let name = self.node_name(i);
+                    self.decl(indent, "double", &name, &code);
+                }
                 NodeKind::Num(_) | NodeKind::Bool(_) | NodeKind::Param(_) => {}
                 NodeKind::Ind(_, input, _, _) => {
                     if !o.share_rings {
@@ -1518,6 +1529,26 @@ impl<'a> Printer<'a> {
                 names.join(", ")
             ),
         );
+        self.line(
+            1,
+            "/** Whether the program has `data {}`, whose values arrive through `on_data`. */",
+        );
+        self.line(
+            1,
+            &format!("static constexpr bool atls_reads_data = {};", !ir.data.is_empty()),
+        );
+        self.line(
+            1,
+            "/** The names in `data {}`, in order (a record's `name_` indexes them); empty otherwise. */",
+        );
+        let dn: Vec<String> = ir.data.iter().map(|n| format!("\"{}\"", n)).collect();
+        self.line(
+            1,
+            &format!(
+                "static std::vector<std::string> atls_data() {{ return {{{}}}; }}",
+                dn.join(", ")
+            ),
+        );
         self.line(1, "/** The parameter names, in order. */");
         let pn: Vec<String> = ir.params.iter().map(|p| format!("\"{}\"", p.name)).collect();
         self.line(
@@ -1754,6 +1785,7 @@ impl<'a> Printer<'a> {
             self.line(3, "return;");
             self.line(2, "}");
         }
+        self.data_sample(2, "", if named { "slice.period_end_" } else { "bar.period_end_" });
         self.line(2, "++bars_;");
         self.in_on_bar = true;
         self.series_lines(2);
@@ -1859,6 +1891,15 @@ impl<'a> Printer<'a> {
             self.line(1, "}");
             self.line(0, "");
         }
+        if !ir.data.is_empty() {
+            let check = if named {
+                "if (r.instrument_) {\n      throw std::invalid_argument(\"a program with instruments {} takes data values that name no instrument\");\n    }"
+            } else {
+                "if (r.instrument_ && !(*r.instrument_ == instrument_)) {\n      throw std::invalid_argument(\"a data record names another instrument than the program's\");\n    }"
+            };
+            self.on_data_method(check, "this->add_data(r.name_, event.known_at_, r.value_);");
+            self.add_data_method(1);
+        }
         if let Some(body) = &ir.handlers.on_stop {
             self.line(1, "/** `on_stop`. */");
             self.line(1, "template <class Ctx>");
@@ -1877,6 +1918,10 @@ impl<'a> Printer<'a> {
         self.bound_checks(2);
         self.line(2, "bars_ = 0;");
         self.reset_lines(2);
+        for n in &ir.data {
+            self.line(2, &format!("data_{}_ = atls::DataTape{{}};", n));
+            self.line(2, &format!("dv_{}_ = atls::ops::NaN;", n));
+        }
         let w = self.warmup_code();
         self.line(2, &format!("warmup_ = static_cast<std::size_t>({});", w));
         self.line(1, "}");
@@ -1892,6 +1937,7 @@ impl<'a> Printer<'a> {
         self.line(1, "atls::ops::OrderPricing pricing_;");
         self.line(1, "std::size_t bars_{0};");
         self.line(1, "std::size_t warmup_{0};");
+        self.data_members(1);
         self.object_members(1);
         for &k in &ir.kept {
             if matches!(
@@ -2128,6 +2174,76 @@ impl<'a> Printer<'a> {
         self.prefix.clear();
     }
 
+    /// `data {}`'s members: each value's received records not yet passed by a bar, and its value at the current bar.
+    fn data_members(&mut self, indent: usize) {
+        for n in self.ir.data.clone() {
+            self.line(indent, &format!("atls::DataTape data_{}_;", n));
+            self.line(indent, &format!("double dv_{}_{{atls::ops::NaN}};", n));
+        }
+    }
+
+    /// Takes each value of `data {}` as known by `end`, the current bar's period end, before its series and handlers.
+    fn data_sample(&mut self, indent: usize, owner: &str, end: &str) {
+        for n in self.ir.data.clone() {
+            self.line(
+                indent,
+                &format!("{o}dv_{n}_ = {o}data_{n}_.at({e});", o = owner, n = n, e = end),
+            );
+        }
+    }
+
+    /// `add_data`: one received value into its tape.
+    fn add_data_method(&mut self, indent: usize) {
+        self.line(
+            indent,
+            "/** Keeps one received value of `data {}` until the bars reach it. */",
+        );
+        self.line(
+            indent,
+            "void add_data(std::size_t name, std::chrono::system_clock::time_point at, double value) {",
+        );
+        for (k, n) in self.ir.data.clone().iter().enumerate() {
+            self.line(indent + 1, &format!("if (name == {}) {{", k));
+            self.line(indent + 2, &format!("data_{}_.add(at, value);", n));
+            self.line(indent + 2, "return;");
+            self.line(indent + 1, "}");
+        }
+        self.line(
+            indent + 1,
+            "throw std::invalid_argument(\"a data record names no value of data {}: name \" + std::to_string(name));",
+        );
+        self.line(indent, "}");
+        self.line(0, "");
+    }
+
+    /// `on_data`: the record type, and the handler that checks a record's instrument and keeps its value.
+    fn on_data_method(&mut self, check: &str, body: &str) {
+        self.line(1, "/** The record `on_data` takes. */");
+        self.line(1, "using data_type = atls::DataRecord;");
+        self.line(0, "");
+        self.line(
+            1,
+            "/** Keeps a value of `data {}`: series and handlers read, at each bar, the latest known by its end. */",
+        );
+        self.line(1, "template <class Ctx>");
+        self.line(
+            1,
+            "void on_data(Ctx&, const atl::strategy::DataEvent<atls::DataRecord>& event) {",
+        );
+        self.line(2, "const auto& r = event.record_;");
+        // The first line of each piece is unindented; the rest carry their own indentation.
+        for l in check.lines().chain(body.lines()).filter(|l| !l.is_empty()) {
+            let text = if l.starts_with(' ') {
+                l.to_string()
+            } else {
+                format!("    {}", l)
+            };
+            self.line(0, &text);
+        }
+        self.line(1, "}");
+        self.line(0, "");
+    }
+
     fn program_universe(&mut self) {
         let ir = self.ir;
         let o = self.o;
@@ -2144,6 +2260,10 @@ impl<'a> Printer<'a> {
         );
         if ir.session {
             self.line(2, "double open_now_{atls::ops::NaN};");
+        }
+        self.data_members(2);
+        if !ir.data.is_empty() {
+            self.add_data_method(2);
         }
         if ir.uses_held {
             self.line(2, "double held_{0};");
@@ -2223,6 +2343,11 @@ impl<'a> Printer<'a> {
         self.line(1, "template <class Ctx>");
         self.line(1, "void on_bars(Ctx& ctx, const atl::strategy::BarSlice& slice) {");
         self.fp_contract();
+        if !ir.data.is_empty() {
+            self.line(2, "for (auto& lane : lanes_) {");
+            self.data_sample(3, "lane.", "slice.period_end_");
+            self.line(2, "}");
+        }
         if ir.session {
             self.session_on_bars();
         } else {
@@ -2237,6 +2362,12 @@ impl<'a> Printer<'a> {
         self.line(1, "}");
         self.line(0, "");
         self.in_on_bar = false;
+        if !ir.data.is_empty() {
+            self.on_data_method(
+                "",
+                "if (!r.instrument_) {\n      for (auto& lane : lanes_) {\n        lane.add_data(r.name_, event.known_at_, r.value_);\n      }\n      return;\n    }\n    for (std::size_t ln = 0; ln < lanes_.size(); ++ln) {\n      if (ids_[ln] == *r.instrument_) {\n        lanes_[ln].add_data(r.name_, event.known_at_, r.value_);\n        return;\n      }\n    }\n    throw std::invalid_argument(\"a data record names an instrument outside the universe\");",
+            );
+        }
         self.line(1, "/** Checks the bounds and resets every instrument. */");
         self.line(1, "void setup() {");
         self.fp_contract();

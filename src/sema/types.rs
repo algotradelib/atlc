@@ -83,7 +83,7 @@ fn each_expr(program: &Program, f: &mut dyn FnMut(&Expr)) {
                     }
                 }
             }
-            Item::Instruments(..) | Item::Universe(_) => {}
+            Item::Instruments(..) | Item::Universe(_) | Item::Data(..) => {}
         }
     }
 }

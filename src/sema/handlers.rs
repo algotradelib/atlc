@@ -233,6 +233,18 @@ impl Checker<'_> {
                         );
                         None
                     }
+                    Some((Name::Data(_), _)) => {
+                        self.err(
+                            Diag::new(
+                                Code::AssignReadOnly,
+                                format!("cannot assign to `{}`", name.name),
+                                name.span,
+                                "read-only",
+                            )
+                            .note("a data value is given by the run"),
+                        );
+                        None
+                    }
                     Some((Name::Instrument(_), _)) => {
                         self.err(Diag::new(
                             Code::AssignInstrument,
@@ -507,6 +519,18 @@ impl Checker<'_> {
                     Some((Name::State(i), _)) => {
                         let s = &self.ir.state[i];
                         Some(self.refine(Self::h(HKind::State(i), s.ty, s.maybe)))
+                    }
+                    Some((Name::Data(i), _)) => {
+                        if !bar_side {
+                            self.err(Diag::new(
+                                Code::NoBar,
+                                format!("data value `{}` has no value in `{}`", n, k.name()),
+                                e.span,
+                                "no bar here",
+                            ));
+                            return None;
+                        }
+                        Some(Self::h(HKind::Data(i), Ty::Real, true))
                     }
                     Some((Name::Local, _)) => None,
                     Some((Name::Function(_) | Name::Indicator(_), decl)) => {

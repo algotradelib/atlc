@@ -1,0 +1,6 @@
+// A value per instrument of a universe: a record naming one instrument sets its value, one naming none sets every one.
+universe {}
+data { real flag; }
+on_bar {
+  target(flag);
+}

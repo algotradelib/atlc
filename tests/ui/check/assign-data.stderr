@@ -1,0 +1,7 @@
+error[assign-read-only]: cannot assign to `level`
+ --> tests/ui/check/assign-data.atls:3:3
+  |
+3 |   level = 1;
+  |   ^^^^^ read-only
+  = a data value is given by the run
+

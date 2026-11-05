@@ -135,6 +135,8 @@ codes! {
     OpenReadsFuture = "open-reads-future",
     OnFillOutsideSingle = "on-fill-outside-single",
     UniverseLifecycleHandler = "universe-lifecycle-handler",
+    // Data.
+    DataNotReal = "data-not-real",
     // Missing-value policies.
     UnknownOption = "unknown-option",
     DuplicateOption = "duplicate-option",

@@ -17,7 +17,7 @@ extern {
         // Reserved everywhere.
         "params" => T::Kw("params"), "series" => T::Kw("series"), "state" => T::Kw("state"),
         "options" => T::Kw("options"), "functions" => T::Kw("functions"),
-        "instruments" => T::Kw("instruments"), "universe" => T::Kw("universe"),
+        "instruments" => T::Kw("instruments"), "universe" => T::Kw("universe"), "data" => T::Kw("data"),
         "warmup" => T::Kw("warmup"), "indicator" => T::Kw("indicator"),
         "on_start" => T::Kw("on_start"), "on_bar" => T::Kw("on_bar"), "on_fill" => T::Kw("on_fill"),
         "on_stop" => T::Kw("on_stop"), "on_open" => T::Kw("on_open"), "on_close" => T::Kw("on_close"),
@@ -53,6 +53,7 @@ Item: Item = {
     <l:@L> "options" "{" <o:Opt*> "}" <r:@R> => Item::Options(o, Span::new(l, r)),
     <l:@L> "instruments" "{" <n:(<Name> ";")*> "}" <r:@R> => Item::Instruments(n, Span::new(l, r)),
     <l:@L> "universe" "{" "}" <r:@R> => Item::Universe(Span::new(l, r)),
+    <l:@L> "data" "{" <d:DataDecl*> "}" <r:@R> => Item::Data(d, Span::new(l, r)),
     <l:@L> "functions" "{" <f:Function*> "}" <r:@R> => Item::Functions(f, Span::new(l, r)),
     <l:@L> "indicator" <name:Name> <args:Args> "{" <parts:Part*> "}" <r:@R> =>
         Item::Indicator(IndicatorDef { name, args, parts, span: Span::new(l, r) }),
@@ -67,6 +68,9 @@ Handler: HandlerKind = {
     "on_open" => HandlerKind::OnOpen,
     "on_close" => HandlerKind::OnClose,
 };
+
+// data_decl = type NAME ';' ;
+DataDecl: DataDecl = <ty:Ty> <name:Name> ";" <r:@R> => DataDecl { ty: ty.0, ty_span: ty.1, name, span: Span::new(ty.1.start, r) };
 
 // param = type bounds? NAME '=' expr ';' ;
 Param: ParamDecl = <ty:Ty> <b:Bounds?> <name:Name> "=" <default:Expr> ";" <r:@R> => {

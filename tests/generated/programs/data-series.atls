@@ -1,0 +1,6 @@
+// A value from outside the bars in a series: its mean over two bars, which counts bars, not records.
+data { real level; }
+series { real mean2 = sma(level, 2); }
+on_bar {
+  target(mean2);
+}

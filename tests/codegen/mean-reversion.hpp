@@ -30,6 +30,10 @@ struct MeanReversion {
   static constexpr bool atls_on_close = false;
   /** The names in `instruments {}`, in order; empty otherwise. */
   static std::vector<std::string> atls_instruments() { return {}; }
+  /** Whether the program has `data {}`, whose values arrive through `on_data`. */
+  static constexpr bool atls_reads_data = false;
+  /** The names in `data {}`, in order (a record's `name_` indexes them); empty otherwise. */
+  static std::vector<std::string> atls_data() { return {}; }
   /** The parameter names, in order. */
   static std::vector<std::string> atls_params() { return {"lookback", "entry", "exit", "quantity"}; }
 

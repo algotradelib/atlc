@@ -56,11 +56,18 @@ fn info_in(cwd: &Path, args: &[&str]) -> (i32, Json) {
     }
     if let Json::Obj(_) = v.get("program") {
         let p = v.get("program");
-        assert_eq!(p.keys(), ["path", "struct", "mode", "instruments", "session", "params"]);
+        assert_eq!(
+            p.keys(),
+            ["path", "struct", "mode", "instruments", "session", "params", "data"]
+        );
         assert!(Path::new(p.get("path").str()).is_absolute(), "{p:?}");
         for param in p.get("params").arr() {
             assert_eq!(param.keys(), ["name", "type"]);
             assert!(["int", "real", "bool"].contains(&param.get("type").str()), "{param:?}");
+        }
+        for value in p.get("data").arr() {
+            assert_eq!(value.keys(), ["name", "type"]);
+            assert_eq!(value.get("type").str(), "real", "{value:?}");
         }
     }
     assert!(
@@ -166,6 +173,29 @@ fn a_universe_with_session_handlers() {
     assert_eq!((p.get("struct").str(), p.get("mode").str()), ("Universe", "universe"));
     assert!(instruments(&v).is_empty());
     assert_eq!(p.get("session"), &Json::Bool(true));
+}
+
+#[test]
+fn data_names_in_order() {
+    let dir = scratch("data");
+    std::fs::write(
+        dir.join("data.atls"),
+        "data { real b; real a; }\non_bar {\n  target(a + b);\n}\n",
+    )
+    .unwrap();
+    let (code, v) = info_in(&dir, &["data.atls", "--info"]);
+    assert_eq!(code, 0);
+    let names: Vec<&str> = v
+        .get("program")
+        .get("data")
+        .arr()
+        .iter()
+        .map(|d| d.get("name").str())
+        .collect();
+    assert_eq!(names, ["b", "a"]);
+    let (code, v) = info(&["examples/pairs.atls"]);
+    assert_eq!(code, 0);
+    assert!(v.get("program").get("data").arr().is_empty());
 }
 
 #[test]

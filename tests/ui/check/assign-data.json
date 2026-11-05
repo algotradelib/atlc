@@ -1,0 +1,1 @@
+{"severity":"error","code":"assign-read-only","message":"cannot assign to `level`","file":"tests/ui/check/assign-data.atls","span":{"start":{"line":3,"column":3},"end":{"line":3,"column":8},"byte_start":32,"byte_end":37},"label":"read-only","secondary":[],"notes":["a data value is given by the run"]}

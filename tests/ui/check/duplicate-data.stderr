@@ -1,0 +1,8 @@
+error[duplicate-block]: a second `data`
+ --> tests/ui/check/duplicate-data.atls:2:1
+  |
+1 | data { real a; }
+  | ---- first here
+2 | data { real b; }
+  | ^^^^ second
+

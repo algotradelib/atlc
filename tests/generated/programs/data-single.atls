@@ -1,0 +1,5 @@
+// A value from outside the bars, targeted as shares: undefined (no target) before its first record.
+data { real level; }
+on_bar {
+  target(level);
+}

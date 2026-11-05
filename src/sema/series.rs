@@ -10,7 +10,7 @@ impl Checker<'_> {
     pub(super) fn add_node(&mut self, kind: NodeKind, ty: Ty, class: Class, lookback: CExpr) -> usize {
         let key = format!("{:?}", kind);
         // Bar fields are the inputs: always one node each, so handlers and series agree.
-        let cons = self.opts.share || matches!(kind, NodeKind::Field(..));
+        let cons = self.opts.share || matches!(kind, NodeKind::Field(..) | NodeKind::Data(..));
         if cons && let Some(&id) = self.consed.get(&key) {
             return id;
         }
@@ -83,6 +83,9 @@ impl Checker<'_> {
                         Some(self.add_node(NodeKind::Param(i), ty, Class::Always, CExpr::Num(1.0)))
                     }
                     Some((Name::Series(id, _), _)) => Some(id),
+                    Some((Name::Data(k), _)) => {
+                        Some(self.add_node(NodeKind::Data(k), Ty::Real, Class::Maybe, CExpr::Num(1.0)))
+                    }
                     Some((Name::State(_), decl)) => {
                         self.err(
                             Diag::new(

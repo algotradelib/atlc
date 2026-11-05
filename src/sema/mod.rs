@@ -38,6 +38,8 @@ enum Name {
     State(usize),
     Local,
     Instrument(usize),
+    /// A value of `data {}`.
+    Data(usize),
     /// A function of `functions {}`.
     Function(usize),
     /// A user indicator.

@@ -1,0 +1,6 @@
+error[no-bar]: data value `level` has no value in `on_start`
+ --> tests/ui/check/data-in-on-start.atls:3:12
+  |
+3 |   real x = level;
+  |            ^^^^^ no bar here
+

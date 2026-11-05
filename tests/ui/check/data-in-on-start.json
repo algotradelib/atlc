@@ -1,0 +1,1 @@
+{"severity":"error","code":"no-bar","message":"data value `level` has no value in `on_start`","file":"tests/ui/check/data-in-on-start.atls","span":{"start":{"line":3,"column":12},"end":{"line":3,"column":17},"byte_start":43,"byte_end":48},"label":"no bar here","secondary":[],"notes":[]}

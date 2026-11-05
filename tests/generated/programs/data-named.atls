@@ -1,0 +1,7 @@
+// A market-wide value in a program with named instruments.
+instruments { y; x; }
+data { real level; }
+on_bar {
+  target(y, level);
+  target(x, 0);
+}

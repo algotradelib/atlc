@@ -126,6 +126,15 @@ pub struct ParamDecl {
     pub span: Span,
 }
 
+/// `real announced;` in `data {}`: a value from outside the bars, read as the latest known.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DataDecl {
+    pub ty: Ty,
+    pub ty_span: Span,
+    pub name: Ident,
+    pub span: Span,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct VarDecl {
     pub ty: Ty,
@@ -217,6 +226,8 @@ pub enum Item {
     Instruments(Vec<Ident>, Span),
     /// `universe {}`: the same program for every instrument the run gives, with cross-sectional operators.
     Universe(Span),
+    /// `data { real announced; }`: values from outside the bars, each read as the latest known by a bar's end.
+    Data(Vec<DataDecl>, Span),
     /// `options { missing = skip; warmup = n + 1; }`: choices that are part of the strategy (they change decisions).
     Options(Vec<(Ident, Expr)>, Span),
     /// `functions { real clip(real z, real cap) { ... } }`: pure functions.

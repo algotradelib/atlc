@@ -236,6 +236,8 @@ pub enum Mode {
 pub enum NodeKind {
     /// A bar field of an instrument (its index in `instruments {}`, 0 otherwise).
     Field(usize, Field),
+    /// A value of `data {}` (its index there), as known by the bar's end.
+    Data(usize),
     Num(f64),
     Bool(bool),
     Param(usize),
@@ -312,6 +314,8 @@ pub enum HKind {
     HeldOf(usize),
     /// The opening bar's `open`, in `on_open`.
     OpenNow,
+    /// A value of `data {}` (its index there), as known by the end of the bar the handler runs on.
+    Data(usize),
     /// In a universe handler: this instrument's bars so far.
     Bars,
     /// In a universe handler: the periods so far (bars that entered the series; a point at the open is none).
@@ -489,6 +493,8 @@ pub struct Ir {
     pub mode: Mode,
     /// `on_open`/`on_close` instead of `on_bar`: run on the bars that open and close each session.
     pub session: bool,
+    /// The names in `data {}`, in order.
+    pub data: Vec<String>,
     /// How many `xs_*` values the handlers compute.
     pub xs_count: usize,
     /// The program's missing-value policy (`options { missing = ...; }`), restart by default.
@@ -516,6 +522,7 @@ impl Default for Ir {
             warnings: vec![],
             mode: Mode::Single,
             session: false,
+            data: vec![],
             xs_count: 0,
             missing: Policy::Restart,
             period_clock: false,

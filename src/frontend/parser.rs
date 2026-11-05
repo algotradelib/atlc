@@ -42,7 +42,7 @@ pub const MAX_DEPTH: usize = 256;
 type R<T> = Result<T, Diag>;
 
 /// Words reserved everywhere ([syntax](docs/reference/syntax.md)).
-pub const KEYWORDS: [&str; 31] = [
+pub const KEYWORDS: [&str; 32] = [
     "params",
     "series",
     "state",
@@ -67,6 +67,7 @@ pub const KEYWORDS: [&str; 31] = [
     "false",
     "instruments",
     "universe",
+    "data",
     "replay",
     "on_open",
     "on_close",
@@ -78,7 +79,7 @@ pub const KEYWORDS: [&str; 31] = [
 
 /// The words error recovery stops at. Not `warmup`: it also begins an option and an indicator's part, which a
 /// broken item may still hold, so stopping there would misreport them as the removed top-level statement.
-const BLOCKS: [&str; 15] = [
+const BLOCKS: [&str; 16] = [
     "params",
     "series",
     "state",
@@ -90,13 +91,14 @@ const BLOCKS: [&str; 15] = [
     "on_close",
     "instruments",
     "universe",
+    "data",
     "replay",
     "options",
     "functions",
     "indicator",
 ];
 
-const BLOCKS_NOTE: &str = "blocks: instruments {}, universe {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}";
+const BLOCKS_NOTE: &str = "blocks: instruments {}, universe {}, data {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}";
 
 const REPLAY_NOTE: &str =
     "a program holds no run settings: data, dates, costs and fills go in cmdatl's run spec or on its command line";
@@ -320,6 +322,22 @@ impl Parser<'_> {
                 let end = self.expect_punct("}", "to close `universe` (it takes nothing yet: the run gives the instruments)")?;
                 Ok(Item::Universe(t.span.to(end)))
             }
+            "data" => {
+                self.bump();
+                self.expect_punct("{", "after `data`")?;
+                let mut decls = vec![];
+                while !self.is_punct("}") && self.peek().tok != Tok::Eof {
+                    match self.data_decl() {
+                        Ok(d) => decls.push(d),
+                        Err(d) => {
+                            self.errors.push(d);
+                            self.recover();
+                        }
+                    }
+                }
+                let end = self.expect_punct("}", "to close `data`")?;
+                Ok(Item::Data(decls, t.span.to(end)))
+            }
             "replay" => {
                 self.bump();
                 // No longer a block: skip its braces (strings and dotted keys included), so that it gives one error.
@@ -533,6 +551,19 @@ impl Parser<'_> {
         };
         self.bump();
         Ok((ty, t.span))
+    }
+
+    /// `real NAME;`: a declaration with no value, given by the run.
+    fn data_decl(&mut self) -> R<DataDecl> {
+        let (ty, ty_span) = self.ty()?;
+        let name = self.ident("a data name")?;
+        let end = self.expect_punct(";", "after the data name (a data value is given by the run, not here)")?;
+        Ok(DataDecl {
+            ty,
+            ty_span,
+            name,
+            span: ty_span.to(end),
+        })
     }
 
     fn param(&mut self) -> R<ParamDecl> {

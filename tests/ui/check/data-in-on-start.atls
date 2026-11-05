@@ -1,0 +1,5 @@
+data { real level; }
+on_start {
+  real x = level;
+}
+on_bar { target(1); }

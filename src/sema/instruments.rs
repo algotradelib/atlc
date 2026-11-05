@@ -208,6 +208,25 @@ impl Checker<'_> {
                     universe = Some(*span);
                     self.ir.mode = Mode::Universe;
                 }
+                Item::Data(decls, _) => {
+                    for d in decls {
+                        if d.ty != Ty::Real {
+                            self.err(
+                                Diag::new(
+                                    Code::DataNotReal,
+                                    format!("data value `{}` is `{}`", d.name.name, d.ty.name()),
+                                    d.ty_span,
+                                    "write `real`",
+                                )
+                                .note("a data value is undefined until its first record, which only a `real` can hold; compare a flag with `> 0`"),
+                            );
+                        }
+                        let k = self.ir.data.len();
+                        if self.declare(&d.name, Name::Data(k)) {
+                            self.ir.data.push(d.name.name.clone());
+                        }
+                    }
+                }
                 Item::Options(settings, _) => {
                     for (k, (key, value)) in settings.iter().enumerate() {
                         // A known option set twice in this block (an unknown one is reported each time anyway).
