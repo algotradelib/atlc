@@ -13,6 +13,12 @@
 #include <utility>
 #include <vector>
 
+// The KRX stock tick table moved out of the library's core into <algotradelib/krx>; this builds with either library.
+// Drop the old branch when that library is published (plan/todo/krx-include-cleanup.md).
+#if __has_include(<algotradelib/krx>)
+#include <algotradelib/krx>
+#endif
+
 /**
  * @file
  * @brief What the C++ tests share: deterministic bars, the replay settings, and a run's fills and report as
@@ -22,6 +28,18 @@
 namespace atlc_test {
 
 namespace atl = algotradelib;
+
+/**
+ * @brief The KRX stock tick table.
+ * @return The library's rule for KRX stocks.
+ */
+inline atl::PriceRule krx_equity_rule() {
+#if __has_include(<algotradelib/krx>)
+  return atl::krx::equity_price_rule();
+#else
+  return atl::PriceRule::krx_equity();
+#endif
+}
 
 /** @brief One instrument's daily bars. */
 struct Series {
@@ -197,7 +215,7 @@ Outcome run(
     instrument.type_ = atl::SecurityType::STOCK;
     instrument.currency_ = atl::Currency{"KRW"};
     instrument.lot_size_ = atl::Decimal64(1, 0);
-    instrument.price_rule_ = atl::PriceRule::krx_equity();
+    instrument.price_rule_ = krx_equity_rule();
     config.instruments_.push_back(instrument);
   }
   config.limits_.permitted_phases_ = std::nullopt;

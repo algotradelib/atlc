@@ -37,7 +37,7 @@ using Ctx = atl::strategy::MinimalContext;
 const auto FIRST_DAY = std::chrono::system_clock::time_point{} + std::chrono::hours(24 * 18262);
 
 /** A Korean stock quoted on the KRX tick table, or on `rule`. */
-atl::Instrument instrument(const std::string& symbol, atl::PriceRule rule = atl::PriceRule::krx_equity()) {
+atl::Instrument instrument(const std::string& symbol, atl::PriceRule rule = t::krx_equity_rule()) {
   atl::Instrument out;
   out.id_ = t::id_of(symbol);
   out.name_ = symbol;
