@@ -99,4 +99,14 @@ fn parentheses_calls_and_lookbacks() {
     };
     accepted("lookbacks-200", &lookbacks(200));
     refused("lookbacks-20000", &lookbacks(20_000));
+    // Partial sums keep a lookback of 1 bar, but the history they need to be whole deepens as a lookback does.
+    let partial_sums = |n: usize| {
+        let mut s = String::from("params { int<lower=1> k = 2; } series { real s0 = ts_sum(close, k, 1);");
+        for i in 1..n {
+            s += &format!(" real s{i} = ts_sum(s{}, k, 1);", i - 1);
+        }
+        s + &format!(" }} on_bar {{ target(s{}); }}", n - 1)
+    };
+    accepted("partial-sums-200", &partial_sums(200));
+    refused("partial-sums-300", &partial_sums(300));
 }

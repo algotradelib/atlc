@@ -1,6 +1,8 @@
 //! Windows and lookback: built-in indicators' windows, proved at least 1 (or 2) from the parameters'
 //! bounds, the lookback of every series value, the warm-up, and which series any handler reads.
 
+use std::collections::HashMap;
+
 use crate::frontend::ast::*;
 use crate::frontend::diag::{Code, Diag};
 use crate::frontend::parser::MAX_DEPTH;
@@ -13,6 +15,10 @@ impl Checker<'_> {
     /// over `s = sma(close, k)`...): refused past the parser's nesting limit, so that no expression the
     /// checker builds is deeper than the program's own tree may be.
     pub(super) fn lookback_fits(&mut self, lb: &CExpr, span: Span) -> bool {
+        self.depth_fits(lb, span, "lookback")
+    }
+
+    fn depth_fits(&mut self, lb: &CExpr, span: Span, what: &str) -> bool {
         fn deeper_than(c: &CExpr, limit: usize) -> bool {
             limit == 0
                 || match c {
@@ -26,7 +32,7 @@ impl Checker<'_> {
             self.err(
                 Diag::new(
                     Code::NestingTooDeep,
-                    format!("this series' lookback nests deeper than {MAX_DEPTH} levels"),
+                    format!("this series' {what} nests deeper than {MAX_DEPTH} levels"),
                     span,
                     "too deep",
                 )
@@ -38,29 +44,7 @@ impl Checker<'_> {
     }
 
     pub(super) fn lookback_max(&self, ids: &[usize]) -> CExpr {
-        let mut terms: Vec<CExpr> = vec![];
-        for &i in ids {
-            match &self.ir.nodes[i].lookback {
-                CExpr::Num(v) if *v <= 1.0 => {}
-                CExpr::Max(v) => {
-                    for t in v {
-                        if !terms.contains(t) {
-                            terms.push(t.clone());
-                        }
-                    }
-                }
-                other => {
-                    if !terms.contains(other) {
-                        terms.push(other.clone());
-                    }
-                }
-            }
-        }
-        match terms.len() {
-            0 => CExpr::Num(1.0),
-            1 => terms.pop().unwrap(),
-            _ => CExpr::Max(terms),
-        }
+        largest(ids.iter().map(|&i| &self.ir.nodes[i].lookback))
     }
 
     pub(super) fn indicator(
@@ -397,6 +381,121 @@ impl Checker<'_> {
         self.ir.live = live;
     }
 
+    /// The history a live runner requests (`ir.history`): the bars every finite window needs to be whole at the first decision, which a lookback does not give where a window decides before it is full (`ts_sum(x, n, m)`, a `skip` window, a user indicator's window under `skip`).
+    /// Each node's figure is its inputs' figure plus its window's length minus one (the length for a lag or an RSI), built as its lookback is, so a program without those forms gets its lookback back.
+    /// Only windows count: what a value remembers from its own start (an `ema`'s seed, `kf_*`, a user indicator's state, `poison`, `state`) does not.
+    /// Nodes come after their inputs, so one walk in index order sees every input's figure first.
+    pub(super) fn whole_history(&mut self) {
+        let mut hist: Vec<CExpr> = Vec::with_capacity(self.ir.nodes.len());
+        for i in 0..self.ir.nodes.len() {
+            let kind = self.ir.nodes[i].kind.clone();
+            let h = match &kind {
+                NodeKind::Field(..) | NodeKind::Data(_) | NodeKind::Num(_) | NodeKind::Bool(_) | NodeKind::Param(_) => {
+                    self.ir.nodes[i].lookback.clone()
+                }
+                NodeKind::Unary(_, a) => hist[*a].clone(),
+                NodeKind::Binary(_, a, b) => history_max(&hist, &[*a, *b]),
+                NodeKind::Ternary(c, x, y) => history_max(&hist, &[*c, *x, *y]),
+                NodeKind::Call(_, ids) | NodeKind::UCall(_, ids) => history_max(&hist, ids),
+                NodeKind::Ind(ind, a, w, _) => {
+                    if ind.steps_back() {
+                        plus(&hist[*a], w.clone())
+                    } else {
+                        plus(&hist[*a], minus_one(w))
+                    }
+                }
+                NodeKind::Partial(a, w, _) => plus(&hist[*a], minus_one(w)),
+                NodeKind::Pair(_, a, b, w) => CExpr::Bin(
+                    BinOp::Add,
+                    Box::new(history_max(&hist, &[*a, *b])),
+                    Box::new(CExpr::Bin(BinOp::Sub, Box::new(w.clone()), Box::new(CExpr::Num(1.0)))),
+                ),
+                NodeKind::Kalman(a, b, ..) => history_max(&hist, &[*a, *b]),
+                NodeKind::UInd {
+                    def, inputs, consts, ..
+                } => match self.user_history(*def, &history_max(&hist, inputs), consts) {
+                    Some(h) => h,
+                    None => return,
+                },
+            };
+            hist.push(h);
+        }
+        for (name, id) in self.ir.series.clone() {
+            if !self.ir.live[id] {
+                continue;
+            }
+            let span = match self.names.get(&name) {
+                Some((Name::Series(_, s), _)) => *s,
+                _ => Span::default(),
+            };
+            if !self.depth_fits(&hist[id], span, "whole-window history") {
+                return;
+            }
+        }
+        // As the backend's warm-up over the lookbacks: the live nodes' figures, then the stated warm-up.
+        let mut terms: Vec<CExpr> = vec![];
+        for (i, h) in hist.into_iter().enumerate() {
+            if !self.ir.live[i]
+                || matches!(
+                    self.ir.nodes[i].kind,
+                    NodeKind::Num(_) | NodeKind::Bool(_) | NodeKind::Param(_)
+                )
+            {
+                continue;
+            }
+            let parts = match h {
+                CExpr::Max(v) => v,
+                x => vec![x],
+            };
+            for x in parts {
+                if !terms.contains(&x) {
+                    terms.push(x);
+                }
+            }
+        }
+        if let Some(w) = &self.ir.warmup {
+            terms.push(w.clone());
+        }
+        terms.retain(|t| !matches!(t, CExpr::Num(v) if *v <= 1.0));
+        self.ir.history = match terms.len() {
+            0 => CExpr::Num(1.0),
+            1 => terms.pop().unwrap(),
+            _ => CExpr::Max(terms),
+        };
+    }
+
+    /// A user indicator's figure over inputs whose figure is `base`: `base`, plus its window's length minus one, and its declared warm-up minus one, with the call's fixed arguments put in.
+    fn user_history(&mut self, def: usize, base: &CExpr, consts: &[CExpr]) -> Option<CExpr> {
+        let d = self.ir.indicators[def].clone();
+        let map: HashMap<String, CExpr> = d
+            .const_args()
+            .into_iter()
+            .map(|k| d.args[k].0.clone())
+            .zip(consts.iter().cloned())
+            .collect();
+        let mut h = base.clone();
+        if let Some((_, size, _)) = &d.window {
+            let w = self.subst(size, &map)?;
+            h = CExpr::Bin(
+                BinOp::Add,
+                Box::new(base.clone()),
+                Box::new(CExpr::Bin(BinOp::Sub, Box::new(w), Box::new(CExpr::Num(1.0)))),
+            );
+        }
+        if let Some((e, _)) = &d.warmup {
+            let w = self.subst(e, &map)?;
+            h = CExpr::Max(vec![
+                h,
+                CExpr::Bin(
+                    BinOp::Add,
+                    Box::new(base.clone()),
+                    Box::new(CExpr::Bin(BinOp::Sub, Box::new(w), Box::new(CExpr::Num(1.0)))),
+                ),
+            ]);
+        }
+        Some(h)
+    }
+
     /// `options { warmup = EXPR; }`: a whole number of bars built from numbers and int parameters.
     pub(super) fn warmup_item(&mut self, e: &Expr) {
         if let Some((w, ty)) = self.cexpr(e, "the warm-up", true) {
@@ -410,6 +509,55 @@ impl Checker<'_> {
             }
             self.ir.warmup = Some(w);
         }
+    }
+}
+
+/// `a + b`, folding two numbers and a zero as the lookbacks do.
+fn plus(a: &CExpr, b: CExpr) -> CExpr {
+    match (a, &b) {
+        (CExpr::Num(x), CExpr::Num(y)) => CExpr::Num(x + y),
+        (_, CExpr::Num(y)) if *y == 0.0 => a.clone(),
+        _ => CExpr::Bin(BinOp::Add, Box::new(a.clone()), Box::new(b)),
+    }
+}
+
+/// `w - 1`, folded for a number.
+fn minus_one(w: &CExpr) -> CExpr {
+    match w {
+        CExpr::Num(v) => CExpr::Num(v - 1.0),
+        _ => CExpr::Bin(BinOp::Sub, Box::new(w.clone()), Box::new(CExpr::Num(1.0))),
+    }
+}
+
+/// The largest of some nodes' figures, as `lookback_max` over their lookbacks.
+fn history_max(hist: &[CExpr], ids: &[usize]) -> CExpr {
+    largest(ids.iter().map(|&i| &hist[i]))
+}
+
+/// The largest of some figures: a `max` of their terms, each once, leaving out those of 1 bar or fewer.
+fn largest<'a>(figures: impl Iterator<Item = &'a CExpr>) -> CExpr {
+    let mut terms: Vec<CExpr> = vec![];
+    for f in figures {
+        match f {
+            CExpr::Num(v) if *v <= 1.0 => {}
+            CExpr::Max(v) => {
+                for t in v {
+                    if !terms.contains(t) {
+                        terms.push(t.clone());
+                    }
+                }
+            }
+            other => {
+                if !terms.contains(other) {
+                    terms.push(other.clone());
+                }
+            }
+        }
+    }
+    match terms.len() {
+        0 => CExpr::Num(1.0),
+        1 => terms.pop().unwrap(),
+        _ => CExpr::Max(terms),
     }
 }
 
@@ -457,6 +605,108 @@ mod tests {
         assert_eq!(lookback(&ir, "c"), 6.0);
         assert_eq!(lookback(&ir, "d"), 4.0);
         assert_eq!(lookback(&ir, "e"), 12.0);
+    }
+
+    /// The program's whole-window history and its gate (the live lookbacks and the stated warm-up), with the defaults.
+    fn history_and_gate(source: &str) -> (f64, f64) {
+        let ir = ok(source);
+        let mut gate = ir.warmup.as_ref().map_or(1.0, |w| value(&ir, w));
+        for (i, node) in ir.nodes.iter().enumerate() {
+            if ir.live[i] {
+                gate = gate.max(value(&ir, &node.lookback));
+            }
+        }
+        (value(&ir, &ir.history), gate)
+    }
+
+    fn one(params: &str, series: &str) -> String {
+        format!("params {{ {params} }} series {{ real u = {series}; }} on_bar {{ target(u); }}")
+    }
+
+    #[test]
+    fn whole_history() {
+        let k = "int<lower=1> k = 250; int<lower=2> h = 25;";
+        // A partial sum over a lag: whole at k + h - 1, decided from k + 1.
+        assert_eq!(
+            history_and_gate(&one(k, "ts_sum(sign(close - close[k]), h - 1, 1)")),
+            (274.0, 251.0)
+        );
+        // A skip window over a one-bar return.
+        let n = "int<lower=2> n = 90;";
+        assert_eq!(
+            history_and_gate(&one(n, "stdev_pop(close / close[1] - 1, n, missing = skip)")),
+            (91.0, 90.0)
+        );
+        // Where a window is full when it is defined, the figure is the lookback.
+        assert_eq!(history_and_gate(&one(n, "sma(close, n, missing = skip)")), (90.0, 90.0));
+        assert_eq!(history_and_gate(&one(n, "sma(sma(close, 20), 30)")), (49.0, 49.0));
+        assert_eq!(history_and_gate(&one(n, "ts_sum(close, n)")), (90.0, 90.0));
+        assert_eq!(history_and_gate(&one(n, "rsi(close[2], 14)")), (17.0, 17.0));
+        // Nested: the input's whole figure, then each window's length less one.
+        let kn = "int<lower=1> k = 3; int<lower=1> n = 20;";
+        assert_eq!(
+            history_and_gate(&one(kn, "sma(ts_sum(close[k], n, 1), 3, missing = skip)")),
+            (3.0 + 1.0 + 19.0 + 2.0, 4.0)
+        );
+        // A lag, an RSI, a least-squares line and a filter over a partial sum.
+        let p = "series { real p = ts_sum(close[1], 5, 1); real a = lag(p, 2); real b = rsi(p, 3); \
+                 real c = ols_slope(p, close, 10); real d = kf_beta(p, close, 0.0001, 0.001); }";
+        for (read, whole) in [("a", 8.0), ("b", 9.0), ("c", 15.0), ("d", 6.0)] {
+            let (history, _) = history_and_gate(&format!("{p} on_bar {{ target({read}); }}"));
+            assert_eq!(history, whole, "{read}");
+        }
+        // A stated warm-up above everything wins; below, the windows do.
+        assert_eq!(
+            history_and_gate(&format!(
+                "options {{ warmup = 500; }} {}",
+                one(k, "ts_sum(sign(close - close[k]), h - 1, 1)")
+            )),
+            (500.0, 500.0)
+        );
+        assert_eq!(
+            history_and_gate(&format!(
+                "options {{ warmup = k + 2; }} {}",
+                one(k, "ts_sum(sign(close - close[k]), h - 1, 1)")
+            )),
+            (274.0, 252.0)
+        );
+    }
+
+    #[test]
+    fn whole_history_of_user_indicators() {
+        // A window and a declared warm-up, both over the fixed arguments, over a partial sum (whole at k + n).
+        let ind = "indicator m(real x, int w, int z) { window q[w]; warmup z + 2; state real s = 0; \
+                   enter(v) { s = s + v; } leave(v) { s = s - v; } value real mean = s / q.count; }";
+        let program = |defaults: &str| {
+            format!(
+                "{ind} params {{ int<lower=1> k = 3; int<lower=1> n = 20; {defaults} }} \
+                 series {{ real u = m(ts_sum(close[k], n, 1), w, z, missing = skip); }} on_bar {{ target(u); }}"
+            )
+        };
+        // The window wins: k + n + w - 1; the gate is max(w, k + 1) and k + 1 + z + 1.
+        assert_eq!(
+            history_and_gate(&program("int<lower=1> w = 10; int<lower=0> z = 1;")),
+            (32.0, 10.0)
+        );
+        // The declared warm-up wins: k + n + z + 1.
+        assert_eq!(
+            history_and_gate(&program("int<lower=1> w = 10; int<lower=0> z = 30;")),
+            (54.0, 35.0)
+        );
+        // Under restart, the window's figure over the input's whole figure, not its lookback.
+        let restart = format!(
+            "{ind} params {{ int<lower=1> k = 3; int<lower=1> n = 20; }} \
+             series {{ real u = m(ts_sum(close[k], n, 1), 10, 0); }} on_bar {{ target(u); }}"
+        );
+        assert_eq!(history_and_gate(&restart), (32.0, 13.0));
+    }
+
+    #[test]
+    fn whole_history_counts_live_values_only() {
+        let (history, gate) = history_and_gate(
+            "series { real a = sma(close, 3); real unused = ts_sum(close[50], 20, 1); } on_bar { target(a); }",
+        );
+        assert_eq!((history, gate), (3.0, 3.0));
     }
 
     #[test]

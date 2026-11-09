@@ -181,6 +181,7 @@ impl Checker<'_> {
         self.handlers(program);
         self.handler_rules(program);
         self.liveness();
+        self.whole_history();
     }
 
     pub(super) fn poison(&mut self, ident: &Ident) {

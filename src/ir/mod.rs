@@ -483,6 +483,8 @@ pub struct Ir {
     pub state: Vec<StateVar>,
     pub locals: Vec<Local>,
     pub warmup: Option<CExpr>,
+    /// The history a live runner requests, including the newest decision bar: the warm-up, or more where a window decides before it is whole.
+    pub history: CExpr,
     pub handlers: Handlers,
     pub uses_held: bool,
     /// Nodes read by a handler other than `on_bar`, kept in members.
@@ -515,6 +517,7 @@ impl Default for Ir {
             state: vec![],
             locals: vec![],
             warmup: None,
+            history: CExpr::Num(1.0),
             handlers: Handlers::default(),
             uses_held: false,
             kept: vec![],
