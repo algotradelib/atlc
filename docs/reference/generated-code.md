@@ -60,8 +60,9 @@ Parameters are run-time fields, so one compiled header runs every point of a tun
 
 An `int` result that does not fit in 64 bits throws `std::overflow_error` from the handler, constructor or `set` that computes it ([types and definedness](types-and-definedness.md), "Types"); the exception leaves the runner's loop, so the run stops.
 
-For a runner, the struct also states `warmup_bars()` (the bars before the handlers run), `atls_mode` (`"single"`, `"named"` or `"universe"`), `atls_session`, `atls_instruments()`, `atls_params()`, `atls_reads_data` (whether it has `data {}`) and `atls_data()` (its names, in order; empty without it).
-It also states `atls_on_open` and `atls_on_close`, whether the program has each; a program with either also states `session_opens()` and `session_closes()`, the sessions a bar has opened and closed so far, so a runner can refuse a run that met none, and `session_outside_bars()`, the bars wholly before a session's open or after its close (pre-market or after-hours data, which still enter the series).
+For a runner, the struct also states `warmup_bars()`, the history requested by a live runner, including the newest decision bar ([program structure](program-structure.md), "Lookback and warm-up"); it may exceed the gate, the bars before the handlers run, which is internal to the struct.
+It also states `atls_mode` (`"single"`, `"named"` or `"universe"`), `atls_session`, `atls_instruments()`, `atls_params()`, `atls_reads_data` (whether it has `data {}`) and `atls_data()` (its names, in order; empty without it).
+`atls_on_open` and `atls_on_close` state whether the program has each; a program with either also states `session_opens()` and `session_closes()`, the sessions a bar has opened and closed so far, so a runner can refuse a run that met none, and `session_outside_bars()`, the bars wholly before a session's open or after its close (pre-market or after-hours data, which still enter the series).
 
 ### Limit orders
 

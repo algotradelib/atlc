@@ -91,3 +91,12 @@ Refusing built-in names for arguments, loop variables and an indicator's window,
   `warmup` is set in `options { warmup = EXPR; }`, a whole number built from integer literals and integer parameters with `+ - *` and negation; unlike a window's length, it is not proved at least 1, and it only raises the gate, for a strategy that needs a longer start than its lookbacks.
   `warmup` is not a block: the former top-level statement `warmup EXPR;` is refused.
 - After that gate the checker treats eventually-defined values as defined, but a handler can still see an undefined value: an undefined input restarts an indicator, and `skip`, `poison` or a domain error (`log(0)`) can leave a value undefined ([types and definedness](types-and-definedness.md)).
+- A live runner requests more history than the gate where a window decides before it is whole (the generated struct's `warmup_bars()`, [generated code](generated-code.md)): enough for every finite window to be whole at its first decision.
+  Each value needs its input's figure (1 for a bar field) plus its window's length minus one (the length for a lag and an RSI), the largest over several inputs, under every missing-value policy and for `ts_sum(x, n, m)` too.
+  So `ts_sum(sign(close - close[k]), h - 1, 1)` is decided from bar k + 1 but needs k + h - 1 bars to be whole, and a live run's first decision then sees the windows a backtest sees on that date over the same bars.
+  A user indicator's figure is its inputs' figure plus its window's length minus one or its declared warm-up minus one, whichever is larger.
+  The checker keeps the figure as an expression of parameters, as a lookback, and refuses it past the same 256 levels.
+  The gate is unchanged, so a backtest still decides from the gate over the windows there are.
+  The figure covers finite windows only: an `ema`'s seed, `kf_*`, a user indicator's `update` state (with a window or without), a `poison` latch, any `state`, and the windows over them carry values from their own start, so a live run's first decision can differ from a backtest's on them.
+  Raising `warmup` does not help a `state`, since states change only once the gate has passed.
+  Nor does the figure cover a broker that returns fewer bars than requested, or floating-point sums whose result depends on where they started.

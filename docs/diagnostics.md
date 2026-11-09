@@ -261,7 +261,7 @@ From `tests/ui/syntax/two-errors.atls`.
 
 ### `nesting-too-deep`
 
-A program nested more than 256 levels deep (an implementation limit): blocks, `else if`, parentheses and every level of an expression's tree count, one per operator of a chain; or a lookback built from parameters that deep.
+A program nested more than 256 levels deep (an implementation limit): blocks, `else if`, parentheses and every level of an expression's tree count, one per operator of a chain; or a lookback, or the history a live runner requests ([program structure](reference/program-structure.md), "Lookback and warm-up"), built from parameters that deep.
 
 ```
 error[nesting-too-deep]: the program nests deeper than 256 levels here
