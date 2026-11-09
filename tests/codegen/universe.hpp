@@ -35,8 +35,8 @@ struct Universe {
   /** The parameter names, in order. */
   static std::vector<std::string> atls_params() { return {"lookback", "quantity"}; }
 
-  /** Bars before the handlers run: the stated warm-up or what the series need, whichever is longer. */
-  std::size_t warmup_bars() const { return warmup_; }
+  /** History requested by a live runner, including the newest decision bar: the gate, or more where a window decides before it is whole. */
+  std::size_t warmup_bars() const { return history_; }
   /** Sessions a bar has opened and closed so far, for a runner to tell a program that met none. */
   std::size_t session_opens() const { return edges_.opened(); }
   std::size_t session_closes() const { return edges_.closed(); }
@@ -237,6 +237,7 @@ struct Universe {
     lv_gap_.assign(ids_.size(), {});
     lv_market_.assign(ids_.size(), {});
     warmup_ = static_cast<std::size_t>(params_.lookback_);
+    history_ = std::max(warmup_, static_cast<std::size_t>(atls::ops::add_int(1, atls::ops::sub_int(params_.lookback_, 1))));
   }
 
   std::vector<atl::InstrumentId> ids_;
@@ -244,6 +245,7 @@ struct Universe {
   std::string tag_{"universe"};
   atls::ops::OrderPricing pricing_;
   std::size_t warmup_{0};
+  std::size_t history_{0};
   std::size_t periods_{0};
   atl::strategy::SessionEdges edges_;
   std::vector<Lane> lanes_;

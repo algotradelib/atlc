@@ -1304,6 +1304,20 @@ impl<'a> Printer<'a> {
         }
     }
 
+    /// Sets `history_` after `warmup_`: the gate itself when the whole-window history is the same expression, else the larger of the two.
+    fn history_line(&mut self, indent: usize) {
+        let w = self.warmup_code();
+        let h = self.cexpr(&self.ir.history);
+        if h == w {
+            self.line(indent, "history_ = warmup_;");
+        } else {
+            self.line(
+                indent,
+                &format!("history_ = std::max(warmup_, static_cast<std::size_t>({}));", h),
+            );
+        }
+    }
+
     /// Sizes and resets the rings and indicators (into a lane's members when `lane`).
     fn reset_lines(&mut self, indent: usize) {
         let ir = self.ir;
@@ -1561,9 +1575,9 @@ impl<'a> Printer<'a> {
         self.line(0, "");
         self.line(
             1,
-            "/** Bars before the handlers run: the stated warm-up or what the series need, whichever is longer. */",
+            "/** History requested by a live runner, including the newest decision bar: the gate, or more where a window decides before it is whole. */",
         );
-        self.line(1, "std::size_t warmup_bars() const { return warmup_; }");
+        self.line(1, "std::size_t warmup_bars() const { return history_; }");
         if ir.session {
             self.line(
                 1,
@@ -1924,6 +1938,7 @@ impl<'a> Printer<'a> {
         }
         let w = self.warmup_code();
         self.line(2, &format!("warmup_ = static_cast<std::size_t>({});", w));
+        self.history_line(2);
         self.line(1, "}");
         self.line(0, "");
         // Members
@@ -1937,6 +1952,7 @@ impl<'a> Printer<'a> {
         self.line(1, "atls::ops::OrderPricing pricing_;");
         self.line(1, "std::size_t bars_{0};");
         self.line(1, "std::size_t warmup_{0};");
+        self.line(1, "std::size_t history_{0};");
         self.data_members(1);
         self.object_members(1);
         for &k in &ir.kept {
@@ -2390,6 +2406,7 @@ impl<'a> Printer<'a> {
         }
         let w = self.warmup_code();
         self.line(2, &format!("warmup_ = static_cast<std::size_t>({});", w));
+        self.history_line(2);
         self.line(1, "}");
         self.line(0, "");
         self.line(1, "std::vector<atl::InstrumentId> ids_;");
@@ -2397,6 +2414,7 @@ impl<'a> Printer<'a> {
         self.line(1, &format!("std::string tag_{{\"{}\"}};", o.name.to_lowercase()));
         self.line(1, "atls::ops::OrderPricing pricing_;");
         self.line(1, "std::size_t warmup_{0};");
+        self.line(1, "std::size_t history_{0};");
         self.line(1, "std::size_t periods_{0};");
         if ir.session {
             self.line(1, "atl::strategy::SessionEdges edges_;");

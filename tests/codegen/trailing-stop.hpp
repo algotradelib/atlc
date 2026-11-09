@@ -36,8 +36,8 @@ struct TrailingStop {
   /** The parameter names, in order. */
   static std::vector<std::string> atls_params() { return {"lookback", "trail", "quantity"}; }
 
-  /** Bars before the handlers run: the stated warm-up or what the series need, whichever is longer. */
-  std::size_t warmup_bars() const { return warmup_; }
+  /** History requested by a live runner, including the newest decision bar: the gate, or more where a window decides before it is whole. */
+  std::size_t warmup_bars() const { return history_; }
 
   /** Trades `instrument` with the default parameters. */
   explicit TrailingStop(atl::InstrumentId instrument) : instrument_(std::move(instrument)) {
@@ -167,6 +167,7 @@ struct TrailingStop {
     st_in_trade_ = (0 != 0);
     st_peak_ = static_cast<double>(0);
     warmup_ = static_cast<std::size_t>(std::max<std::int64_t>({static_cast<std::int64_t>(atls::ops::add_int(1, atls::ops::sub_int(params_.lookback_, 1))), static_cast<std::int64_t>(atls::ops::add_int(atls::ops::add_int(1, atls::ops::sub_int(params_.lookback_, 1)), 1))}));
+    history_ = warmup_;
   }
 
   atl::InstrumentId instrument_;
@@ -175,6 +176,7 @@ struct TrailingStop {
   atls::ops::OrderPricing pricing_;
   std::size_t bars_{0};
   std::size_t warmup_{0};
+  std::size_t history_{0};
   atls::ops::Ring ring1_;
   atls::ops::TsMax ind1_;  // ts_max(f_high, params_.lookback_)
   atls::ops::Lag ind2_;  // lag(n1, 1)

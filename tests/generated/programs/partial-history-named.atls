@@ -1,0 +1,19 @@
+// The single program's windows over two named instruments.
+instruments {
+  y;
+  x;
+}
+params {
+  int<lower=1> k = 5;
+  int<lower=2> h = 10;
+  int<lower=1> m = 3;
+}
+series {
+  real u = sma(ts_sum(sign(y.close - x.close[k]), h - 1, 1), m, missing = skip);
+}
+on_bar {
+  if (defined(u)) {
+    target(y, 100 + 10 * u);
+    target(x, 0);
+  }
+}

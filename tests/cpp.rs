@@ -219,6 +219,9 @@ fn generated_strategies() {
         "data-series",
         "data-named",
         "data-universe",
+        "partial-history-single",
+        "partial-history-named",
+        "partial-history-universe",
     ] {
         generate(
             &out,

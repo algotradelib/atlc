@@ -37,8 +37,8 @@ struct Pairs {
   /** The parameter names, in order. */
   static std::vector<std::string> atls_params() { return {"lookback", "entry", "exit", "quantity"}; }
 
-  /** Bars before the handlers run: the stated warm-up or what the series need, whichever is longer. */
-  std::size_t warmup_bars() const { return warmup_; }
+  /** History requested by a live runner, including the newest decision bar: the gate, or more where a window decides before it is whole. */
+  std::size_t warmup_bars() const { return history_; }
 
   /** Trades the named instruments, in the order of `instruments {}`, with the default parameters. */
   explicit Pairs(std::vector<atl::InstrumentId> ids) : ids_(std::move(ids)) {
@@ -174,6 +174,7 @@ struct Pairs {
     ring4_.reset(static_cast<std::size_t>(params_.lookback_));
     ring4_.clear();
     warmup_ = static_cast<std::size_t>(std::max<std::int64_t>({static_cast<std::int64_t>(atls::ops::add_int(1, atls::ops::sub_int(params_.lookback_, 1))), static_cast<std::int64_t>(atls::ops::add_int(atls::ops::add_int(1, atls::ops::sub_int(params_.lookback_, 1)), atls::ops::sub_int(params_.lookback_, 1)))}));
+    history_ = warmup_;
   }
 
   std::vector<atl::InstrumentId> ids_;
@@ -182,6 +183,7 @@ struct Pairs {
   atls::ops::OrderPricing pricing_;
   std::size_t bars_{0};
   std::size_t warmup_{0};
+  std::size_t history_{0};
   atls::ops::Ring ring4_;
   atls::ops::Zscore ind5_;  // zscore(s_spread, params_.lookback_)
   atls::ops::OlsLlt<true> obj2_;

@@ -36,8 +36,8 @@ struct UserIndicator {
   /** The parameter names, in order. */
   static std::vector<std::string> atls_params() { return {"lookback", "width", "cap"}; }
 
-  /** Bars before the handlers run: the stated warm-up or what the series need, whichever is longer. */
-  std::size_t warmup_bars() const { return warmup_; }
+  /** History requested by a live runner, including the newest decision bar: the gate, or more where a window decides before it is whole. */
+  std::size_t warmup_bars() const { return history_; }
 
   /** `capped`, from `functions {}`: an undefined argument makes the call undefined. */
   static double f_capped(double a_shares, double a_cap) {
@@ -206,6 +206,7 @@ struct UserIndicator {
     obj1_.poisoned_ = false;
     obj1_.reset();
     warmup_ = static_cast<std::size_t>(atls::ops::add_int(1, atls::ops::sub_int(params_.lookback_, 1)));
+    history_ = warmup_;
   }
 
   atl::InstrumentId instrument_;
@@ -214,6 +215,7 @@ struct UserIndicator {
   atls::ops::OrderPricing pricing_;
   std::size_t bars_{0};
   std::size_t warmup_{0};
+  std::size_t history_{0};
   Ind_band_restart obj1_;
 };
 

@@ -37,8 +37,8 @@ struct MeanReversion {
   /** The parameter names, in order. */
   static std::vector<std::string> atls_params() { return {"lookback", "entry", "exit", "quantity"}; }
 
-  /** Bars before the handlers run: the stated warm-up or what the series need, whichever is longer. */
-  std::size_t warmup_bars() const { return warmup_; }
+  /** History requested by a live runner, including the newest decision bar: the gate, or more where a window decides before it is whole. */
+  std::size_t warmup_bars() const { return history_; }
 
   /** Trades `instrument` with the default parameters. */
   explicit MeanReversion(atl::InstrumentId instrument) : instrument_(std::move(instrument)) {
@@ -137,6 +137,7 @@ struct MeanReversion {
     ring0_.reset(static_cast<std::size_t>(atls::ops::add_int(params_.lookback_, 1)));
     ring0_.clear();
     warmup_ = static_cast<std::size_t>(atls::ops::add_int(1, atls::ops::sub_int(params_.lookback_, 1)));
+    history_ = warmup_;
   }
 
   atl::InstrumentId instrument_;
@@ -145,6 +146,7 @@ struct MeanReversion {
   atls::ops::OrderPricing pricing_;
   std::size_t bars_{0};
   std::size_t warmup_{0};
+  std::size_t history_{0};
   atls::ops::Ring ring0_;
   atls::ops::Zscore ind1_;  // zscore(f_close, params_.lookback_)
 };
