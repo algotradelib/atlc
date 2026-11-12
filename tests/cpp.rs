@@ -72,10 +72,10 @@ fn run(command: &mut Command, log: &Path) {
 }
 
 /// `atlc build` of `source` as `out/<name>.hpp`, by way of a copy named `<name>.atls` (the struct is named after
-/// the file), with `edit` applied to the copy.
-fn generate(out: &Path, name: &str, source: &Path, args: &[&str], edit: Option<(&str, &str)>) {
+/// the file), with `edits` applied to the copy in order.
+fn generate(out: &Path, name: &str, source: &Path, args: &[&str], edits: &[(&str, &str)]) {
     let mut text = std::fs::read_to_string(source).unwrap();
-    if let Some((from, to)) = edit {
+    for &(from, to) in edits {
         assert!(text.contains(from), "{}: no `{from}`", source.display());
         text = text.replace(from, to);
     }
@@ -166,35 +166,35 @@ fn generated_strategies() {
         let source = root().join("tests/programs").join(format!("{program}.atls"));
         for (variant, args) in VARIANTS {
             let name = format!("{}_{variant}", program.replace('-', "_"));
-            generate(&out, &name, &source, args, None);
+            generate(&out, &name, &source, args, &[]);
         }
     }
     let programs = root().join("tests/generated/programs");
-    generate(&out, "identity", &programs.join("identity.atls"), &[], None);
-    generate(&out, "identity_pair", &programs.join("identity-pair.atls"), &[], None);
+    generate(&out, "identity", &programs.join("identity.atls"), &[], &[]);
+    generate(&out, "identity_pair", &programs.join("identity-pair.atls"), &[], &[]);
     generate(
         &out,
         "identity_missing",
         &programs.join("identity-missing.atls"),
         &[],
-        None,
+        &[],
     );
-    let poison = Some(("missing = skip;", "missing = poison;"));
+    let poison = [("missing = skip;", "missing = poison;")];
     generate(
         &out,
         "identity_missing_poison",
         &programs.join("identity-missing.atls"),
         &[],
-        poison,
+        &poison,
     );
     // The control: one copy off by a part in 1e15 must be seen.
-    let perturbed = Some(("value real mean = s / n;", "value real mean = s / n * (1 + 1e-15);"));
+    let perturbed = [("value real mean = s / n;", "value real mean = s / n * (1 + 1e-15);")];
     generate(
         &out,
         "identity_perturbed",
         &programs.join("identity.atls"),
         &[],
-        perturbed,
+        &perturbed,
     );
     for program in [
         "missing-open",
@@ -228,7 +228,7 @@ fn generated_strategies() {
             &program.replace('-', "_"),
             &programs.join(format!("{program}.atls")),
             &[],
-            None,
+            &[],
         );
     }
     // The universe under each missing-value policy: `restart` (the default), `skip` and `poison`.
@@ -239,7 +239,7 @@ fn generated_strategies() {
             &format!("pricing_universe_{policy}"),
             &programs.join("pricing-universe.atls"),
             &[],
-            Some(("universe {}", options.as_str())),
+            &[("universe {}", options.as_str())],
         );
     }
     generate(
@@ -247,8 +247,30 @@ fn generated_strategies() {
         "pricing_legs_held",
         &programs.join("pricing-legs.atls"),
         &[],
-        Some(("target(at_close);", "target(held * 0 + at_close);")),
+        &[("target(at_close);", "target(held * 0 + at_close);")],
     );
+    // External indicators and functions restating built-ins (tests/generated/user-code.hpp) in every variant, each
+    // with the classes of the arithmetic its built-ins use there; the universe that misses bars under `restart` and
+    // under `poison`.
+    for (variant, args) in VARIANTS {
+        let class = match variant {
+            "naive" => "naive_",
+            "exact" => "exact_",
+            _ => "inc_",
+        };
+        for program in ["identity-extern", "identity-extern-pair", "identity-extern-missing"] {
+            let name = format!("{}_{variant}", program.replace('-', "_"));
+            let source = programs.join(format!("{program}.atls"));
+            generate(&out, &name, &source, args, &[("inc_", class)]);
+        }
+        generate(
+            &out,
+            &format!("identity_extern_missing_poison_{variant}"),
+            &programs.join("identity-extern-missing.atls"),
+            args,
+            &[("inc_", class), ("missing = restart;", "missing = poison;")],
+        );
+    }
     emit_runtime(&out);
     cmake("generated", &root().join("tests/generated"), Some(&out), &prefix);
 }
@@ -262,9 +284,65 @@ fn differential_gate() {
     for program in ["pullback", "trail", "sma"] {
         let source = root().join("tests/gate/programs").join(format!("{program}.atls"));
         for (variant, args) in VARIANTS.iter().filter(|(v, _)| *v != "keep") {
-            generate(&out, &format!("{program}_{variant}"), &source, args, None);
+            generate(&out, &format!("{program}_{variant}"), &source, args, &[]);
         }
     }
     emit_runtime(&out);
     cmake("gate", &root().join("tests/gate"), Some(&out), &prefix);
+}
+
+/// A source that includes a generated header with an external indicator, but no header defining its class, fails to
+/// compile at the header's check, whose message names the class and what to do.
+#[test]
+fn external_class_not_defined() {
+    let Some(prefix) = prefix("external_class_not_defined") else {
+        return;
+    };
+    let out = scratch("external");
+    let source = root().join("tests/generated/programs/identity-extern.atls");
+    generate(&out, "identity_extern", &source, &[], &[]);
+    emit_runtime(&out);
+    let support = root()
+        .join("tests/support/atlc-test.cmake")
+        .display()
+        .to_string()
+        .replace('\\', "/");
+    let lines = [
+        "cmake_minimum_required(VERSION 3.20)".to_string(),
+        "project(external LANGUAGES CXX)".to_string(),
+        format!("include({support})"),
+        "add_executable(external main.cpp)".to_string(),
+        "target_include_directories(external PRIVATE include)".to_string(),
+        "atlc_test_target(external)".to_string(),
+    ];
+    std::fs::write(out.join("CMakeLists.txt"), lines.join("\n") + "\n").unwrap();
+    let main = "#include <identity_extern.hpp>\nint main() {\n  atls::IdentityExtern s(algotradelib::InstrumentId{});\n  return s.warmup_bars() > 0 ? 0 : 1;\n}\n";
+    std::fs::write(out.join("main.cpp"), main).unwrap();
+    let build = out.join("build");
+    run(
+        Command::new("cmake")
+            .arg("-S")
+            .arg(&out)
+            .arg("-B")
+            .arg(&build)
+            .arg(format!("-DCMAKE_PREFIX_PATH={}", prefix.replace('\\', "/")))
+            .arg("-DCMAKE_BUILD_TYPE=Release"),
+        &out.join("configure.log"),
+    );
+    let result = Command::new("cmake")
+        .arg("--build")
+        .arg(&build)
+        .args(["--config", "Release"])
+        .output()
+        .unwrap();
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&result.stdout),
+        String::from_utf8_lossy(&result.stderr)
+    );
+    assert!(!result.status.success(), "built without the class:\n{text}");
+    assert!(
+        text.contains("atls::user::inc_sma is not defined: include a header that defines it before this one"),
+        "the build failed elsewhere:\n{text}"
+    );
 }

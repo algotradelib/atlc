@@ -1,0 +1,33 @@
+// ols_slope and ols_intercept beside an external indicator whose C++ restates them (tests/generated/user-code.hpp);
+// the test generates a copy per mode, with the class that mode's least squares uses (`inc_`, `naive_` or `exact_`).
+// One fill of one share of y means identical bits on every bar.
+instruments { y; x; }
+params {
+  int<lower=2> n = 20;
+}
+
+extern indicator inc_ols(real y, real x, int n) {
+  warmup n;
+  value real slope;
+  value real intercept;
+}
+
+series {
+  real ys = y.close / 7;
+  real xs = x.close / 3;
+  real a1 = ols_slope(ys, xs, n);
+  real b1 = inc_ols(ys, xs, n).slope;
+  real a2 = ols_intercept(ys, xs, n);
+  real b2 = inc_ols(ys, xs, n).intercept;
+}
+state {
+  int diffs = 0;
+}
+on_bar {
+  bool d1 = defined(a1) and defined(b1) ? a1 == b1 : defined(a1) == defined(b1);
+  bool d2 = defined(a2) and defined(b2) ? a2 == b2 : defined(a2) == defined(b2);
+  if (not (d1 and d2)) {
+    diffs = diffs + 1;
+  }
+  target(y, 1 + diffs);
+}

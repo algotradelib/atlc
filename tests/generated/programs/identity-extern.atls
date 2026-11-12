@@ -1,0 +1,72 @@
+// sma and least squares beside external indicators whose C++ restates them (tests/generated/user-code.hpp), also
+// over an input undefined on many bars (restart and poison), and functions written in atls beside external functions
+// that restate them. The test generates a copy per mode, with the class that
+// mode's sma uses (`inc_`, `naive_` or `exact_`). The program counts the bars where a value or its definedness
+// differs and states one share more than that count, so one fill of one share means identical bits on every bar.
+params {
+  int<lower=2> n = 20;
+}
+
+functions {
+  extern real clip_c(real z, real cap);
+  real clip_a(real z, real cap) {
+    return min(max(z, -cap), cap);
+  }
+  extern bool inside_c(real z, real cap);
+  bool inside_a(real z, real cap) {
+    return z > -cap and z < cap;
+  }
+  extern int odd_c(int k);
+  int odd_a(int k) {
+    return 2 * k + 1;
+  }
+}
+
+extern indicator inc_sma(real x, int n) {
+  warmup n;
+  value real mean;
+}
+
+extern indicator inc_ols(real y, real x, int n) {
+  warmup n;
+  value real slope;
+  value real intercept;
+}
+
+series {
+  real x = close / 7;
+  real a1 = sma(x, n);
+  real b1 = inc_sma(x, n);
+  // Undefined during the warm-up: an external function is not called then.
+  real d = x - a1;
+  real a2 = clip_a(d, 0.05);
+  real b2 = clip_c(d, 0.05);
+  real a3 = inside_a(d, 0.05) ? 1 : 0;
+  real b3 = inside_c(d, 0.05) ? 1 : 0;
+  // Undefined whenever the close is at most 10,000, about half the bars: the indicators restart or are poisoned.
+  real hole = x / (close > 10000 ? 1 : 0);
+  real a4 = sma(hole, n);
+  real b4 = inc_sma(hole, n);
+  real a5 = sma(hole, n, missing = poison);
+  real b5 = inc_sma(hole, n, missing = poison);
+  real a6 = ols_slope(hole, x, n);
+  real b6 = inc_ols(hole, x, n).slope;
+  // Infinity minus infinity: undefined on every bar, though the checker takes it for always defined. The C++ is
+  // still never given it: the indicator restarts on every bar and is never defined.
+  real never = inc_sma(close * 1e308 * 10 - close * 1e308 * 10, n);
+}
+state {
+  int diffs = 0;
+}
+on_bar {
+  bool d1 = defined(a1) and defined(b1) ? a1 == b1 : defined(a1) == defined(b1);
+  bool d2 = defined(a2) and defined(b2) ? a2 == b2 : defined(a2) == defined(b2);
+  bool d3 = defined(a3) and defined(b3) ? a3 == b3 : defined(a3) == defined(b3);
+  bool d4 = defined(a4) and defined(b4) ? a4 == b4 : defined(a4) == defined(b4);
+  bool d5 = defined(a5) and defined(b5) ? a5 == b5 : defined(a5) == defined(b5);
+  bool d6 = defined(a6) and defined(b6) ? a6 == b6 : defined(a6) == defined(b6);
+  if (not (d1 and d2 and d3 and d4 and d5 and d6) or odd_a(n) != odd_c(n) or defined(never)) {
+    diffs = diffs + 1;
+  }
+  target(1 + diffs);
+}

@@ -1,6 +1,6 @@
 // A universe whose instruments miss bars: sma and ols_slope beside external indicators that restate them
-// (tests/generated/user-code.hpp), under `missing = restart` (the test also builds a copy under `missing = poison`,
-// and a copy per mode). ols_slope always restarts, so its external states `restart`. One fill of one share per
+// (tests/generated/user-code.hpp), under `missing = restart`, where each instrument runs on its own bars, and in a
+// copy under `missing = poison`, where a missing bar is an undefined input (the test also builds a copy per mode). ols_slope always restarts, so its external states `restart`. One fill of one share per
 // instrument means identical bits on every bar.
 universe {}
 options { missing = restart; }
