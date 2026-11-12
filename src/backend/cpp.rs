@@ -2553,8 +2553,9 @@ impl<'a> Printer<'a> {
     /// The declarations of the program's external C++ in `atls::user`, and a check that each class is defined.
     fn extern_decls(&mut self) {
         let ir = self.ir;
+        // Inside `atls::user`, where `std` may name the user's class.
         let cty = |t: Ty| match t {
-            Ty::Int => "std::int64_t",
+            Ty::Int => "::std::int64_t",
             Ty::Real => "double",
             Ty::Bool => "bool",
         };

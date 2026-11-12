@@ -9,6 +9,7 @@
 #include "replay.hpp"
 
 #include <identity_extern_exact.hpp>
+#include <extern_std.hpp>
 #include <identity_extern_incremental.hpp>
 #include <identity_extern_keep.hpp>
 #include <identity_extern_missing_exact.hpp>
@@ -95,4 +96,11 @@ TEST_CASE("with missing bars external indicators under restart and poison give t
     atls::IdentityExternMissingPoisonExact, atls::IdentityExternMissingPoisonNoshare,
     atls::IdentityExternMissingPoisonKeep
   >(ids, symbols, symbols, events);
+}
+
+TEST_CASE("an external indicator named std beside an int external function compiles and trades") {
+  const auto events = t::daily_events({t::walk("A", 16, 100)});
+  const auto outcome = t::run(atls::ExternStd(t::id_of("A")), {"A"}, events);
+  REQUIRE(outcome.result_.executions_.size() == 1);
+  CHECK(outcome.result_.executions_[0].fill_.quantity_ == atl::Decimal64(3, 0));
 }

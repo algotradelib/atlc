@@ -250,4 +250,27 @@ inline std::int64_t odd_c(std::int64_t k) {
   return 2 * k + 1;
 }
 
+// Last: from here on, `std` inside `atls::user` names this class, so the code below writes `::std`.
+
+/** @brief The last value, for tests/generated/programs/extern-std.atls: a class named `std`. */
+class std {
+public:
+  /** @brief Takes the newest value. */
+  void update(double x) {
+    last_ = detail::defined(x);
+  }
+  /** @brief The last value. */
+  double value() const {
+    return last_;
+  }
+
+private:
+  double last_{0};
+};
+
+/** @brief `n + 1`, declared beside the class `std`. */
+inline ::std::int64_t number(::std::int64_t n) {
+  return n + 1;
+}
+
 } // namespace atls::user

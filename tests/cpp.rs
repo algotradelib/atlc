@@ -271,6 +271,7 @@ fn generated_strategies() {
             &[("inc_", class), ("missing = restart;", "missing = poison;")],
         );
     }
+    generate(&out, "extern_std", &programs.join("extern-std.atls"), &[], &[]);
     emit_runtime(&out);
     cmake("generated", &root().join("tests/generated"), Some(&out), &prefix);
 }

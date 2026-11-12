@@ -1,0 +1,16 @@
+// An external indicator named `std`, beside an int external function: the generated declarations inside
+// `atls::user` must not read `std::` as the user's class. The program buys number(2) = 3 shares once.
+functions {
+  extern int number(int n);
+}
+
+extern indicator std(real x) {
+  value real value;
+}
+
+series {
+  real v = std(close);
+}
+on_bar {
+  target(v == close ? number(2) : 0);
+}
