@@ -184,7 +184,9 @@ So a source that includes a generated header includes a header defining every ex
 
 - A class not defined there stops the compilation at that `static_assert` (other errors about the incomplete type may follow).
 - Define each class with the key `class`, as the declaration does: one defined with `struct` compiles, but Clang warns (`-Wmismatched-tags`) that the mismatch may cause linker errors under the Microsoft C++ ABI.
-- A function not defined fails at link time, naming `atls::user::NAME`; one defined with other parameter types does too (the prototype declares an overload), and one with another return type fails at compile time.
+- A function not defined fails at link time, naming `atls::user::NAME`.
+- One defined with other parameter types declares an overload: the call then fails at link time, or at compile time when the two are ambiguous (`const double&` against `double`).
+- One with another return type, or marked `noexcept` or `constexpr`, fails at compile time on the generated declaration.
 - A function the user's header defines in that header is `inline` there; the generated declaration does not change that.
 - The generated code calls a function through a static member that returns undefined first when a `real` or `bool` argument is, passing a `bool` as `true` or `false`; an indicator, through a struct holding the class in a `std::optional`, built on the first defined step after a reset.
 - The pragma that turns contraction off covers the generated functions only, not the user's: the user's header turns it off in its own code, or the project's flags do (GCC's `-ffp-contract=off` and MSVC's `/fp:precise` apply to the whole source).

@@ -1,6 +1,6 @@
 // ols_slope and ols_intercept beside an external indicator whose C++ restates them (tests/generated/user-code.hpp);
 // the test generates a copy per mode, with the class that mode's least squares uses (`inc_`, `naive_` or `exact_`).
-// One fill of one share of y means identical bits on every bar.
+// One fill of one share of y means equal values (atls `==`) and the same definedness on every bar after the gate.
 instruments { y; x; }
 params {
   int<lower=2> n = 20;

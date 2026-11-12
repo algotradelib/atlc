@@ -2,7 +2,8 @@
 // over an input undefined on many bars (restart and poison), and functions written in atls beside external functions
 // that restate them. The test generates a copy per mode, with the class that
 // mode's sma uses (`inc_`, `naive_` or `exact_`). The program counts the bars where a value or its definedness
-// differs and states one share more than that count, so one fill of one share means identical bits on every bar.
+// differs and states one share more than that count, so one fill of one share means equal values (atls `==`) and the
+// same definedness on every bar after the gate.
 params {
   int<lower=2> n = 20;
 }

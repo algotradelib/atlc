@@ -97,6 +97,7 @@ public:
 - The rules of a function call hold: every argument is evaluated, an undefined `real` or `bool` argument makes the call undefined without calling the C++, and a function returning `int` takes `int` arguments only.
 - A `real` result may be undefined, since the C++ may return NaN; an `int` or `bool` result is defined whenever the arguments are.
 - An external function may be called wherever a function may, by a later function too.
+- The definition must match the generated declaration (`double clip(double, double);`): it must not be marked `noexcept` or `constexpr`, which make that declaration fail to compile ([the generated C++](generated-code.md), "External C++").
 
 ### External indicators
 

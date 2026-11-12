@@ -1,15 +1,16 @@
-// External indicators and functions whose C++ restates built-ins (user-code.hpp) give the built-ins' bits on every
-// bar, in every variant the generated tests use, and under restart and poison with missing bars: each program buys
-// one share more than the number of bars where the two differ, so one fill of one share (per instrument) means no
-// difference. The user's C++ throws if it is given an undefined value, so a run also shows that it never is.
+// External indicators and functions whose C++ restates built-ins (user-code.hpp) give the built-ins' values, in every
+// variant the generated tests use, and under restart and poison: each program buys one share more than the number of
+// bars after the gate where the two differ (by atls `==`, so a zero's sign is not compared) or where only one is
+// defined, so one fill of one share (per instrument) means no difference. The user's C++ throws if it is given an
+// undefined value, so a run also shows that it never is.
 
 // The user's header first: the generated headers name its classes and functions.
 #include "user-code.hpp"
 
 #include "replay.hpp"
 
-#include <identity_extern_exact.hpp>
 #include <extern_std.hpp>
+#include <identity_extern_exact.hpp>
 #include <identity_extern_incremental.hpp>
 #include <identity_extern_keep.hpp>
 #include <identity_extern_missing_exact.hpp>
@@ -61,7 +62,7 @@ void same_bits(
 
 } // namespace
 
-TEST_CASE("sma and least squares and functions restated as external C++ give the same bits in every variant") {
+TEST_CASE("sma and least squares and functions restated as external C++ give equal values in every variant") {
   const auto events = t::daily_events({t::walk("A", 10, 2000)});
   same_bits<
     atls::IdentityExternIncremental, atls::IdentityExternNaive, atls::IdentityExternExact, atls::IdentityExternNoshare,
@@ -69,7 +70,7 @@ TEST_CASE("sma and least squares and functions restated as external C++ give the
   >(t::id_of("A"), {"A"}, {"A"}, events);
 }
 
-TEST_CASE("ols_slope and ols_intercept restated as an external indicator give the same bits in every variant") {
+TEST_CASE("ols_slope and ols_intercept restated as an external indicator give equal values in every variant") {
   const auto events = t::daily_events({t::walk("Y", 11, 2000), t::walk("X", 12, 2000)});
   const std::vector<atl::InstrumentId> ids{t::id_of("Y"), t::id_of("X")};
   same_bits<
@@ -78,7 +79,7 @@ TEST_CASE("ols_slope and ols_intercept restated as an external indicator give th
   >(ids, {"Y", "X"}, {"Y"}, events);
 }
 
-TEST_CASE("with missing bars external indicators under restart and poison give the bits of the built-ins") {
+TEST_CASE("with missing bars external indicators under restart and poison give the values of the built-ins") {
   // C lists after 200 days; every instrument misses about one day in 10.
   const auto events =
     t::daily_events({t::walk("A", 13, 1200, 10), t::walk("B", 14, 1200, 10), t::walk("C", 15, 1200, 10, 200)});

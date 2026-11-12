@@ -1,6 +1,6 @@
 // The C++ of the external indicators and functions in tests/generated/programs/identity-extern*.atls: the
 // built-ins' arithmetic restated from runtime/include/atls/ops.hpp, one class per built-in and mode, in the
-// runtime's order, so that a program can compare bits. Each throws if it is given an undefined value, which atls
+// runtime's order, so that a program can compare their values. Each throws if it is given an undefined value, which atls
 // promises never to do. Floating-point contraction in user code is the user's: here it is off, as in the runtime.
 #pragma once
 
