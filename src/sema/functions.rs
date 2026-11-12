@@ -418,8 +418,16 @@ impl Checker<'_> {
         ctx.assign = false;
         ctx.args_maybe = true;
         let mut values = vec![];
-        if d.external {
-            self.cpp_name(&d.name);
+        if d.external && self.cpp_name(&d.name) && d.name.name == "update" {
+            self.err(
+                Diag::new(
+                    Code::ExternName,
+                    "an external indicator cannot be named `update`",
+                    d.name.span,
+                    "choose another name",
+                )
+                .note("its class's step is the member function `update`, which a class of that name cannot have"),
+            );
         }
         for part in &d.parts {
             if let IndPart::ExternValue(ty, ty_span, name) = part {

@@ -118,7 +118,7 @@ public:
   `skip` does not apply, since the window is in C++ (`extern-skip`): a call under a program default of `skip` must state `missing = restart` or `missing = poison`.
 - Identical calls share one object, and a call's values read the same object.
 - `--indicators` and the arithmetic table do not apply to user code ([types and definedness](types-and-definedness.md), "Arithmetic").
-- An external's name and its values' names are used in C++ as written, so none may be a C++ keyword or a spelling C++ reserves (`__` anywhere, or `_` and an uppercase letter first), and no value may be named `update` or as its indicator (`extern-name`).
+- An external's name and its values' names are used in C++ as written, so none may be a C++ keyword or a spelling C++ reserves (`__` anywhere, or `_` and an uppercase letter first), no external indicator may be named `update`, and no value may be named `update` or as its indicator (`extern-name`).
 
 ### What the compiler assumes
 

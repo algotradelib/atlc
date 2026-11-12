@@ -2005,7 +2005,7 @@ From `tests/ui/check/user-indicator-in-handler.atls`.
 
 ### `extern-name`
 
-A name that the C++ of an external indicator or function would use as written, and C++ cannot take: a C++ keyword, a spelling C++ reserves (`__` anywhere, or `_` and an uppercase letter first), or a value of an external indicator named `update` or named as its indicator ([functions and indicators](reference/functions-and-indicators.md), "External C++").
+A name that the C++ of an external indicator or function would use as written, and C++ cannot take: a C++ keyword, a spelling C++ reserves (`__` anywhere, or `_` and an uppercase letter first), an external indicator named `update`, or a value of an external indicator named `update` or named as its indicator ([functions and indicators](reference/functions-and-indicators.md), "External C++").
 
 ```
 error[extern-name]: an external indicator's value cannot be named `update`

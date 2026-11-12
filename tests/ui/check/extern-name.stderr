@@ -47,3 +47,10 @@ error[extern-name]: `new` cannot name C++ code
    |              ^^^ choose another name
    = it is a C++ keyword
 
+error[extern-name]: an external indicator cannot be named `update`
+  --> tests/ui/check/extern-name.atls:19:18
+   |
+19 | extern indicator update(real x) {
+   |                  ^^^^^^ choose another name
+   = its class's step is the member function `update`, which a class of that name cannot have
+

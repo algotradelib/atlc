@@ -16,5 +16,8 @@ extern indicator band(real x, int n) {
   value real band;
   value real new;
 }
+extern indicator update(real x) {
+  value real level;
+}
 series { real a = band(close, 5).update; }
 on_bar { target(a); }
