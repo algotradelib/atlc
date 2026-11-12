@@ -1,0 +1,8 @@
+// An external indicator's wrapper keeps each argument and value under its own name.
+extern indicator ext_band(real x, int x, int n, real n) {
+  warmup n;
+  value real upper_band;
+  value real upper_band;
+}
+series { real a = ext_band(close, 5, 10, open).upper_band; }
+on_bar { target(a); }

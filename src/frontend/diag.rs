@@ -173,6 +173,7 @@ codes! {
     UserIndicatorInHandler = "user-indicator-in-handler",
     ExternName = "extern-name",
     ExternSkip = "extern-skip",
+    DuplicateWarmup = "duplicate-warmup",
 }
 
 /// Whether a diagnostic refuses the program.

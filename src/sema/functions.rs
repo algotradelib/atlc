@@ -165,6 +165,9 @@ impl Checker<'_> {
 
     /// Checks one `indicator NAME(...) { ... }`.
     pub(super) fn indicator_def(&mut self, d: &IndicatorDef) {
+        if d.external {
+            self.extern_parts(d);
+        }
         let mut args = vec![];
         for a in &d.args {
             self.not_reserved(&a.name);
@@ -509,6 +512,55 @@ impl Checker<'_> {
             external: d.external,
         });
         self.declare(&d.name, Name::Indicator(id));
+    }
+
+    /// What the C++ wrapper of an external indicator relies on: distinct argument and value names, each kept under its
+    /// own name, and at most one warm-up.
+    fn extern_parts(&mut self, d: &IndicatorDef) {
+        for (k, a) in d.args.iter().enumerate() {
+            if d.args[..k].iter().any(|b| b.name.name == a.name.name) {
+                self.err(Diag::new(
+                    Code::DuplicateArgument,
+                    format!("argument `{}` twice", a.name.name),
+                    a.name.span,
+                    "second",
+                ));
+            }
+        }
+        let mut warmup: Option<Span> = None;
+        let mut values: Vec<&Ident> = vec![];
+        for part in &d.parts {
+            match part {
+                IndPart::Warmup(_, span) => match warmup {
+                    Some(first) => self.err(
+                        Diag::new(
+                            Code::DuplicateWarmup,
+                            "a second warm-up",
+                            *span,
+                            "one per external indicator",
+                        )
+                        .also(first, "first stated here"),
+                    ),
+                    None => warmup = Some(*span),
+                },
+                IndPart::ExternValue(_, _, name) => {
+                    if let Some(first) = values.iter().find(|v| v.name == name.name) {
+                        let first = first.span;
+                        self.err(
+                            Diag::new(
+                                Code::DuplicateName,
+                                format!("`{}` is declared twice", name.name),
+                                name.span,
+                                "second declaration",
+                            )
+                            .also(first, "first declared here"),
+                        );
+                    }
+                    values.push(name);
+                }
+                _ => {}
+            }
+        }
     }
 
     /// An expression over an indicator's int arguments, with the call's fixed values put in.

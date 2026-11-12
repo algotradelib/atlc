@@ -1,0 +1,8 @@
+error[duplicate-warmup]: a second warm-up
+ --> tests/ui/check/duplicate-warmup.atls:4:3
+  |
+2 |   warmup 100;
+  |   ----------- first stated here
+4 |   warmup 1;
+  |   ^^^^^^^^^ one per external indicator
+

@@ -1676,7 +1676,7 @@ From `tests/ui/check/policy-skip-rsi.atls`.
 
 ### `duplicate-argument`
 
-A function with two arguments of one name.
+A function or an external indicator with two arguments of one name (an atls indicator is not checked for it yet).
 
 ```
 error[duplicate-argument]: argument `x` twice
@@ -2032,3 +2032,19 @@ error[extern-skip]: `ext_mean` is external: `missing = skip` does not apply
 ```
 
 From `tests/ui/check/extern-skip.atls`.
+
+### `duplicate-warmup`
+
+An external indicator with a second `warmup`: its C++ class may rely on the warm-up to hide its first values, so two contradicting ones are refused rather than one chosen.
+
+```
+error[duplicate-warmup]: a second warm-up
+ --> tests/ui/check/duplicate-warmup.atls:4:3
+  |
+2 |   warmup 100;
+  |   ----------- first stated here
+4 |   warmup 1;
+  |   ^^^^^^^^^ one per external indicator
+```
+
+From `tests/ui/check/duplicate-warmup.atls`.

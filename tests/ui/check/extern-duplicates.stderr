@@ -1,0 +1,20 @@
+error[duplicate-argument]: argument `x` twice
+ --> tests/ui/check/extern-duplicates.atls:2:39
+  |
+2 | extern indicator ext_band(real x, int x, int n, real n) {
+  |                                       ^ second
+
+error[duplicate-argument]: argument `n` twice
+ --> tests/ui/check/extern-duplicates.atls:2:54
+  |
+2 | extern indicator ext_band(real x, int x, int n, real n) {
+  |                                                      ^ second
+
+error[duplicate-name]: `upper_band` is declared twice
+ --> tests/ui/check/extern-duplicates.atls:5:14
+  |
+4 |   value real upper_band;
+  |              ---------- first declared here
+5 |   value real upper_band;
+  |              ^^^^^^^^^^ second declaration
+

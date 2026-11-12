@@ -101,7 +101,8 @@ public:
 ### External indicators
 
 - `extern indicator NAME(args) { ... }` declares the C++ class `atls::user::NAME`, to be defined with the key `class`.
-  Its body holds only `value real V;` lines (at least one), without an expression, and at most one `warmup EXPR;`.
+  Its body holds only `value real V;` lines (at least one), without an expression, and at most one `warmup EXPR;` (`duplicate-warmup`).
+  Its arguments' names are distinct (`duplicate-argument`), and so are its values' (`duplicate-name`).
 - The class provides:
   - `explicit NAME(std::int64_t...)`: a constructor taking the `int` arguments in order (a default constructor when there are none);
   - `void update(double...)`: the `real` arguments in order, once per period, never an undefined value;

@@ -1,0 +1,7 @@
+extern indicator ext_mean(real x) {
+  warmup 100;
+  value real mean;
+  warmup 1;
+}
+series { real a = ext_mean(close); }
+on_bar { target(a); }
