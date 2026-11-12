@@ -13,8 +13,8 @@ class inc_sma;
 class inc_ols;
 } // namespace user
 
-static_assert(atls::ops::is_complete<user::inc_sma>::value, "atls::user::inc_sma is not defined: include a header that defines it before this one (with cmdatl, name it in build.header)");
-static_assert(atls::ops::is_complete<user::inc_ols>::value, "atls::user::inc_ols is not defined: include a header that defines it before this one (with cmdatl, name it in build.header)");
+static_assert(atls::ops::is_complete<user::inc_sma>::value, "atls::user::inc_sma is not defined: include a header that defines it before this one (with cmdatl, the run spec's header key)");
+static_assert(atls::ops::is_complete<user::inc_ols>::value, "atls::user::inc_ols is not defined: include a header that defines it before this one (with cmdatl, the run spec's header key)");
 
 /** The strategy in `identity-extern-missing.atls`, compiled. */
 struct IdentityExternMissing {

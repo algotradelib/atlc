@@ -172,7 +172,7 @@ A program with external indicators or functions ([functions and indicators](func
 After `namespace atls {` the header declares, in `namespace user`, each external indicator's class (`class NAME;`) and each external function's prototype (`double clip(double, double);`), then checks each class:
 
 ```cpp
-static_assert(atls::ops::is_complete<user::ols>::value, "atls::user::ols is not defined: include a header that defines it before this one (with cmdatl, name it in build.header)");
+static_assert(atls::ops::is_complete<user::ols>::value, "atls::user::ols is not defined: include a header that defines it before this one (with cmdatl, the run spec's header key)");
 ```
 
 So a source that includes a generated header includes a header defining every external first:

@@ -2579,7 +2579,7 @@ impl<'a> Printer<'a> {
         self.line(0, "} // namespace user");
         self.line(0, "");
         for c in &classes {
-            self.line(0, &format!("static_assert(atls::ops::is_complete<user::{c}>::value, \"atls::user::{c} is not defined: include a header that defines it before this one (with cmdatl, name it in build.header)\");"));
+            self.line(0, &format!("static_assert(atls::ops::is_complete<user::{c}>::value, \"atls::user::{c} is not defined: include a header that defines it before this one (with cmdatl, the run spec's header key)\");"));
         }
         if !classes.is_empty() {
             self.line(0, "");
