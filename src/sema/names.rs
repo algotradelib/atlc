@@ -51,6 +51,15 @@ pub(super) fn is_reserved(name: &str) -> bool {
     .contains(&name)
 }
 
+/// The keywords and alternative tokens of C++20, and `final`, `override`, `import`, `module`.
+const CPP_KEYWORDS: &str = "alignas alignof and and_eq asm auto bitand bitor bool break case catch char char8_t char16_t \
+    char32_t class compl concept const consteval constexpr constinit const_cast continue co_await co_return co_yield \
+    decltype default delete do double dynamic_cast else enum explicit export extern false final float for friend goto if \
+    import inline int long module mutable namespace new noexcept not not_eq nullptr operator or or_eq override private \
+    protected public register reinterpret_cast requires return short signed sizeof static static_assert static_cast \
+    struct switch template this thread_local throw true try typedef typeid typename union unsigned using virtual void \
+    volatile wchar_t while xor xor_eq";
+
 pub(super) fn edit_distance(a: &str, b: &str) -> usize {
     let a: Vec<char> = a.chars().collect();
     let b: Vec<char> = b.chars().collect();
@@ -104,6 +113,30 @@ impl Checker<'_> {
             return false;
         }
         true
+    }
+
+    /// Refuses, for a name the C++ of an external indicator or function uses as written, a C++ keyword or a spelling
+    /// C++ reserves (`_` and an uppercase letter first, or `__` anywhere).
+    pub(super) fn cpp_name(&mut self, ident: &Ident) -> bool {
+        let n = ident.name.as_str();
+        let reserved = n.contains("__") || n.starts_with('_') && n[1..].starts_with(|c: char| c.is_ascii_uppercase());
+        if !reserved && !CPP_KEYWORDS.split_whitespace().any(|k| k == n) {
+            return true;
+        }
+        self.err(
+            Diag::new(
+                Code::ExternName,
+                format!("`{}` cannot name C++ code", n),
+                ident.span,
+                "choose another name",
+            )
+            .note(if reserved {
+                "C++ reserves names with `__`, or with `_` and an uppercase letter first"
+            } else {
+                "it is a C++ keyword"
+            }),
+        );
+        false
     }
 
     pub(super) fn unknown(&mut self, n: &str, span: Span) {

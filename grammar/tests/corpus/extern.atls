@@ -1,0 +1,18 @@
+// `extern` begins an external indicator or function, and is an ordinary name everywhere else.
+params { int extern = 3; }
+functions {
+  extern real clip(real z, real cap);
+  real twice(real extern) { return 2 * extern; }
+  extern bool none();
+}
+extern indicator extern_mean(real extern, int n) {
+  value real level;
+  warmup n;
+}
+series {
+  real extern_value = extern_mean(close, 5).level;
+}
+on_bar {
+  real extern2 = twice(extern_value);
+  target(clip(extern2, extern));
+}

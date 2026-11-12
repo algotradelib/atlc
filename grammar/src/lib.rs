@@ -27,8 +27,11 @@ pub enum T {
     P(&'static str),
 }
 
-/// Reserved only inside an indicator (`window value update enter leave`) or in bounds (`lower upper`).
-pub const CONTEXTUAL: [&str; 7] = ["window", "value", "update", "enter", "leave", "lower", "upper"];
+/// Reserved only inside an indicator (`window value update enter leave`), in bounds (`lower upper`), or where an
+/// item or a function begins (`extern`).
+pub const CONTEXTUAL: [&str; 8] = [
+    "window", "value", "update", "enter", "leave", "lower", "upper", "extern",
+];
 
 fn terminal(tok: Tok) -> T {
     match tok {

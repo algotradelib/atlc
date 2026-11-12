@@ -1,0 +1,7 @@
+error[unknown-block]: `extern` is followed by `indicator` here
+ --> tests/ui/syntax/extern-at-top.atls:1:1
+  |
+1 | extern real clip(real z, real cap);
+  | ^^^^^^ not a block
+  = an external function is declared in `functions {}`: `functions { extern real f(real x); }`
+

@@ -46,7 +46,7 @@ Assigning a value that may be undefined to one must not compile.
 Every series value is one of:
 - always defined: bar fields other than `open`, literals, arithmetic without `/`;
 - eventually defined: an indicator over such a value, treated as defined once its lookback has passed;
-- maybe undefined: `open`, a division whose divisor is not a provably nonzero literal or parameter, anything under `missing = skip` or `poison` in a universe.
+- maybe undefined: `open`, a division whose divisor is not a provably nonzero literal or parameter, anything under `missing = skip` or `poison` in a universe, every value of an external indicator, and a call of an external function returning `real`.
 
 Only maybe-undefined values carry run-time checks.
 "Treated as defined" is the checker's assumption, not a promise that the value is never NaN ([program structure](program-structure.md), "Lookback and warm-up").
@@ -67,10 +67,12 @@ atls names the arithmetic of each indicator, and a build can choose among three 
 | `ts_sum(x, n, m)` | running sum, in every mode | | |
 | `ema`, `kf_*`, `lag` | their recurrence or ring, in every mode | | |
 | user indicators | the arithmetic their author wrote, in every mode | | |
+| external indicators and functions | the user's C++, in every mode | | |
 
 `exact` selects subtraction-free sums for `sma`, `ts_sum(x, n)` and `rsi`, which leave no cancellation residue; the other indicators keep the algorithm the table names, and none of this is decimal arithmetic.
 A result computed another way (by another tool, or in decimal) may differ at an exact tie.
 
 Floating-point contraction (fused multiply-add) is off in generated code and in the runtime: with Clang by pragma, with GCC by `-ffp-contract=off`, and with MSVC by `/fp:precise`, which leaves contraction off from Visual Studio 2022 (17.0) on; earlier MSVC versions are not supported.
 A project that compiles exported strategies must set these flags, and must not add `/fp:contract` ([the generated C++](generated-code.md), "Compiling exported strategies").
+The pragma covers the runtime and the generated functions only: contraction in external C++ follows its own code and the project's flags, so a project that restates a built-in in C++ and wants its bits turns contraction off there too.
 Contraction is not the only difference between compilers and math libraries (`log`, `sqrt` and evaluation order may differ in the last bit); atls promises identical results only for one compiler and platform.

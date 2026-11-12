@@ -1,0 +1,39 @@
+// A universe whose instruments miss bars: sma and ols_slope beside external indicators that restate them
+// (tests/generated/user-code.hpp), under `missing = restart` (the test also builds a copy under `missing = poison`,
+// and a copy per mode). ols_slope always restarts, so its external states `restart`. One fill of one share per
+// instrument means identical bits on every bar.
+universe {}
+options { missing = restart; }
+params {
+  int<lower=2> n = 20;
+}
+
+extern indicator inc_sma(real x, int n) {
+  warmup n;
+  value real mean;
+}
+
+extern indicator inc_ols(real y, real x, int n) {
+  warmup n;
+  value real slope;
+  value real intercept;
+}
+
+series {
+  real ret = close / close[1] - 1;
+  real a1 = sma(close, n);
+  real b1 = inc_sma(close, n);
+  real a2 = ols_slope(ret, close, n);
+  real b2 = inc_ols(ret, close, n, missing = restart).slope;
+}
+state {
+  int diffs = 0;
+}
+on_bar {
+  bool d1 = defined(a1) and defined(b1) ? a1 == b1 : defined(a1) == defined(b1);
+  bool d2 = defined(a2) and defined(b2) ? a2 == b2 : defined(a2) == defined(b2);
+  if (not (d1 and d2)) {
+    diffs = diffs + 1;
+  }
+  target(1 + diffs);
+}

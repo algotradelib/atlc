@@ -1,0 +1,13 @@
+error[expected-indicator-part]: expected a part of an external indicator, found `window`
+ --> tests/ui/syntax/extern-part.atls:2:3
+  |
+2 |   window w[n];
+  |   ^^^^^^ not a part
+  = its body is C++: an external indicator states only `warmup n;` and `value real v;`
+
+error[expected-token]: expected `;` after an external value (its C++ class computes it), found `=`
+ --> tests/ui/syntax/extern-part.atls:3:18
+  |
+3 |   value real mean = x;
+  |                  ^ add `;` here
+

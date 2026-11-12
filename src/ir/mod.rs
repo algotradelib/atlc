@@ -400,6 +400,8 @@ pub struct FnIr {
     pub locals: Vec<Local>,
     /// The body may return an undefined value even on defined arguments.
     pub may_undef: bool,
+    /// `extern`: the body is the C++ function `atls::user::NAME`.
+    pub external: bool,
 }
 
 /// A state of a user indicator.
@@ -438,6 +440,8 @@ pub struct IndIr {
     pub nonzero: Vec<usize>,
     /// Some part reads `w.count`.
     pub uses_count: bool,
+    /// `extern`: the body is the C++ class `atls::user::NAME`, and the values are its accessors.
+    pub external: bool,
 }
 
 impl IndIr {

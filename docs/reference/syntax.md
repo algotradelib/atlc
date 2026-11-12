@@ -14,6 +14,8 @@
   `warmup` begins an indicator's part (`warmup n;`) and is the one keyword that is also an option's name (`options { warmup = n + 1; }`); it is no block.
 - `window value update enter leave` begin the parts of an `indicator` (`window w[n];`, `value real v = ...;`).
   They are not reserved: they are ordinary names everywhere, inside an indicator too (`indicator f(real window)` is valid).
+- `extern` begins an external indicator at the top level (`extern indicator f(...) { ... }`) and an external function in `functions {}` ([functions and indicators](functions-and-indicators.md), "External C++").
+  It is not reserved either: it is an ordinary name everywhere else.
 - `lower` and `upper` are not keywords, but they are reserved as names: no declaration may use them ([program structure](program-structure.md), "Names").
 
 ## Grammar
@@ -35,6 +37,7 @@ item       = 'params' '{' param* '}'
            | 'data' '{' data_decl* '}'
            | 'functions' '{' function* '}'
            | 'indicator' NAME args '{' part* '}'
+           | 'extern' 'indicator' NAME args '{' extern_part* '}'
            | handler block ;
 handler    = 'on_start' | 'on_bar' | 'on_fill' | 'on_stop' | 'on_open' | 'on_close' ;
 
@@ -46,7 +49,8 @@ decl       = type NAME '=' expr ';' ;
 type       = 'int' | 'real' | 'bool' ;
 option     = ( NAME | 'warmup' ) '=' expr ';' ;            (* `warmup` is the one keyword that is also an option *)
 
-function   = type NAME args block ;
+function   = type NAME args block
+           | 'extern' type NAME args ';' ;
 args       = '(' ( type NAME ( ',' type NAME )* )? ')' ;
 part       = 'window' NAME '[' expr ']' ';'
            | 'state' decl
@@ -54,6 +58,8 @@ part       = 'window' NAME '[' expr ']' ';'
            | 'warmup' expr ';'
            | 'update' block
            | ( 'enter' | 'leave' ) '(' ( NAME ( ',' NAME )* )? ')' block ;   (* the checker requires one name per real input *)
+extern_part = 'warmup' expr ';'
+           | 'value' type NAME ';' ;                    (* the checker requires `real` *)
 
 block      = '{' stmt* '}' ;
 stmt       = decl

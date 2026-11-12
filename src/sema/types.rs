@@ -80,6 +80,7 @@ fn each_expr(program: &Program, f: &mut dyn FnMut(&Expr)) {
                         IndPart::Update(body, _) | IndPart::Enter(_, body, _) | IndPart::Leave(_, body, _) => {
                             stmts(body, f)
                         }
+                        IndPart::ExternValue(..) => {}
                     }
                 }
             }

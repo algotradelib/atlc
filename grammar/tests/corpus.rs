@@ -71,6 +71,7 @@ fn diagnostic_only(p: &Program) -> bool {
             IndPart::Window { size: e, .. } | IndPart::Warmup(e, _) => expr(e),
             IndPart::State(v) | IndPart::Value(v) => expr(&v.init),
             IndPart::Update(b, _) | IndPart::Enter(_, b, _) | IndPart::Leave(_, b, _) => stmts(b),
+            IndPart::ExternValue(..) => false,
         }),
         Item::Instruments(..) | Item::Universe(_) | Item::Data(..) => false,
     })

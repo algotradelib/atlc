@@ -243,13 +243,15 @@ pub struct Arg {
     pub name: Ident,
 }
 
-/// `real clip(real z, real cap) { ... }`.
+/// `real clip(real z, real cap) { ... }`, or `extern real clip(real z, real cap);`, whose body is the C++ function
+/// `atls::user::clip` (its `body` is empty).
 #[derive(Clone, Debug, PartialEq)]
 pub struct FunctionDef {
     pub ret: Ty,
     pub name: Ident,
     pub args: Vec<Arg>,
     pub body: Vec<Stmt>,
+    pub external: bool,
     pub span: Span,
 }
 
@@ -270,14 +272,18 @@ pub enum IndPart {
     Value(VarDecl),
     /// `warmup n;`: steps before the values are defined, for an indicator without a window.
     Warmup(Expr, Span),
+    /// `value real slope;` in an external indicator: a value its C++ class reports.
+    ExternValue(Ty, Span, Ident),
 }
 
 /// `indicator NAME(real x, int n) { ... }`: real arguments are series, int arguments are fixed.
+/// With `extern`, the body is the C++ class `atls::user::NAME` and the parts are `warmup` and `ExternValue`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct IndicatorDef {
     pub name: Ident,
     pub args: Vec<Arg>,
     pub parts: Vec<IndPart>,
+    pub external: bool,
     pub span: Span,
 }
 

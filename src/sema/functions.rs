@@ -37,6 +37,23 @@ impl Checker<'_> {
             self.err(Diag::new(Code::IntFunctionRealArguments, "a function returning `int` takes `int` arguments only", d.name.span, "here")
                 .note("an undefined real argument would make an undefined `int`; return `real` and use `round` or `floor`"));
         }
+        if d.external {
+            // The C++ function may return any double, NaN included; a `bool` or `int` it returns is defined.
+            self.cpp_name(&d.name);
+            let id = self.ir.functions.len();
+            let (name, ret, may_undef) = (d.name.name.clone(), d.ret, d.ret == Ty::Real);
+            self.ir.functions.push(FnIr {
+                name,
+                args,
+                ret,
+                body: vec![],
+                locals: vec![],
+                may_undef,
+                external: true,
+            });
+            self.declare(&d.name, Name::Function(id));
+            return;
+        }
         let saved_locals = std::mem::take(&mut self.ir.locals);
         let saved_scopes = std::mem::take(&mut self.scopes);
         let saved_refined = std::mem::take(&mut self.refined);
@@ -73,6 +90,7 @@ impl Checker<'_> {
             body,
             locals,
             may_undef: ctx.returns_maybe,
+            external: false,
         });
         self.declare(&d.name, Name::Function(id));
     }
@@ -397,7 +415,43 @@ impl Checker<'_> {
         ctx.assign = false;
         ctx.args_maybe = true;
         let mut values = vec![];
+        if d.external {
+            self.cpp_name(&d.name);
+        }
         for part in &d.parts {
+            if let IndPart::ExternValue(ty, ty_span, name) = part {
+                if *ty != Ty::Real {
+                    self.err(Diag::new(
+                        Code::ValueNotReal,
+                        "an indicator's values are `real`",
+                        *ty_span,
+                        "write `real`",
+                    ));
+                    continue;
+                }
+                if self.cpp_name(name) && (name.name == "update" || name.name == d.name.name) {
+                    self.err(
+                        Diag::new(
+                            Code::ExternName,
+                            format!("an external indicator's value cannot be named `{}`", name.name),
+                            name.span,
+                            "choose another name",
+                        )
+                        .note(format!(
+                            "in `atls::user::{}`, `{}` names the class's {}",
+                            d.name.name,
+                            name.name,
+                            if name.name == "update" { "step" } else { "constructor" }
+                        )),
+                    );
+                }
+                // What the C++ class reports: undefined during the warm-up, and whatever it returns after.
+                values.push(UValueIr {
+                    name: name.name.clone(),
+                    ty: Ty::Real,
+                    expr: Self::h(HKind::Keep, Ty::Real, true),
+                });
+            }
             if let IndPart::Value(v) = part {
                 self.uctx = Some(ctx.clone());
                 let checked = self.hexpr(&v.init, HandlerKind::User);
@@ -452,6 +506,7 @@ impl Checker<'_> {
             locals,
             nonzero: ctx.nonzero.clone(),
             uses_count: ctx.uses_count,
+            external: d.external,
         });
         self.declare(&d.name, Name::Indicator(id));
     }
@@ -549,6 +604,11 @@ impl Checker<'_> {
                     .note("a user indicator takes `missing = restart | skip | poison`; a minimum count is written in its values"));
                 return None;
             }
+        }
+        if def.external && miss.policy == Policy::Skip {
+            self.err(Diag::new(Code::ExternSkip, format!("`{}` is external: `missing = skip` does not apply", def.name), span, "under `skip`")
+                .note("its window is in C++, where a missing value cannot take a slot: write `missing = restart` or `missing = poison` in the call"));
+            return None;
         }
         if miss.policy == Policy::Skip && def.window.is_none() && def.enter.is_none() {
             // Without a window, skip means: a missing step does not run `update`.

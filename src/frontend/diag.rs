@@ -171,6 +171,8 @@ codes! {
     AmbiguousValue = "ambiguous-value",
     MemberNotIndicator = "member-not-indicator",
     UserIndicatorInHandler = "user-indicator-in-handler",
+    ExternName = "extern-name",
+    ExternSkip = "extern-skip",
 }
 
 /// Whether a diagnostic refuses the program.

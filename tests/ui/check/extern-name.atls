@@ -1,0 +1,20 @@
+functions {
+  extern real double(real x);
+}
+extern indicator class(real x) {
+  value real v;
+}
+extern indicator __mean(real x) {
+  value real v;
+}
+extern indicator _Mean(real x) {
+  value real v;
+}
+extern indicator band(real x, int n) {
+  warmup n;
+  value real update;
+  value real band;
+  value real new;
+}
+series { real a = band(close, 5).update; }
+on_bar { target(a); }

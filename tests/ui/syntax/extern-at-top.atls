@@ -1,0 +1,2 @@
+extern real clip(real z, real cap);
+on_bar { target(1); }

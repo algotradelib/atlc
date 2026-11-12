@@ -1,0 +1,11 @@
+extern indicator ext_mean(real x, int n) {
+  warmup n;
+  value real mean;
+}
+options { missing = skip; }
+series {
+  real a = ext_mean(close, 5);
+  real b = ext_mean(close, 10, missing = poison);
+  real c = ext_mean(close, 3, missing = skip);
+}
+on_bar { target(a + b + c); }

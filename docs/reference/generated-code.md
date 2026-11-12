@@ -165,3 +165,26 @@ Floating-point contraction must stay off ([types and definedness](types-and-defi
 - MSVC, Visual Studio 2022 or later: `/fp:precise`, never `/fp:contract` or `/fp:fast`.
 
 No compiler may use `-ffast-math`, `-Ofast` or `/fp:fast`: an undefined value is a NaN, which those options assume never occurs.
+
+## External C++
+
+A program with external indicators or functions ([functions and indicators](functions-and-indicators.md), "External C++") names the user's C++ in namespace `atls::user`, and the project supplies it: atlc has no option for it.
+After `namespace atls {` the header declares, in `namespace user`, each external indicator's class (`class NAME;`) and each external function's prototype (`double clip(double, double);`), then checks each class:
+
+```cpp
+static_assert(atls::ops::is_complete<user::ols>::value, "atls::user::ols is not defined: include a header that defines it before this one (with cmdatl, name it in build.header)");
+```
+
+So a source that includes a generated header includes a header defining every external first:
+
+```cpp
+#include "user.hpp" // defines atls::user::ols and atls::user::clip
+#include "generated/pairs.hpp"
+```
+
+- A class not defined there stops the compilation at that `static_assert` (other errors about the incomplete type may follow).
+- Define each class with the key `class`, as the declaration does: one defined with `struct` compiles, but Clang warns (`-Wmismatched-tags`) that the mismatch may cause linker errors under the Microsoft C++ ABI.
+- A function not defined fails at link time, naming `atls::user::NAME`; one defined with other parameter types does too (the prototype declares an overload), and one with another return type fails at compile time.
+- A function the user's header defines in that header is `inline` there; the generated declaration does not change that.
+- The generated code calls a function through a static member that returns undefined first when a `real` or `bool` argument is, passing a `bool` as `true` or `false`; an indicator, through a struct holding the class in a `std::optional`, built on the first defined step after a reset.
+- The pragma that turns contraction off covers the generated functions only, not the user's: the user's header turns it off in its own code, or the project's flags do (GCC's `-ffp-contract=off` and MSVC's `/fp:precise` apply to the whole source).

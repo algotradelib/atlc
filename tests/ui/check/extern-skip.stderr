@@ -1,0 +1,14 @@
+error[extern-skip]: `ext_mean` is external: `missing = skip` does not apply
+ --> tests/ui/check/extern-skip.atls:7:12
+  |
+7 |   real a = ext_mean(close, 5);
+  |            ^^^^^^^^^^^^^^^^^^ under `skip`
+  = its window is in C++, where a missing value cannot take a slot: write `missing = restart` or `missing = poison` in the call
+
+error[extern-skip]: `ext_mean` is external: `missing = skip` does not apply
+ --> tests/ui/check/extern-skip.atls:9:12
+  |
+9 |   real c = ext_mean(close, 3, missing = skip);
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ under `skip`
+  = its window is in C++, where a missing value cannot take a slot: write `missing = restart` or `missing = poison` in the call
+

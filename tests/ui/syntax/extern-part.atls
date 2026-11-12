@@ -1,0 +1,6 @@
+extern indicator ext_mean(real x, int n) {
+  window w[n];
+  value real mean = x;
+  warmup n;
+}
+on_bar { target(1); }

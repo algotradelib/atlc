@@ -158,6 +158,19 @@ error[unknown-block]: unknown block `replay`
 
 From `tests/ui/syntax/replay-block.atls`.
 
+`extern` at the top level begins an external indicator; followed by anything else, it is reported with a note on where an external function goes:
+
+```
+error[unknown-block]: `extern` is followed by `indicator` here
+ --> tests/ui/syntax/extern-at-top.atls:1:1
+  |
+1 | extern real clip(real z, real cap);
+  | ^^^^^^ not a block
+  = an external function is declared in `functions {}`: `functions { extern real f(real x); }`
+```
+
+From `tests/ui/syntax/extern-at-top.atls`.
+
 ### `v0-syntax`
 
 The prototype's first syntax (`param`, `let`, `target = ...`).
@@ -202,6 +215,19 @@ error[expected-indicator-part]: expected a part of an indicator, found `return`
 ```
 
 From `tests/ui/syntax/expected-indicator-part.atls`.
+
+An external indicator holds only `warmup` and `value` without a value's expression:
+
+```
+error[expected-indicator-part]: expected a part of an external indicator, found `window`
+ --> tests/ui/syntax/extern-part.atls:2:3
+  |
+2 |   window w[n];
+  |   ^^^^^^ not a part
+  = its body is C++: an external indicator states only `warmup n;` and `value real v;`
+```
+
+From `tests/ui/syntax/extern-part.atls`.
 
 ### `expected-type`
 
@@ -1976,3 +2002,33 @@ error[user-indicator-in-handler]: a user indicator is read in `series {}`
 ```
 
 From `tests/ui/check/user-indicator-in-handler.atls`.
+
+### `extern-name`
+
+A name that the C++ of an external indicator or function would use as written, and C++ cannot take: a C++ keyword, a spelling C++ reserves (`__` anywhere, or `_` and an uppercase letter first), or a value of an external indicator named `update` or named as its indicator ([functions and indicators](reference/functions-and-indicators.md), "External C++").
+
+```
+error[extern-name]: an external indicator's value cannot be named `update`
+  --> tests/ui/check/extern-name.atls:15:14
+   |
+15 |   value real update;
+   |              ^^^^^^ choose another name
+   = in `atls::user::band`, `update` names the class's step
+```
+
+From `tests/ui/check/extern-name.atls`.
+
+### `extern-skip`
+
+A call of an external indicator under `missing = skip`, stated in the call or taken from the program's default: its window is in C++, so a missing value cannot take a slot; the call must state `restart` or `poison`.
+
+```
+error[extern-skip]: `ext_mean` is external: `missing = skip` does not apply
+ --> tests/ui/check/extern-skip.atls:7:12
+  |
+7 |   real a = ext_mean(close, 5);
+  |            ^^^^^^^^^^^^^^^^^^ under `skip`
+  = its window is in C++, where a missing value cannot take a slot: write `missing = restart` or `missing = poison` in the call
+```
+
+From `tests/ui/check/extern-skip.atls`.

@@ -71,9 +71,9 @@ A program is a set of blocks:
 | `on_start`, `on_bar`, `on_fill`, `on_stop` | Handlers; the only output is a target position |
 | `instruments {}`, `universe {}` | Several named instruments, or the same program over many |
 | `options {}` | How missing values enter windows (`missing = skip;`), and a longer warm-up than the indicators need (`warmup = lookback + 1;`) |
-| `functions {}`, `indicator` | Your own functions and streaming indicators |
+| `functions {}`, `indicator` | Your own functions and streaming indicators, in atls or, with `extern`, in your own C++ |
 
-A program has no I/O and no unbounded loop, and cannot read a future bar: the checker refuses it.
+A program has no I/O and no unbounded loop, and cannot read a future bar: the checker refuses it (external C++ is the user's, and not checked).
 Data, dates, costs and fills come from whatever runs the strategy, so one program can be replayed on other data or tuned without editing it.
 Live trading is not part of atls yet.
 The full definition is the [language reference](docs/reference/README.md).

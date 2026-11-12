@@ -1154,7 +1154,9 @@ impl<'a> Printer<'a> {
                     let owner = self.uind_owner(i);
                     if owner == i {
                         let xs: Vec<String> = inputs.iter().map(|&a| checked(&self.node_v(a))).collect();
-                        let check = inputs.iter().any(|&a| ir.nodes[a].class != Class::Always);
+                        // The C++ class of an external indicator is never given an undefined value.
+                        let check =
+                            ir.indicators[*def].external || inputs.iter().any(|&a| ir.nodes[a].class != Class::Always);
                         let nan: Vec<String> = xs.iter().map(|x| format!("std::isnan({})", x)).collect();
                         let args = xs.join(", ");
                         match miss.policy {
@@ -1469,6 +1471,7 @@ impl<'a> Printer<'a> {
         self.line(0, "");
         self.line(0, "namespace atl = algotradelib;");
         self.line(0, "");
+        self.extern_decls();
         self.line(0, &format!("/** The strategy in `{}`, compiled. */", o.source_name));
         self.line(0, &format!("struct {} {{", o.name));
     }
@@ -2468,6 +2471,31 @@ impl<'a> Printer<'a> {
                 self.line(3, "return atls::ops::NaN;");
                 self.line(2, "}");
             }
+            if f.external {
+                let args: Vec<String> = f
+                    .args
+                    .iter()
+                    .map(|(n, t)| {
+                        if *t == Ty::Bool {
+                            format!("a_{n} != 0")
+                        } else {
+                            format!("a_{n}")
+                        }
+                    })
+                    .collect();
+                let call = format!("atls::user::{}({})", f.name, args.join(", "));
+                self.line(
+                    2,
+                    &format!(
+                        "return {};",
+                        if f.ret == Ty::Bool {
+                            format!("{call} ? 1.0 : 0.0")
+                        } else {
+                            call
+                        }
+                    ),
+                );
+            }
             self.enter_user(&f.locals, f.args.clone(), vec![], vec![]);
             self.stmts(&f.body, 2);
             self.leave_user();
@@ -2522,10 +2550,120 @@ impl<'a> Printer<'a> {
         self.local_repr.clear();
     }
 
+    /// The declarations of the program's external C++ in `atls::user`, and a check that each class is defined.
+    fn extern_decls(&mut self) {
+        let ir = self.ir;
+        let cty = |t: Ty| match t {
+            Ty::Int => "std::int64_t",
+            Ty::Real => "double",
+            Ty::Bool => "bool",
+        };
+        let classes: Vec<&str> = ir
+            .indicators
+            .iter()
+            .filter(|d| d.external)
+            .map(|d| d.name.as_str())
+            .collect();
+        let fns: Vec<&FnIr> = ir.functions.iter().filter(|f| f.external).collect();
+        if classes.is_empty() && fns.is_empty() {
+            return;
+        }
+        self.line(0, "namespace user {");
+        for c in &classes {
+            self.line(0, &format!("class {c};"));
+        }
+        for f in &fns {
+            let args: Vec<&str> = f.args.iter().map(|a| cty(a.1)).collect();
+            self.line(0, &format!("{} {}({});", cty(f.ret), f.name, args.join(", ")));
+        }
+        self.line(0, "} // namespace user");
+        self.line(0, "");
+        for c in &classes {
+            self.line(0, &format!("static_assert(atls::ops::is_complete<user::{c}>::value, \"atls::user::{c} is not defined: include a header that defines it before this one (with cmdatl, name it in build.header)\");"));
+        }
+        if !classes.is_empty() {
+            self.line(0, "");
+        }
+    }
+
+    /// An external indicator as a struct with the interface of a user indicator's: the C++ class `atls::user::NAME`,
+    /// built from the int arguments on the first step after a reset, its values hidden until the warm-up has passed.
+    fn extern_struct(&mut self, d: usize, policy: Policy) {
+        let ir = self.ir;
+        let def = &ir.indicators[d];
+        let name_of = |&k: &usize| format!("a_{}", def.args[k].0);
+        let consts: Vec<String> = def.const_args().iter().map(name_of).collect();
+        let series: Vec<String> = def.series_args().iter().map(name_of).collect();
+        self.enter_user(&def.locals, def.args.clone(), vec![], vec![]);
+        let warm = def
+            .warmup
+            .as_ref()
+            .map(|(_, h)| format!("static_cast<std::size_t>({})", plain(&self.hexpr(h))));
+        self.leave_user();
+        self.line(
+            1,
+            &format!(
+                "/** The external indicator `{}` with `missing = {}`: the C++ class `atls::user::{0}`. */",
+                def.name,
+                policy.name()
+            ),
+        );
+        self.line(1, &format!("struct {} {{", Self::uind_type(def, policy)));
+        for c in &consts {
+            self.line(2, &format!("std::int64_t {c}{{0}};"));
+        }
+        self.line(2, &format!("std::optional<atls::user::{}> u_;", def.name));
+        self.line(2, "std::size_t steps_{0};");
+        self.line(2, "bool poisoned_{false};");
+        for v in &def.values {
+            self.line(2, &format!("double v_{}{{atls::ops::NaN}};", v.name));
+        }
+        let params: Vec<String> = consts.iter().map(|c| format!("std::int64_t p{}", &c[1..])).collect();
+        self.line(2, &format!("void set({}) {{", params.join(", ")));
+        for c in &consts {
+            self.line(3, &format!("{c} = p{};", &c[1..]));
+        }
+        self.line(2, "}");
+        self.line(2, "void reset() {");
+        self.line(3, "u_.reset();");
+        self.line(3, "steps_ = 0;");
+        for v in &def.values {
+            self.line(3, &format!("v_{} = atls::ops::NaN;", v.name));
+        }
+        self.line(2, "}");
+        self.line(
+            2,
+            "/** One step on defined inputs: the class's update, then its values once the warm-up has passed. */",
+        );
+        let sargs: Vec<String> = series.iter().map(|s| format!("double {s}")).collect();
+        self.line(2, &format!("void step({}) {{", sargs.join(", ")));
+        self.fp_contract();
+        self.line(3, "if (!u_) {");
+        self.line(4, &format!("u_.emplace({});", consts.join(", ")));
+        self.line(3, "}");
+        self.line(3, &format!("u_->update({});", series.join(", ")));
+        self.line(3, "++steps_;");
+        if let Some(w) = &warm {
+            self.line(3, &format!("if (steps_ < {w}) {{"));
+            self.line(4, "return;");
+            self.line(3, "}");
+        }
+        for v in &def.values {
+            self.line(3, &format!("v_{n} = static_cast<double>(u_->{n}());", n = v.name));
+        }
+        self.line(2, "}");
+        self.line(1, "};");
+        self.line(0, "");
+    }
+
     /// A user indicator as a struct: fixed arguments, the window's rings, states, values, and the step.
     fn indicator_struct(&mut self, d: usize, policy: Policy) {
         let ir = self.ir;
         let def = &ir.indicators[d];
+        if def.external {
+            self.extern_struct(d, policy);
+            return;
+        }
         let ty = Self::uind_type(def, policy);
         let states: Vec<(String, Ty)> = def.states.iter().map(|s| (s.name.clone(), s.ty)).collect();
         let values: Vec<String> = def.values.iter().map(|v| v.name.clone()).collect();

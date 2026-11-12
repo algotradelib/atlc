@@ -63,7 +63,7 @@ A universe program with `on_start` or `on_stop` must not compile (the prototype 
   A target may be negative; whether a position may go below zero is a setting of the run (cmdatl's `replay.shorts`).
 - `held` (the position, a `real`) is read in `on_bar`, and in a universe's `on_open` and `on_close`; with named instruments `y.held`, in `on_bar` only.
   `fill.price`, `fill.quantity` (`real`) and `fill.buy` (`bool`) are read in `on_fill`.
-- There is no I/O, no `while`, no recursion and no order other than a target.
+- There is no I/O, no `while`, no recursion and no order other than a target, unless the program calls external C++ ([functions and indicators](functions-and-indicators.md), "External C++"), which the compiler does not check.
 
 ## Names
 
@@ -83,6 +83,7 @@ Refusing built-in names for arguments, loop variables and an indicator's window,
   - `lag(x, k)`, `x[k]`: L + k; `rsi(x, n)`: L + n;
   - `ts_sum(x, n, m)`: L + m - 1;
   - `ols_slope(y, x, n)`, `ols_intercept`: max(Ly, Lx) + n - 1; `kf_*`: max(Ly, Lx);
+  - a user indicator: its inputs' largest lookback plus its window's length minus one, or its declared warm-up minus one, whichever is larger (an external indicator has no window: its warm-up's);
   - an expression of several inputs: the largest of their lookbacks;
   - under `missing = skip`: see [missing values](missing-values.md).
   The checker keeps each lookback as an expression of parameters, and refuses a program whose lookback expression is more than 256 levels high, the nesting limit of [syntax](syntax.md); a chain of indicators over indicators deepens it, by several levels for a `skip` window, a pair indicator or a user indicator.
@@ -94,10 +95,10 @@ Refusing built-in names for arguments, loop variables and an indicator's window,
 - A live runner requests more history than the gate where a window decides before it is whole (the generated struct's `warmup_bars()`, [generated code](generated-code.md)): enough for every finite window to be whole at its first decision.
   Each value needs its input's figure (1 for a bar field) plus its window's length minus one (the length for a lag and an RSI), the largest over several inputs, under every missing-value policy and for `ts_sum(x, n, m)` too.
   So `ts_sum(sign(close - close[k]), h - 1, 1)` is decided from bar k + 1 but needs k + h - 1 bars to be whole, and a live run's first decision then sees the windows a backtest sees on that date over the same bars.
-  A user indicator's figure is its inputs' figure plus its window's length minus one or its declared warm-up minus one, whichever is larger.
+  A user indicator's figure is its inputs' figure plus its window's length minus one or its declared warm-up minus one, whichever is larger; an external indicator's, its inputs' figure plus its warm-up minus one, so a warm-up shorter than the C++'s own window gives a live run less history than it needs.
   Under `missing = skip` a declared warm-up counts valid values, not bars, so where the input can be missing this figure is only a lower bound in bars, and a window over that indicator can still be partial at the first live decision.
   The checker keeps the figure as an expression of parameters, as a lookback, and refuses it past the same 256 levels.
   The gate is unchanged, so a backtest still decides from the gate over the windows there are.
-  The figure covers finite windows only: an `ema`'s seed, `kf_*`, any state a user indicator keeps (in `update`, `enter` or `leave`, with a window or without: a declared window does not make `leave` undo `enter`), a user indicator's declared warm-up under `missing = skip` over an input that can be missing, a `poison` latch, any `state`, and the windows over them carry values from their own start, so a live run's first decision can differ from a backtest's on them.
+  The figure covers finite windows only: an `ema`'s seed, `kf_*`, what an external indicator's C++ keeps beyond its declared warm-up, any state a user indicator keeps (in `update`, `enter` or `leave`, with a window or without: a declared window does not make `leave` undo `enter`), a user indicator's declared warm-up under `missing = skip` over an input that can be missing, a `poison` latch, any `state`, and the windows over them carry values from their own start, so a live run's first decision can differ from a backtest's on them.
   Raising `warmup` does not help a `state`, since states change only once the gate has passed.
   Nor does the figure cover a broker that returns fewer bars than requested, or floating-point sums whose result depends on where they started.

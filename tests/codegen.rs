@@ -36,8 +36,8 @@ fn build(source: &str, options: &Options) -> String {
     }
 }
 
-/// The expected headers: each program with the default settings, and the pairs program with `naive` (Eigen's
-/// least squares).
+/// The expected headers: each program with the default settings, the pairs program with `naive` (Eigen's least
+/// squares), and a program with external indicators and functions (from `tests/generated/programs/`).
 #[test]
 fn expected_headers() {
     let cases = [
@@ -47,12 +47,21 @@ fn expected_headers() {
         ("universe", "Universe", Indicators::Incremental),
         ("user-indicator", "UserIndicator", Indicators::Incremental),
         ("pairs", "Pairs", Indicators::Naive),
+        (
+            "identity-extern-missing",
+            "IdentityExternMissing",
+            Indicators::Incremental,
+        ),
     ];
     let bless = std::env::var_os("BLESS").is_some();
     let mut failed = vec![];
     for (program, name, indicators) in cases {
         let file = format!("{program}.atls");
-        let source = std::fs::read_to_string(root().join("tests/programs").join(&file)).unwrap();
+        let mut path = root().join("tests/programs").join(&file);
+        if !path.exists() {
+            path = root().join("tests/generated/programs").join(&file);
+        }
+        let source = std::fs::read_to_string(path).unwrap();
         let header = build(&source, &options(name, &file, indicators));
         let suffix = if indicators == Indicators::Incremental {
             String::new()

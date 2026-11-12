@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -51,6 +52,14 @@ namespace ops {
 
 /** @brief The undefined value. */
 inline constexpr double NaN = std::numeric_limits<double>::quiet_NaN();
+
+/** @brief Whether `T` is a complete type where this is instantiated: false for a class only declared. */
+template <class T, class = void>
+struct is_complete : std::false_type {};
+
+/** @brief Whether `T` is a complete type where this is instantiated: true for a class defined. */
+template <class T>
+struct is_complete<T, decltype(void(sizeof(T)))> : std::true_type {};
 
 /**
  * @brief An exact decimal as the nearest double: the coefficient divided once by 10^scale.

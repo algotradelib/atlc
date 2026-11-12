@@ -26,6 +26,7 @@ series { real z = zscore(close, 20, missing = restart); } // one indicator's own
 | `ema` | `restart`, `skip`, `poison` | a missing value is ignored and the previous output kept; defined once n values have been seen; `min =` is refused |
 | `rsi`, `ts_max`, `ts_min` | `restart`, `poison` | not available |
 | `ols_slope`, `ols_intercept`, `kf_*`, `ts_sum(x, n, m)` | always `restart` | not available; another program default does not change them, and a `missing =` argument is refused |
+| an external indicator | `restart`, `poison` | not available: a call under a program default of `skip` must state another policy ([functions and indicators](functions-and-indicators.md), "External C++") |
 
 Under `skip` the lookback of `sma`, `ts_sum`, `stdev`, `stdev_pop` and `zscore` is max(n, L + min - 1), with L the input's lookback; `lag` keeps L + k.
 For `ema` the lookback is a lower bound only: the value is defined once n values have been seen, however many periods that takes.

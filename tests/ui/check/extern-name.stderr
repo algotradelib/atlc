@@ -1,0 +1,49 @@
+error[extern-name]: `double` cannot name C++ code
+ --> tests/ui/check/extern-name.atls:2:15
+  |
+2 |   extern real double(real x);
+  |               ^^^^^^ choose another name
+  = it is a C++ keyword
+
+error[extern-name]: `class` cannot name C++ code
+ --> tests/ui/check/extern-name.atls:4:18
+  |
+4 | extern indicator class(real x) {
+  |                  ^^^^^ choose another name
+  = it is a C++ keyword
+
+error[extern-name]: `__mean` cannot name C++ code
+ --> tests/ui/check/extern-name.atls:7:18
+  |
+7 | extern indicator __mean(real x) {
+  |                  ^^^^^^ choose another name
+  = C++ reserves names with `__`, or with `_` and an uppercase letter first
+
+error[extern-name]: `_Mean` cannot name C++ code
+  --> tests/ui/check/extern-name.atls:10:18
+   |
+10 | extern indicator _Mean(real x) {
+   |                  ^^^^^ choose another name
+   = C++ reserves names with `__`, or with `_` and an uppercase letter first
+
+error[extern-name]: an external indicator's value cannot be named `update`
+  --> tests/ui/check/extern-name.atls:15:14
+   |
+15 |   value real update;
+   |              ^^^^^^ choose another name
+   = in `atls::user::band`, `update` names the class's step
+
+error[extern-name]: an external indicator's value cannot be named `band`
+  --> tests/ui/check/extern-name.atls:16:14
+   |
+16 |   value real band;
+   |              ^^^^ choose another name
+   = in `atls::user::band`, `band` names the class's constructor
+
+error[extern-name]: `new` cannot name C++ code
+  --> tests/ui/check/extern-name.atls:17:14
+   |
+17 |   value real new;
+   |              ^^^ choose another name
+   = it is a C++ keyword
+

@@ -226,7 +226,7 @@ impl Parser<'_> {
                     // Skip to the next top-level keyword.
                     while self.peek().tok != Tok::Eof {
                         if let Tok::Ident(s) = &self.peek().tok
-                            && BLOCKS.contains(&s.as_str())
+                            && (BLOCKS.contains(&s.as_str()) || self.extern_indicator())
                         {
                             break;
                         }
@@ -366,33 +366,31 @@ impl Parser<'_> {
                 self.expect_punct("{", "after `functions`")?;
                 let mut defs = vec![];
                 while !self.is_punct("}") && self.peek().tok != Tok::Eof {
-                    let (ret, ret_span) = self.ty()?;
+                    let first = self.peek().span;
+                    let external = self.is_word("extern");
+                    if external {
+                        self.bump();
+                    }
+                    let (ret, _) = self.ty()?;
                     let name = self.ident("a function name")?;
                     let args = self.args()?;
-                    let (body, span) = self.block()?;
-                    defs.push(FunctionDef { ret, name, args, body, span: ret_span.to(span) });
+                    let (body, end) = if external {
+                        (vec![], self.expect_punct(";", "after an external function (its body is C++)")?)
+                    } else {
+                        self.block()?
+                    };
+                    defs.push(FunctionDef { ret, name, args, body, external, span: first.to(end) });
                 }
                 let end = self.expect_punct("}", "to close `functions`")?;
                 Ok(Item::Functions(defs, t.span.to(end)))
             }
-            "indicator" => {
+            "indicator" => self.indicator(t.span, false),
+            "extern" if self.extern_indicator() => {
                 self.bump();
-                let name = self.ident("an indicator name")?;
-                let args = self.args()?;
-                self.expect_punct("{", "to open the indicator")?;
-                let mut parts = vec![];
-                while !self.is_punct("}") && self.peek().tok != Tok::Eof {
-                    match self.ind_part() {
-                        Ok(p) => parts.push(p),
-                        Err(d) => {
-                            self.errors.push(d);
-                            self.recover();
-                        }
-                    }
-                }
-                let end = self.expect_punct("}", "to close the indicator")?;
-                Ok(Item::Indicator(IndicatorDef { name, args, parts, span: t.span.to(end) }))
+                self.indicator(t.span, true)
             }
+            "extern" => Err(Diag::new(Code::UnknownBlock, "`extern` is followed by `indicator` here", t.span, "not a block")
+                .note("an external function is declared in `functions {}`: `functions { extern real f(real x); }`")),
             "options" => {
                 self.bump();
                 self.expect_punct("{", "after `options`")?;
@@ -437,6 +435,59 @@ impl Parser<'_> {
                 .note("live settings (broker, account, limits) belong to the run spec and the operator's configuration, never to the strategy")),
             _ => Err(Diag::new(Code::UnknownBlock, format!("unknown block `{}`", word), t.span, "not a block").note(BLOCKS_NOTE)),
         }
+    }
+
+    /// Whether the next tokens are `extern indicator`.
+    fn extern_indicator(&self) -> bool {
+        self.is_word("extern") && matches!(&self.peek_at(1).tok, Tok::Ident(s) if s == "indicator")
+    }
+
+    /// `indicator NAME(...) { part* }`, from `indicator`; with `extern`, the parts of an external indicator.
+    fn indicator(&mut self, start: Span, external: bool) -> R<Item> {
+        self.bump();
+        let name = self.ident("an indicator name")?;
+        let args = self.args()?;
+        self.expect_punct("{", "to open the indicator")?;
+        let mut parts = vec![];
+        while !self.is_punct("}") && self.peek().tok != Tok::Eof {
+            match if external { self.extern_part() } else { self.ind_part() } {
+                Ok(p) => parts.push(p),
+                Err(d) => {
+                    self.errors.push(d);
+                    self.recover();
+                }
+            }
+        }
+        let end = self.expect_punct("}", "to close the indicator")?;
+        Ok(Item::Indicator(IndicatorDef {
+            name,
+            args,
+            parts,
+            external,
+            span: start.to(end),
+        }))
+    }
+
+    /// One part of an external indicator: `warmup n;` or `value real v;`.
+    fn extern_part(&mut self) -> R<IndPart> {
+        if self.is_word("warmup") {
+            return self.ind_part();
+        }
+        let t = self.peek().clone();
+        if !self.is_word("value") {
+            return Err(Diag::new(
+                Code::ExpectedIndicatorPart,
+                format!("expected a part of an external indicator, found {}", t.describe()),
+                t.span,
+                "not a part",
+            )
+            .note("its body is C++: an external indicator states only `warmup n;` and `value real v;`"));
+        }
+        self.bump();
+        let (ty, ty_span) = self.ty()?;
+        let name = self.ident("a value name")?;
+        self.expect_punct(";", "after an external value (its C++ class computes it)")?;
+        Ok(IndPart::ExternValue(ty, ty_span, name))
     }
 
     /// A key of `options {}`: a name, or `warmup`, the one keyword that is also an option.

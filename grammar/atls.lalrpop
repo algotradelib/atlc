@@ -26,9 +26,10 @@ extern {
         "if" => T::Kw("if"), "else" => T::Kw("else"), "for" => T::Kw("for"), "in" => T::Kw("in"),
         "return" => T::Kw("return"), "target" => T::Kw("target"), "while" => T::Kw("while"),
         "and" => T::Kw("and"), "or" => T::Kw("or"), "not" => T::Kw("not"),
-        // Reserved inside an indicator, or in bounds; names elsewhere.
+        // Reserved inside an indicator, in bounds, or where an item or a function begins; names elsewhere.
         "window" => T::Kw("window"), "value" => T::Kw("value"), "update" => T::Kw("update"),
         "enter" => T::Kw("enter"), "leave" => T::Kw("leave"), "lower" => T::Kw("lower"), "upper" => T::Kw("upper"),
+        "extern" => T::Kw("extern"),
         "<=" => T::P("<="), ">=" => T::P(">="), "==" => T::P("=="), "!=" => T::P("!="),
         "{" => T::P("{"), "}" => T::P("}"), "(" => T::P("("), ")" => T::P(")"), "[" => T::P("["), "]" => T::P("]"),
         "<" => T::P("<"), ">" => T::P(">"), "=" => T::P("="), "+" => T::P("+"), "-" => T::P("-"),
@@ -56,7 +57,9 @@ Item: Item = {
     <l:@L> "data" "{" <d:DataDecl*> "}" <r:@R> => Item::Data(d, Span::new(l, r)),
     <l:@L> "functions" "{" <f:Function*> "}" <r:@R> => Item::Functions(f, Span::new(l, r)),
     <l:@L> "indicator" <name:Name> <args:Args> "{" <parts:Part*> "}" <r:@R> =>
-        Item::Indicator(IndicatorDef { name, args, parts, span: Span::new(l, r) }),
+        Item::Indicator(IndicatorDef { name, args, parts, external: false, span: Span::new(l, r) }),
+    <l:@L> "extern" "indicator" <name:Name> <args:Args> "{" <parts:ExternPart*> "}" <r:@R> =>
+        Item::Indicator(IndicatorDef { name, args, parts, external: true, span: Span::new(l, r) }),
     <l:@L> <k:Handler> <b:Block> => Item::Handler(k, b.0, Span::new(l, b.1.end)),
 };
 
@@ -110,14 +113,24 @@ OptName: Ident = {
     <l:@L> "warmup" <r:@R> => Ident { name: "warmup".to_string(), span: Span::new(l, r) },
 };
 
-// function = type NAME args block ;
-Function: FunctionDef = <ret:Ty> <name:Name> <args:Args> <b:Block> =>
-    FunctionDef { ret: ret.0, name, args, body: b.0, span: ret.1.to(b.1) };
+// function = type NAME args block | 'extern' type NAME args ';' ;
+Function: FunctionDef = {
+    <ret:Ty> <name:Name> <args:Args> <b:Block> =>
+        FunctionDef { ret: ret.0, name, args, body: b.0, external: false, span: ret.1.to(b.1) },
+    <l:@L> "extern" <ret:Ty> <name:Name> <args:Args> ";" <r:@R> =>
+        FunctionDef { ret: ret.0, name, args, body: vec![], external: true, span: Span::new(l, r) },
+};
 
 // args = '(' ( type NAME ( ',' type NAME )* )? ')' ;
 Args: Vec<Arg> = "(" <Sep<TypedName>> ")";
 
 TypedName: Arg = <ty:Ty> <name:Name> => Arg { ty: ty.0, name };
+
+// extern_part = 'warmup' expr ';' | 'value' type NAME ';' ;
+ExternPart: IndPart = {
+    <l:@L> "warmup" <e:Expr> ";" <r:@R> => IndPart::Warmup(e, Span::new(l, r)),
+    "value" <ty:Ty> <name:Name> ";" => IndPart::ExternValue(ty.0, ty.1, name),
+};
 
 Part: IndPart = {
     <l:@L> "window" <name:Name> "[" <size:Expr> "]" ";" <r:@R> => IndPart::Window { name, size, span: Span::new(l, r) },
@@ -239,5 +252,5 @@ Name: Ident = {
 
 Contextual: &'static str = {
     "window" => "window", "value" => "value", "update" => "update", "enter" => "enter", "leave" => "leave",
-    "lower" => "lower", "upper" => "upper",
+    "lower" => "lower", "upper" => "upper", "extern" => "extern",
 };
