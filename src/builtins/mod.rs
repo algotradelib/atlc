@@ -1016,3 +1016,141 @@ pub(crate) fn is_builtin_name(name: &str) -> bool {
         || filter(name).is_some()
         || cross_section(name).is_some()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // The members of each enum. A variant added without being listed here fails to compile at the `match` beside
+    // its list.
+    const FUNCTION_IDS: [Builtin; 9] = [
+        Builtin::Abs,
+        Builtin::Min,
+        Builtin::Max,
+        Builtin::Defined,
+        Builtin::Sign,
+        Builtin::Log,
+        Builtin::Sqrt,
+        Builtin::Round,
+        Builtin::Floor,
+    ];
+    fn _function_ids(b: Builtin) {
+        match b {
+            Builtin::Abs
+            | Builtin::Min
+            | Builtin::Max
+            | Builtin::Defined
+            | Builtin::Sign
+            | Builtin::Log
+            | Builtin::Sqrt
+            | Builtin::Round
+            | Builtin::Floor => {}
+        }
+    }
+    const WINDOW_IDS: [Ind; 10] = [
+        Ind::Sma,
+        Ind::Ema,
+        Ind::Rsi,
+        Ind::Lag,
+        Ind::TsMax,
+        Ind::TsMin,
+        Ind::TsSum,
+        Ind::Stdev,
+        Ind::Zscore,
+        Ind::StdevPop,
+    ];
+    fn _window_ids(i: Ind) {
+        match i {
+            Ind::Sma
+            | Ind::Ema
+            | Ind::Rsi
+            | Ind::Lag
+            | Ind::TsMax
+            | Ind::TsMin
+            | Ind::TsSum
+            | Ind::Stdev
+            | Ind::Zscore
+            | Ind::StdevPop => {}
+        }
+    }
+    const PAIR_IDS: [PairInd; 2] = [PairInd::OlsSlope, PairInd::OlsIntercept];
+    fn _pair_ids(p: PairInd) {
+        match p {
+            PairInd::OlsSlope | PairInd::OlsIntercept => {}
+        }
+    }
+    const FILTER_IDS: [KOut; 3] = [KOut::Beta, KOut::Error, KOut::Sd];
+    fn _filter_ids(k: KOut) {
+        match k {
+            KOut::Beta | KOut::Error | KOut::Sd => {}
+        }
+    }
+    const CROSS_SECTION_IDS: [XsOp; 4] = [XsOp::Mean, XsOp::Sum, XsOp::Count, XsOp::Rank];
+    fn _cross_section_ids(x: XsOp) {
+        match x {
+            XsOp::Mean | XsOp::Sum | XsOp::Count | XsOp::Rank => {}
+        }
+    }
+
+    /// Each member has exactly one entry, and each entry is a member's.
+    fn one_entry_each<T: PartialEq + std::fmt::Debug>(members: &[T], ids: &[T]) {
+        assert_eq!(members.len(), ids.len());
+        for m in members {
+            assert_eq!(ids.iter().filter(|id| *id == m).count(), 1, "{m:?}");
+        }
+    }
+
+    #[test]
+    fn every_member_has_one_entry() {
+        one_entry_each(&FUNCTION_IDS, &FUNCTIONS.iter().map(|e| e.id).collect::<Vec<_>>());
+        one_entry_each(&WINDOW_IDS, &WINDOWS.iter().map(|e| e.id).collect::<Vec<_>>());
+        one_entry_each(&PAIR_IDS, &PAIRS.iter().map(|e| e.id).collect::<Vec<_>>());
+        one_entry_each(&FILTER_IDS, &FILTERS.iter().map(|e| e.id).collect::<Vec<_>>());
+        one_entry_each(
+            &CROSS_SECTION_IDS,
+            &CROSS_SECTIONS.iter().map(|e| e.id).collect::<Vec<_>>(),
+        );
+    }
+
+    #[test]
+    fn names_are_unique() {
+        let names: Vec<&str> = FUNCTIONS
+            .iter()
+            .map(|e| e.name)
+            .chain(WINDOWS.iter().map(|e| e.name))
+            .chain(PAIRS.iter().map(|e| e.name))
+            .chain(FILTERS.iter().map(|e| e.name))
+            .chain(CROSS_SECTIONS.iter().map(|e| e.name))
+            .collect();
+        for n in &names {
+            assert_eq!(names.iter().filter(|m| *m == n).count(), 1, "{n}");
+        }
+    }
+
+    #[test]
+    fn entries_are_consistent() {
+        for e in &FUNCTIONS {
+            assert!(!e.signatures.is_empty(), "{}", e.name);
+            assert!(
+                e.signatures
+                    .iter()
+                    .all(|(args, _)| args.len() == e.signatures[0].0.len()),
+                "{}",
+                e.name
+            );
+        }
+        assert_eq!(WINDOWS.iter().filter(|e| e.indexed).count(), 1);
+        assert_eq!(FUNCTIONS.iter().filter(|e| e.proves_argument).count(), 1);
+        for e in &WINDOWS {
+            for mode in [Indicators::Incremental, Indicators::Naive, Indicators::Exact] {
+                for policy in [Policy::Restart, Policy::Skip, Policy::Poison] {
+                    if policy == Policy::Skip && !takes_skip(e.id) {
+                        continue;
+                    }
+                    window_class(e.id, mode, policy);
+                    ring_slots(e.id, mode, policy);
+                }
+            }
+        }
+    }
+}
