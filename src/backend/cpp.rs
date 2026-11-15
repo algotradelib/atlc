@@ -4,6 +4,7 @@
 use std::collections::HashMap;
 use std::fmt::Write;
 
+use crate::builtins;
 use crate::frontend::ast::{BinOp, Ty, UnOp};
 use crate::ir::*;
 
@@ -170,34 +171,7 @@ pub fn print(ir: &Ir, o: &Options) -> String {
 
 fn ring_need(ind: Ind, mode: Indicators, policy: Policy) -> Option<i64> {
     // Extra slots beyond the window the ring must hold, or None if the indicator keeps its own state.
-    if policy == Policy::Skip {
-        // Skip windows are running sums (incremental and exact) or summed again (naive).
-        return match (ind, mode) {
-            (Ind::Ema, _) => None,
-            (Ind::Lag, _) => Some(1),
-            (_, Indicators::Naive) => Some(0),
-            _ => Some(1),
-        };
-    }
-    if mode == Indicators::Exact {
-        return match ind {
-            Ind::Lag | Ind::Stdev | Ind::Zscore | Ind::StdevPop => Some(1),
-            _ => None,
-        };
-    }
-    let naive = mode == Indicators::Naive;
-    match (ind, naive) {
-        (Ind::Ema, _) => None,
-        (Ind::TsMax | Ind::TsMin, false) => None,
-        (Ind::TsMax | Ind::TsMin, true) => Some(0),
-        (Ind::Sma | Ind::TsSum, false) => Some(1),
-        (Ind::Sma | Ind::TsSum, true) => Some(0),
-        (Ind::Lag, _) => Some(1),
-        (Ind::Rsi, false) => Some(2),
-        (Ind::Rsi, true) => Some(1),
-        (Ind::Stdev | Ind::Zscore | Ind::StdevPop, false) => Some(1),
-        (Ind::Stdev | Ind::Zscore | Ind::StdevPop, true) => Some(0),
-    }
+    builtins::ring_slots(ind, mode, policy)
 }
 
 /// The policy of an indicator node.
@@ -331,36 +305,7 @@ impl<'a> Printer<'a> {
         let NodeKind::Ind(ind, _, _, miss) = &self.ir.nodes[i].kind else {
             unreachable!()
         };
-        let exact = self.o.indicators == Indicators::Exact;
-        if miss.policy == Policy::Skip {
-            let class = match ind {
-                Ind::Sma => "SmaSkip",
-                Ind::TsSum => "TsSumSkip",
-                Ind::Stdev => "StdevSkip",
-                Ind::StdevPop => "StdevPopSkip",
-                Ind::Zscore => "ZscoreSkip",
-                Ind::Lag => "Lag",
-                Ind::Ema => "Ema",
-                _ => unreachable!("refused by the checker"),
-            };
-            return format!("atls::ops::{}", class);
-        }
-        let class = match ind {
-            Ind::Sma if exact => "SmaExact",
-            Ind::TsSum if exact => "TsSumExact",
-            Ind::Rsi if exact => "RsiExact",
-            Ind::Sma => "Sma",
-            Ind::Ema => "Ema",
-            Ind::Rsi => "Rsi",
-            Ind::Lag => "Lag",
-            Ind::TsSum => "TsSum",
-            Ind::TsMax => "TsMax",
-            Ind::TsMin => "TsMin",
-            Ind::Stdev => "Stdev",
-            Ind::Zscore => "Zscore",
-            Ind::StdevPop => "StdevPop",
-        };
-        format!("atls::ops::{}", class)
+        builtins::window_class(*ind, self.o.indicators, miss.policy).to_string()
     }
 
     fn node_name(&self, i: usize) -> String {
@@ -483,45 +428,18 @@ impl<'a> Printer<'a> {
     }
 
     fn call(&self, b: Builtin, args: &[V], ty: Ty, repr: Repr) -> V {
-        match b {
-            Builtin::Defined => V {
-                code: format!("(!std::isnan({}))", checked(&args[0])),
-                ty: Ty::Bool,
-                repr: Repr::Plain,
-            },
-            Builtin::Abs => {
-                let code = match (repr, ty) {
-                    (Repr::Plain, Ty::Int) => format!("atls::ops::abs_int({})", plain(&args[0])),
-                    (Repr::Plain, _) => format!("std::fabs({})", plain(&args[0])),
-                    (Repr::Checked, _) => format!("std::fabs({})", checked(&args[0])),
-                };
-                V { code, ty, repr }
-            }
-            Builtin::Sign | Builtin::Log | Builtin::Sqrt | Builtin::Round | Builtin::Floor => {
-                let f = match b {
-                    Builtin::Sign => "sign",
-                    Builtin::Log => "log",
-                    Builtin::Sqrt => "sqrt",
-                    Builtin::Round => "round",
-                    _ => "floor",
-                };
-                V {
-                    code: format!("atls::ops::{}_of({})", f, checked(&args[0])),
-                    ty,
-                    repr,
-                }
-            }
-            Builtin::Min | Builtin::Max => {
-                let f = if b == Builtin::Min { "min" } else { "max" };
-                let code = match (repr, ty) {
-                    (Repr::Plain, Ty::Int) => {
-                        format!("std::{}<std::int64_t>({}, {})", f, plain(&args[0]), plain(&args[1]))
-                    }
-                    (Repr::Plain, _) => format!("std::{}<double>({}, {})", f, plain(&args[0]), plain(&args[1])),
-                    (Repr::Checked, _) => format!("atls::ops::{}3({}, {})", f, checked(&args[0]), checked(&args[1])),
-                };
-                V { code, ty, repr }
-            }
+        let args: Vec<builtins::CppArg> = args
+            .iter()
+            .map(|a| builtins::CppArg {
+                plain: plain(a),
+                checked: checked(a),
+            })
+            .collect();
+        let (code, ty, three) = builtins::function_cpp(b, &args, ty, repr == Repr::Checked);
+        V {
+            code,
+            ty,
+            repr: if three { Repr::Checked } else { Repr::Plain },
         }
     }
 
@@ -583,7 +501,7 @@ impl<'a> Printer<'a> {
             {
                 true
             }
-            HKind::Call(Builtin::Abs, _) if e.ty == Ty::Int => true,
+            HKind::Call(b, _) if e.ty == Ty::Int && builtins::int_result_may_throw(*b) => true,
             HKind::UserCall(..) => true,
             HKind::Unary(_, a) | HKind::Xs(_, a, _) => Self::may_throw(a),
             HKind::Binary(_, a, b) => Self::may_throw(a) || Self::may_throw(b),
@@ -1055,12 +973,9 @@ impl<'a> Printer<'a> {
     fn obj_type(&self, i: usize) -> String {
         let naive = self.o.indicators == Indicators::Naive;
         match &self.ir.nodes[i].kind {
-            NodeKind::Partial(..) => "atls::ops::TsSumMin".into(),
-            NodeKind::Pair(PairInd::OlsSlope, ..) if naive => "atls::ops::OlsLlt<true>".into(),
-            NodeKind::Pair(PairInd::OlsIntercept, ..) if naive => "atls::ops::OlsLlt<false>".into(),
-            NodeKind::Pair(PairInd::OlsSlope, ..) => "atls::ops::OlsSlope".into(),
-            NodeKind::Pair(PairInd::OlsIntercept, ..) => "atls::ops::OlsIntercept".into(),
-            NodeKind::Kalman(..) => "atls::ops::KalmanHedge".into(),
+            NodeKind::Partial(..) => builtins::partial_class().into(),
+            NodeKind::Pair(p, ..) => builtins::pair_class(*p, naive).into(),
+            NodeKind::Kalman(..) => builtins::filter_class().into(),
             NodeKind::UInd { def, miss, .. } => Self::uind_type(&self.ir.indicators[*def], miss.policy),
             _ => unreachable!(),
         }
@@ -1201,11 +1116,7 @@ impl<'a> Printer<'a> {
                 NodeKind::Kalman(a, b, _, _, out) => {
                     let owner = self.kalman_owner(i);
                     let name = self.node_name(i);
-                    let read = match out {
-                        KOut::Beta => "beta",
-                        KOut::Error => "error",
-                        KOut::Sd => "sd",
-                    };
+                    let read = builtins::filter_accessor(*out);
                     if owner == i {
                         let (x, y) = (checked(&self.node_v(*a)), checked(&self.node_v(*b)));
                         let check = ir.nodes[*a].class != Class::Always || ir.nodes[*b].class != Class::Always;
@@ -1328,7 +1239,7 @@ impl<'a> Printer<'a> {
             if let NodeKind::Ind(ind, _, w, miss) = &ir.nodes[i].kind {
                 let s = self.size_expr(w);
                 self.line(indent, &format!("ind{}_.set({});", i, s));
-                if miss.policy == Policy::Skip && !matches!(ind, Ind::Lag | Ind::Ema) {
+                if miss.policy == Policy::Skip && builtins::min_refused(*ind).is_none() {
                     let m = self.size_expr(&miss.min);
                     self.line(indent, &format!("ind{}_.set_min({});", i, m));
                 }
@@ -2120,8 +2031,8 @@ impl<'a> Printer<'a> {
                 self.prefix = "L.".into();
                 let v = self.hexpr(&arg);
                 let a = checked(&v);
-                match op {
-                    XsOp::Rank => {
+                match builtins::cross_section_reduce(op) {
+                    builtins::Reduce::Order => {
                         self.members.push(format!("std::vector<double> xs{}_;", id));
                         self.line(indent, "xs_sort_.clear();");
                         self.line(indent, "for (std::size_t ln = 0; ln < lanes_.size(); ++ln) {");
@@ -2144,9 +2055,9 @@ impl<'a> Printer<'a> {
                         self.line(indent, "}");
                         self.xs_code.insert(id, format!("xs{}_[ln]", id));
                     }
-                    _ => {
+                    builtins::Reduce::Accumulate { sum, count, result } => {
                         // Only what the operator reads: a sum, a count, or both for the mean.
-                        let (sum, count) = (op != XsOp::Count, op != XsOp::Sum);
+                        let (sum, count) = (*sum, *count);
                         if sum {
                             self.line(indent, &format!("double xs{}_sum = 0;", id));
                         }
@@ -2168,14 +2079,7 @@ impl<'a> Printer<'a> {
                         }
                         self.line(indent + 1, "}");
                         self.line(indent, "}");
-                        let code = match op {
-                            XsOp::Mean => format!(
-                                "(xs{i}_n > 0 ? xs{i}_sum / static_cast<double>(xs{i}_n) : atls::ops::NaN)",
-                                i = id
-                            ),
-                            XsOp::Count => format!("static_cast<double>(xs{}_n)", id),
-                            _ => format!("xs{}_sum", id),
-                        };
+                        let code = result.replace("{i}", &id.to_string());
                         self.line(indent, &format!("const double xs{} = {};", id, code));
                         self.xs_code.insert(id, format!("xs{}", id));
                     }
@@ -2930,8 +2834,8 @@ impl<'a> Printer<'a> {
                     let f = if naive { "recompute" } else { "update" };
                     body.push(format!("{} = ind{}_.{}({});", name, c, f, r));
                 }
-                None if policy == Policy::Skip => {
-                    // An EMA skips a missing value: it keeps its last value.
+                None if policy == Policy::Skip && builtins::skip_keeps_value(*ind) => {
+                    // A missing value is skipped: the indicator keeps its last value.
                     body.push(format!(
                         "{n} = std::isnan({x}) ? ind{c}_.value_ : ind{c}_.update({x});",
                         n = name,

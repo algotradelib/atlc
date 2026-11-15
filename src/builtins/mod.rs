@@ -3,6 +3,7 @@
 //! The rest of the compiler names no built-in: it asks these tables.
 //! The enums identify a built-in in the IR; the tables are private, behind the functions below.
 
+use crate::backend::Indicators;
 use crate::frontend::ast::{Expr, Ty};
 use crate::frontend::diag::{Code, Diag};
 use crate::ir::Policy;
@@ -96,6 +97,21 @@ struct FunctionEntry {
     defined: Definedness,
     /// Where it is true, its first argument is defined (`if (defined(x))`).
     proves_argument: bool,
+    /// Its `int` result may throw (an overflow), so the printer evaluates what is around it lazily.
+    int_may_throw: bool,
+    cpp: FunctionCpp,
+}
+
+/// How a call of a function is written in C++.
+enum FunctionCpp {
+    /// `(!std::isnan(x))`, a plain `bool`.
+    NotNan,
+    /// `int(x)` on a plain `int`, else `real(x)`.
+    ByType { int: &'static str, real: &'static str },
+    /// `atls::ops::NAME_of(x)`, three-valued.
+    OpsOf(&'static str),
+    /// `std::NAME<T>(a, b)` on plain values, `atls::ops::NAME3(a, b)` on three-valued ones.
+    Pairwise(&'static str),
 }
 
 const ANY_TO_BOOL: &[(&[Ty], Ty)] = &[(&[Ty::Int], Ty::Bool), (&[Ty::Real], Ty::Bool), (&[Ty::Bool], Ty::Bool)];
@@ -117,6 +133,11 @@ static FUNCTIONS: [FunctionEntry; 9] = [
         wrong_type: "`abs` needs a number",
         defined: Definedness::Propagates,
         proves_argument: false,
+        int_may_throw: true,
+        cpp: FunctionCpp::ByType {
+            int: "atls::ops::abs_int",
+            real: "std::fabs",
+        },
     },
     FunctionEntry {
         id: Builtin::Min,
@@ -125,6 +146,8 @@ static FUNCTIONS: [FunctionEntry; 9] = [
         wrong_type: "`min`/`max` need numbers",
         defined: Definedness::Propagates,
         proves_argument: false,
+        int_may_throw: false,
+        cpp: FunctionCpp::Pairwise("min"),
     },
     FunctionEntry {
         id: Builtin::Max,
@@ -133,6 +156,8 @@ static FUNCTIONS: [FunctionEntry; 9] = [
         wrong_type: "`min`/`max` need numbers",
         defined: Definedness::Propagates,
         proves_argument: false,
+        int_may_throw: false,
+        cpp: FunctionCpp::Pairwise("max"),
     },
     FunctionEntry {
         id: Builtin::Defined,
@@ -141,6 +166,8 @@ static FUNCTIONS: [FunctionEntry; 9] = [
         wrong_type: "",
         defined: Definedness::Always,
         proves_argument: true,
+        int_may_throw: false,
+        cpp: FunctionCpp::NotNan,
     },
     FunctionEntry {
         id: Builtin::Sign,
@@ -149,6 +176,8 @@ static FUNCTIONS: [FunctionEntry; 9] = [
         wrong_type: "this function needs a number",
         defined: Definedness::Propagates,
         proves_argument: false,
+        int_may_throw: false,
+        cpp: FunctionCpp::OpsOf("sign"),
     },
     FunctionEntry {
         id: Builtin::Log,
@@ -157,6 +186,8 @@ static FUNCTIONS: [FunctionEntry; 9] = [
         wrong_type: "this function needs a number",
         defined: Definedness::Maybe,
         proves_argument: false,
+        int_may_throw: false,
+        cpp: FunctionCpp::OpsOf("log"),
     },
     FunctionEntry {
         id: Builtin::Sqrt,
@@ -165,6 +196,8 @@ static FUNCTIONS: [FunctionEntry; 9] = [
         wrong_type: "this function needs a number",
         defined: Definedness::Maybe,
         proves_argument: false,
+        int_may_throw: false,
+        cpp: FunctionCpp::OpsOf("sqrt"),
     },
     FunctionEntry {
         id: Builtin::Round,
@@ -173,6 +206,8 @@ static FUNCTIONS: [FunctionEntry; 9] = [
         wrong_type: "this function needs a number",
         defined: Definedness::Propagates,
         proves_argument: false,
+        int_may_throw: false,
+        cpp: FunctionCpp::OpsOf("round"),
     },
     FunctionEntry {
         id: Builtin::Floor,
@@ -181,6 +216,8 @@ static FUNCTIONS: [FunctionEntry; 9] = [
         wrong_type: "this function needs a number",
         defined: Definedness::Propagates,
         proves_argument: false,
+        int_may_throw: false,
+        cpp: FunctionCpp::OpsOf("floor"),
     },
 ];
 
@@ -221,6 +258,44 @@ pub(crate) fn function_definedness(b: Builtin) -> Definedness {
 /// Where a call of `b` is true, its first argument is defined.
 pub(crate) fn proves_argument_defined(b: Builtin) -> bool {
     function_entry(b).proves_argument
+}
+
+/// A call of `b` with an `int` result may throw.
+pub(crate) fn int_result_may_throw(b: Builtin) -> bool {
+    function_entry(b).int_may_throw
+}
+
+/// An argument of a function call, written as a plain value and as a three-valued one.
+pub(crate) struct CppArg {
+    pub plain: String,
+    pub checked: String,
+}
+
+/// A call of `b` in C++, with the result's type `ty`, three-valued if `checked` asks: its code, type and whether
+/// it is three-valued.
+pub(crate) fn function_cpp(b: Builtin, args: &[CppArg], ty: Ty, checked: bool) -> (String, Ty, bool) {
+    match function_entry(b).cpp {
+        FunctionCpp::NotNan => (format!("(!std::isnan({}))", args[0].checked), Ty::Bool, false),
+        FunctionCpp::ByType { int, real } => {
+            let code = match (checked, ty) {
+                (false, Ty::Int) => format!("{}({})", int, args[0].plain),
+                (false, _) => format!("{}({})", real, args[0].plain),
+                (true, _) => format!("{}({})", real, args[0].checked),
+            };
+            (code, ty, checked)
+        }
+        FunctionCpp::OpsOf(f) => (format!("atls::ops::{}_of({})", f, args[0].checked), ty, checked),
+        FunctionCpp::Pairwise(f) => {
+            let code = match (checked, ty) {
+                (false, Ty::Int) => {
+                    format!("std::{}<std::int64_t>({}, {})", f, args[0].plain, args[1].plain)
+                }
+                (false, _) => format!("std::{}<double>({}, {})", f, args[0].plain, args[1].plain),
+                (true, _) => format!("atls::ops::{}3({}, {})", f, args[0].checked, args[1].checked),
+            };
+            (code, ty, checked)
+        }
+    }
 }
 
 /// The note on a call of an unknown function. It leaves out `stdev_pop`, as it always has.
@@ -283,8 +358,33 @@ struct WindowEntry {
     skip: bool,
     /// Why it takes no `min =`, when it takes none.
     min_refused: Option<&'static str>,
-    /// `NAME(x, n, m)`: a window of n defined once m values are in it.
-    partial: bool,
+    /// `NAME(x, n, m)`: a window of n defined once m values are in it; its C++ class.
+    partial: Option<&'static str>,
+    /// Under `skip`, a missing input leaves its value as it was (it has no ring then: see `slots`).
+    skip_keeps_value: bool,
+    class: Classes,
+    slots: Slots,
+}
+
+/// An indicator's C++ class.
+struct Classes {
+    /// Under `restart` or `poison`, incremental or naive (which calls `recompute`).
+    incremental: &'static str,
+    /// Under `restart` or `poison` with exact arithmetic, where it has a class of its own.
+    exact: Option<&'static str>,
+    /// Under `skip`, where it has a rule.
+    skip: Option<&'static str>,
+}
+
+/// The slots beyond its window an indicator needs of its input's ring, by arithmetic and policy; `None`: no ring,
+/// it keeps its own state.
+struct Slots {
+    incremental: Option<i64>,
+    naive: Option<i64>,
+    exact: Option<i64>,
+    /// Under `skip`, incremental or exact.
+    skip: Option<i64>,
+    skip_naive: Option<i64>,
 }
 
 /// In the order the notes list them.
@@ -301,7 +401,20 @@ static WINDOWS: [WindowEntry; 10] = [
         may_stay_undefined: false,
         skip: true,
         min_refused: None,
-        partial: false,
+        partial: None,
+        skip_keeps_value: false,
+        class: Classes {
+            incremental: "atls::ops::Sma",
+            exact: Some("atls::ops::SmaExact"),
+            skip: Some("atls::ops::SmaSkip"),
+        },
+        slots: Slots {
+            incremental: Some(1),
+            naive: Some(0),
+            exact: None,
+            skip: Some(1),
+            skip_naive: Some(0),
+        },
     },
     WindowEntry {
         id: Ind::Ema,
@@ -315,7 +428,20 @@ static WINDOWS: [WindowEntry; 10] = [
         may_stay_undefined: false,
         skip: true,
         min_refused: Some("under `skip`, an EMA ignores a missing value and keeps its previous output"),
-        partial: false,
+        partial: None,
+        skip_keeps_value: true,
+        class: Classes {
+            incremental: "atls::ops::Ema",
+            exact: None,
+            skip: Some("atls::ops::Ema"),
+        },
+        slots: Slots {
+            incremental: None,
+            naive: None,
+            exact: None,
+            skip: None,
+            skip_naive: None,
+        },
     },
     WindowEntry {
         id: Ind::Rsi,
@@ -329,7 +455,20 @@ static WINDOWS: [WindowEntry; 10] = [
         may_stay_undefined: false,
         skip: false,
         min_refused: None,
-        partial: false,
+        partial: None,
+        skip_keeps_value: false,
+        class: Classes {
+            incremental: "atls::ops::Rsi",
+            exact: Some("atls::ops::RsiExact"),
+            skip: None,
+        },
+        slots: Slots {
+            incremental: Some(2),
+            naive: Some(1),
+            exact: None,
+            skip: Some(1),
+            skip_naive: Some(0),
+        },
     },
     WindowEntry {
         id: Ind::Lag,
@@ -343,7 +482,20 @@ static WINDOWS: [WindowEntry; 10] = [
         may_stay_undefined: false,
         skip: true,
         min_refused: Some("under `skip`, a lag reads the value in that exact slot, which may be missing"),
-        partial: false,
+        partial: None,
+        skip_keeps_value: false,
+        class: Classes {
+            incremental: "atls::ops::Lag",
+            exact: None,
+            skip: Some("atls::ops::Lag"),
+        },
+        slots: Slots {
+            incremental: Some(1),
+            naive: Some(1),
+            exact: Some(1),
+            skip: Some(1),
+            skip_naive: Some(1),
+        },
     },
     WindowEntry {
         id: Ind::TsMax,
@@ -357,7 +509,20 @@ static WINDOWS: [WindowEntry; 10] = [
         may_stay_undefined: false,
         skip: false,
         min_refused: None,
-        partial: false,
+        partial: None,
+        skip_keeps_value: false,
+        class: Classes {
+            incremental: "atls::ops::TsMax",
+            exact: None,
+            skip: None,
+        },
+        slots: Slots {
+            incremental: None,
+            naive: Some(0),
+            exact: None,
+            skip: Some(1),
+            skip_naive: Some(0),
+        },
     },
     WindowEntry {
         id: Ind::TsMin,
@@ -371,7 +536,20 @@ static WINDOWS: [WindowEntry; 10] = [
         may_stay_undefined: false,
         skip: false,
         min_refused: None,
-        partial: false,
+        partial: None,
+        skip_keeps_value: false,
+        class: Classes {
+            incremental: "atls::ops::TsMin",
+            exact: None,
+            skip: None,
+        },
+        slots: Slots {
+            incremental: None,
+            naive: Some(0),
+            exact: None,
+            skip: Some(1),
+            skip_naive: Some(0),
+        },
     },
     WindowEntry {
         id: Ind::TsSum,
@@ -385,7 +563,20 @@ static WINDOWS: [WindowEntry; 10] = [
         may_stay_undefined: false,
         skip: true,
         min_refused: None,
-        partial: true,
+        partial: Some("atls::ops::TsSumMin"),
+        skip_keeps_value: false,
+        class: Classes {
+            incremental: "atls::ops::TsSum",
+            exact: Some("atls::ops::TsSumExact"),
+            skip: Some("atls::ops::TsSumSkip"),
+        },
+        slots: Slots {
+            incremental: Some(1),
+            naive: Some(0),
+            exact: None,
+            skip: Some(1),
+            skip_naive: Some(0),
+        },
     },
     WindowEntry {
         id: Ind::Stdev,
@@ -399,7 +590,20 @@ static WINDOWS: [WindowEntry; 10] = [
         may_stay_undefined: false,
         skip: true,
         min_refused: None,
-        partial: false,
+        partial: None,
+        skip_keeps_value: false,
+        class: Classes {
+            incremental: "atls::ops::Stdev",
+            exact: None,
+            skip: Some("atls::ops::StdevSkip"),
+        },
+        slots: Slots {
+            incremental: Some(1),
+            naive: Some(0),
+            exact: Some(1),
+            skip: Some(1),
+            skip_naive: Some(0),
+        },
     },
     WindowEntry {
         id: Ind::StdevPop,
@@ -413,7 +617,20 @@ static WINDOWS: [WindowEntry; 10] = [
         may_stay_undefined: false,
         skip: true,
         min_refused: None,
-        partial: false,
+        partial: None,
+        skip_keeps_value: false,
+        class: Classes {
+            incremental: "atls::ops::StdevPop",
+            exact: None,
+            skip: Some("atls::ops::StdevPopSkip"),
+        },
+        slots: Slots {
+            incremental: Some(1),
+            naive: Some(0),
+            exact: Some(1),
+            skip: Some(1),
+            skip_naive: Some(0),
+        },
     },
     WindowEntry {
         id: Ind::Zscore,
@@ -427,7 +644,20 @@ static WINDOWS: [WindowEntry; 10] = [
         may_stay_undefined: true,
         skip: true,
         min_refused: None,
-        partial: false,
+        partial: None,
+        skip_keeps_value: false,
+        class: Classes {
+            incremental: "atls::ops::Zscore",
+            exact: None,
+            skip: Some("atls::ops::ZscoreSkip"),
+        },
+        slots: Slots {
+            incremental: Some(1),
+            naive: Some(0),
+            exact: Some(1),
+            skip: Some(1),
+            skip_naive: Some(0),
+        },
     },
 ];
 
@@ -455,7 +685,12 @@ pub(crate) fn indexed_window() -> Ind {
 
 /// `NAME(x, n, m)` is a form of this indicator.
 pub(crate) fn has_partial_form(ind: Ind) -> bool {
-    window_entry(ind).partial
+    window_entry(ind).partial.is_some()
+}
+
+/// The C++ class of the partial form (`NAME(x, n, m)`).
+pub(crate) fn partial_class() -> &'static str {
+    WINDOWS.iter().find_map(|e| e.partial).expect("a partial form")
 }
 
 /// A literal window at or below 0 reads a future bar (see [`look_ahead`]).
@@ -518,6 +753,35 @@ pub(crate) fn min_refused(ind: Ind) -> Option<&'static str> {
     window_entry(ind).min_refused
 }
 
+/// Under `skip`, a missing input leaves the indicator's value as it was.
+pub(crate) fn skip_keeps_value(ind: Ind) -> bool {
+    window_entry(ind).skip_keeps_value
+}
+
+/// The indicator's C++ class under this arithmetic and policy.
+pub(crate) fn window_class(ind: Ind, mode: Indicators, policy: Policy) -> &'static str {
+    let class = &window_entry(ind).class;
+    if policy == Policy::Skip {
+        return class.skip.unwrap_or_else(|| unreachable!("refused by the checker"));
+    }
+    match class.exact {
+        Some(exact) if mode == Indicators::Exact => exact,
+        _ => class.incremental,
+    }
+}
+
+/// The slots beyond its window the indicator needs of its input's ring, or `None` if it keeps its own state.
+pub(crate) fn ring_slots(ind: Ind, mode: Indicators, policy: Policy) -> Option<i64> {
+    let slots = &window_entry(ind).slots;
+    match (policy == Policy::Skip, mode) {
+        (true, Indicators::Naive) => slots.skip_naive,
+        (true, _) => slots.skip,
+        (false, Indicators::Incremental) => slots.incremental,
+        (false, Indicators::Naive) => slots.naive,
+        (false, Indicators::Exact) => slots.exact,
+    }
+}
+
 /// The note on a named argument where none is taken.
 pub(crate) fn named_argument_note() -> String {
     let names = |skip: bool| -> String {
@@ -544,16 +808,24 @@ const PAIR_PREFIX: &str = "ols_";
 struct PairEntry {
     id: PairInd,
     name: &'static str,
+    /// The C++ class, with running sums or exact arithmetic.
+    class: &'static str,
+    /// The C++ class with naive arithmetic.
+    naive_class: &'static str,
 }
 
 static PAIRS: [PairEntry; 2] = [
     PairEntry {
         id: PairInd::OlsSlope,
         name: "ols_slope",
+        class: "atls::ops::OlsSlope",
+        naive_class: "atls::ops::OlsLlt<true>",
     },
     PairEntry {
         id: PairInd::OlsIntercept,
         name: "ols_intercept",
+        class: "atls::ops::OlsIntercept",
+        naive_class: "atls::ops::OlsLlt<false>",
     },
 ];
 
@@ -575,32 +847,60 @@ pub(crate) fn pair(name: &str) -> Option<PairInd> {
     PAIRS.iter().find(|e| e.name == name).map(|e| e.id)
 }
 
+/// The C++ class of an indicator over a pair, with naive arithmetic or not.
+pub(crate) fn pair_class(p: PairInd, naive: bool) -> &'static str {
+    let e = pair_entry(p);
+    if naive { e.naive_class } else { e.class }
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Outputs of a filter
+
+/// The C++ class of the filter all outputs share.
+const FILTER_CLASS: &str = "atls::ops::KalmanHedge";
 
 struct FilterEntry {
     id: KOut,
     name: &'static str,
+    /// The filter's accessor that reads this output.
+    accessor: &'static str,
 }
 
 static FILTERS: [FilterEntry; 3] = [
     FilterEntry {
         id: KOut::Beta,
         name: "kf_beta",
+        accessor: "beta",
     },
     FilterEntry {
         id: KOut::Error,
         name: "kf_error",
+        accessor: "error",
     },
     FilterEntry {
         id: KOut::Sd,
         name: "kf_sd",
+        accessor: "sd",
     },
 ];
 
 /// The filter output of this name.
 pub(crate) fn filter(name: &str) -> Option<KOut> {
     FILTERS.iter().find(|e| e.name == name).map(|e| e.id)
+}
+
+/// The filter's accessor that reads this output.
+pub(crate) fn filter_accessor(out: KOut) -> &'static str {
+    FILTERS
+        .iter()
+        .find(|e| e.id == out)
+        .expect("every filter output has an entry")
+        .accessor
+}
+
+/// The C++ class of the filter.
+pub(crate) fn filter_class() -> &'static str {
+    FILTER_CLASS
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -614,6 +914,19 @@ struct CrossSectionEntry {
     name: &'static str,
     /// Undefined over no defined value, or where the instrument's own value is.
     may_be_undefined: bool,
+    reduce: Reduce,
+}
+
+/// How a cross-section is computed over the active instruments' defined values.
+pub(crate) enum Reduce {
+    /// Accumulates their sum, their count, or both; the value is `result`, where `{i}` stands for the value's id.
+    Accumulate {
+        sum: bool,
+        count: bool,
+        result: &'static str,
+    },
+    /// Each instrument's position (from 1) among them in ascending order, ties by instrument order.
+    Order,
 }
 
 static CROSS_SECTIONS: [CrossSectionEntry; 4] = [
@@ -621,21 +934,37 @@ static CROSS_SECTIONS: [CrossSectionEntry; 4] = [
         id: XsOp::Mean,
         name: "xs_mean",
         may_be_undefined: true,
+        reduce: Reduce::Accumulate {
+            sum: true,
+            count: true,
+            result: "(xs{i}_n > 0 ? xs{i}_sum / static_cast<double>(xs{i}_n) : atls::ops::NaN)",
+        },
     },
     CrossSectionEntry {
         id: XsOp::Sum,
         name: "xs_sum",
         may_be_undefined: false,
+        reduce: Reduce::Accumulate {
+            sum: true,
+            count: false,
+            result: "xs{i}_sum",
+        },
     },
     CrossSectionEntry {
         id: XsOp::Count,
         name: "xs_count",
         may_be_undefined: false,
+        reduce: Reduce::Accumulate {
+            sum: false,
+            count: true,
+            result: "static_cast<double>(xs{i}_n)",
+        },
     },
     CrossSectionEntry {
         id: XsOp::Rank,
         name: "xs_rank",
         may_be_undefined: true,
+        reduce: Reduce::Order,
     },
 ];
 
@@ -660,6 +989,11 @@ pub(crate) fn cross_section(name: &str) -> Option<XsOp> {
 /// The cross-section may be undefined.
 pub(crate) fn cross_section_maybe(op: XsOp) -> bool {
     cross_section_entry(op).may_be_undefined
+}
+
+/// How the cross-section is computed.
+pub(crate) fn cross_section_reduce(op: XsOp) -> &'static Reduce {
+    &cross_section_entry(op).reduce
 }
 
 fn cross_section_names() -> String {
