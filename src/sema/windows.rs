@@ -110,23 +110,21 @@ impl Checker<'_> {
         if self.ir.period_clock || (miss.policy != Policy::Restart && in_class == Class::Maybe) {
             class = Class::Maybe;
         }
-        if builtins::needs_two_values(ind, miss.policy) {
-            if self.interval(&window).0 < 2.0 {
-                self.err(
-                    Diag::new(
-                        Code::WindowBelowTwo,
-                        format!("`{}`'s window may be below 2", ind.name()),
-                        w.span,
-                        "a deviation needs two values",
-                    )
-                    .note("raise the params' lower bounds so the window is at least 2"),
-                );
-                return None;
-            }
-            if builtins::may_stay_undefined(ind) {
-                // A window of equal values has no deviation.
-                class = Class::Maybe;
-            }
+        if builtins::needs_two_values(ind, miss.policy) && self.interval(&window).0 < 2.0 {
+            self.err(
+                Diag::new(
+                    Code::WindowBelowTwo,
+                    format!("`{}`'s window may be below 2", ind.name()),
+                    w.span,
+                    "a deviation needs two values",
+                )
+                .note("raise the params' lower bounds so the window is at least 2"),
+            );
+            return None;
+        }
+        if builtins::may_stay_undefined(ind) {
+            // Undefined on some bars whatever the input (a z-score over equal values).
+            class = Class::Maybe;
         }
         let base = self.ir.nodes[input].lookback.clone();
         let extra = if ind.steps_back() {
