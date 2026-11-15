@@ -5,6 +5,7 @@
 //! them; so does the C++ back end and the runtime headers it calls.
 
 pub mod backend;
+mod builtins;
 pub mod frontend;
 pub mod ir;
 pub mod reference;

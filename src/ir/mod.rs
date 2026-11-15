@@ -3,6 +3,8 @@
 
 use crate::frontend::ast::{BinOp, HandlerKind, Span, Ty, UnOp};
 
+pub use crate::builtins::{Builtin, Ind, KOut, PairInd, XsOp};
+
 /// An expression fixed before the run: numbers and params only.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CExpr {
@@ -41,23 +43,6 @@ impl Field {
             Field::Volume => "volume",
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Ind {
-    Sma,
-    Ema,
-    Rsi,
-    Lag,
-    TsMax,
-    TsMin,
-    TsSum,
-    /// Sample standard deviation over the window (n - 1 in the divisor).
-    Stdev,
-    /// `(x - mean) / stdev` over the window, undefined when the deviation is 0.
-    Zscore,
-    /// Population standard deviation over the window (the count in the divisor).
-    StdevPop,
 }
 
 /// What an indicator does with an undefined (missing) input.
@@ -106,42 +91,6 @@ impl Default for Miss {
     }
 }
 
-impl Ind {
-    pub fn from_name(s: &str) -> Option<Ind> {
-        Some(match s {
-            "sma" => Ind::Sma,
-            "ema" => Ind::Ema,
-            "rsi" => Ind::Rsi,
-            "lag" => Ind::Lag,
-            "ts_max" => Ind::TsMax,
-            "ts_min" => Ind::TsMin,
-            "ts_sum" => Ind::TsSum,
-            "stdev" => Ind::Stdev,
-            "zscore" => Ind::Zscore,
-            "stdev_pop" => Ind::StdevPop,
-            _ => return None,
-        })
-    }
-    pub fn name(self) -> &'static str {
-        match self {
-            Ind::Sma => "sma",
-            Ind::Ema => "ema",
-            Ind::Rsi => "rsi",
-            Ind::Lag => "lag",
-            Ind::TsMax => "ts_max",
-            Ind::TsMin => "ts_min",
-            Ind::TsSum => "ts_sum",
-            Ind::Stdev => "stdev",
-            Ind::Zscore => "zscore",
-            Ind::StdevPop => "stdev_pop",
-        }
-    }
-    /// Steps back beyond the window: a lag of k and an RSI over k moves need k + 1 values.
-    pub fn steps_back(self) -> bool {
-        matches!(self, Ind::Lag | Ind::Rsi)
-    }
-}
-
 /// When a series value is defined (not NaN).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Class {
@@ -152,72 +101,6 @@ pub enum Class {
     Eventually,
     /// May be undefined on any bar: `open`, a division by something that may be zero.
     Maybe,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Builtin {
-    Abs,
-    Min,
-    Max,
-    Defined,
-    /// -1, 0 or 1.
-    Sign,
-    /// Natural logarithm; undefined at or below 0.
-    Log,
-    /// Square root; undefined below 0.
-    Sqrt,
-    /// To the nearest whole number, halves away from zero (as `std::llround`).
-    Round,
-    /// Down to a whole number.
-    Floor,
-}
-
-/// Two-input window indicators: least squares of the first input on the second, with an intercept.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum PairInd {
-    OlsSlope,
-    OlsIntercept,
-}
-
-impl PairInd {
-    pub fn name(self) -> &'static str {
-        match self {
-            PairInd::OlsSlope => "ols_slope",
-            PairInd::OlsIntercept => "ols_intercept",
-        }
-    }
-}
-
-/// What a Kalman-filter hedge reports (one filter per (y, x, delta, ve)).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum KOut {
-    /// The slope estimate after this bar's correction.
-    Beta,
-    /// The forecast error before the correction.
-    Error,
-    /// The forecast error's standard deviation.
-    Sd,
-}
-
-/// Cross-sectional operators, over every instrument of a universe at one moment.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum XsOp {
-    Mean,
-    Sum,
-    Count,
-    /// 1 for the smallest defined value, then 2, ...; ties broken by instrument order.
-    Rank,
-}
-
-impl XsOp {
-    pub fn name(self) -> &'static str {
-        match self {
-            XsOp::Mean => "xs_mean",
-            XsOp::Sum => "xs_sum",
-            XsOp::Count => "xs_count",
-            XsOp::Rank => "xs_rank",
-        }
-    }
 }
 
 /// How the program sees instruments.

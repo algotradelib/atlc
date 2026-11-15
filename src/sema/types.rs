@@ -1,5 +1,6 @@
 //! Types: operators, built-in functions' signatures, assignment, and the magnitude of `int` literals.
 
+use crate::builtins;
 use crate::frontend::ast::*;
 use crate::frontend::diag::{Code, Diag};
 use crate::ir::*;
@@ -116,17 +117,9 @@ impl Checker<'_> {
     }
 
     pub(super) fn builtin(&mut self, name: &Ident, n: usize, span: Span) -> Option<Builtin> {
-        let (b, arity) = match name.name.as_str() {
-            "abs" => (Builtin::Abs, 1),
-            "min" => (Builtin::Min, 2),
-            "max" => (Builtin::Max, 2),
-            "defined" => (Builtin::Defined, 1),
-            "sign" => (Builtin::Sign, 1),
-            "log" => (Builtin::Log, 1),
-            "sqrt" => (Builtin::Sqrt, 1),
-            "round" => (Builtin::Round, 1),
-            "floor" => (Builtin::Floor, 1),
-            "target" => {
+        let b = match builtins::function(&name.name) {
+            Some(b) => b,
+            None if name.name == "target" => {
                 self.err(Diag::new(
                     Code::TargetAsValue,
                     "`target` is a statement",
@@ -135,12 +128,20 @@ impl Checker<'_> {
                 ));
                 return None;
             }
-            _ => {
-                self.err(Diag::new(Code::UnknownFunction, format!("unknown function `{}`", name.name), name.span, "not a function")
-                    .note("functions: abs min max defined sign log sqrt round floor; indicators (series only): sma ema rsi lag ts_max ts_min ts_sum stdev zscore ols_slope ols_intercept kf_beta kf_error kf_sd; cross-sectional (universe handlers): xs_mean xs_sum xs_count xs_rank"));
+            None => {
+                self.err(
+                    Diag::new(
+                        Code::UnknownFunction,
+                        format!("unknown function `{}`", name.name),
+                        name.span,
+                        "not a function",
+                    )
+                    .note(builtins::unknown_function_note()),
+                );
                 return None;
             }
         };
+        let arity = builtins::function_arity(b);
         if n != arity {
             self.err(Diag::new(
                 Code::FunctionArity,
@@ -154,45 +155,16 @@ impl Checker<'_> {
     }
 
     pub(super) fn builtin_ty(&mut self, b: Builtin, tys: &[Ty], args: &[Expr]) -> Option<Ty> {
-        match b {
-            Builtin::Defined => Some(Ty::Bool),
-            Builtin::Abs => {
-                if !tys[0].numeric() {
-                    self.err(Diag::new(
-                        Code::ArgumentType,
-                        "`abs` needs a number",
-                        args[0].span,
-                        format!("this is `{}`", tys[0].name()),
-                    ));
-                    return None;
-                }
-                Some(tys[0])
-            }
-            Builtin::Sign | Builtin::Log | Builtin::Sqrt | Builtin::Round | Builtin::Floor => {
-                if !tys[0].numeric() {
-                    self.err(Diag::new(
-                        Code::ArgumentType,
-                        "this function needs a number",
-                        args[0].span,
-                        format!("this is `{}`", tys[0].name()),
-                    ));
-                    return None;
-                }
-                Some(Ty::Real)
-            }
-            Builtin::Min | Builtin::Max => {
-                for (t, a) in tys.iter().zip(args) {
-                    if !t.numeric() {
-                        self.err(Diag::new(
-                            Code::ArgumentType,
-                            "`min`/`max` need numbers",
-                            a.span,
-                            format!("this is `{}`", t.name()),
-                        ));
-                        return None;
-                    }
-                }
-                Some(join_ty(tys[0], tys[1]))
+        match builtins::function_result(b, tys) {
+            Ok(ty) => Some(ty),
+            Err((i, message)) => {
+                self.err(Diag::new(
+                    Code::ArgumentType,
+                    message,
+                    args[i].span,
+                    format!("this is `{}`", tys[i].name()),
+                ));
+                None
             }
         }
     }
@@ -319,7 +291,7 @@ impl Checker<'_> {
                     span,
                     "may be undefined",
                 )
-                .note("test it first: `defined(x) ? x > 1 : false`, or assign inside `if (defined(x)) { ... }`"),
+                .note(builtins::guard_note()),
             );
             return false;
         }

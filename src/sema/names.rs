@@ -1,54 +1,18 @@
 //! Names and blocks: declarations, reserved names, unknown names with suggestions, and each block kind at most once.
 
+use crate::builtins;
 use crate::frontend::ast::*;
 use crate::frontend::diag::{Code, Diag};
 
 use super::*;
 
+/// The names no declaration may take: every built-in's, and the language's own.
 pub(super) fn is_reserved(name: &str) -> bool {
-    [
-        "open",
-        "high",
-        "low",
-        "close",
-        "volume",
-        "held",
-        "keep",
-        "fill",
-        "sma",
-        "ema",
-        "rsi",
-        "lag",
-        "ts_max",
-        "ts_min",
-        "ts_sum",
-        "abs",
-        "min",
-        "max",
-        "defined",
-        "lower",
-        "upper",
-        "sign",
-        "log",
-        "sqrt",
-        "round",
-        "floor",
-        "stdev",
-        "zscore",
-        "ols_slope",
-        "ols_intercept",
-        "kf_beta",
-        "kf_error",
-        "kf_sd",
-        "xs_mean",
-        "xs_sum",
-        "xs_count",
-        "xs_rank",
-        "bars",
-        "periods",
-        "stdev_pop",
-    ]
-    .contains(&name)
+    builtins::is_builtin_name(name)
+        || [
+            "open", "high", "low", "close", "volume", "held", "keep", "fill", "lower", "upper", "bars", "periods",
+        ]
+        .contains(&name)
 }
 
 /// The keywords and alternative tokens of C++20, and `final`, `override`, `import`, `module`.

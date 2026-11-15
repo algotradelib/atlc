@@ -3,6 +3,7 @@
 
 use std::collections::HashMap;
 
+use crate::builtins;
 use crate::frontend::ast::*;
 use crate::frontend::diag::{Code, Diag};
 use crate::frontend::parser::MAX_DEPTH;
@@ -74,29 +75,8 @@ impl Checker<'_> {
         let (lo, _) = self.interval(&window);
         if lo < 1.0 {
             let literal = matches!(window, CExpr::Num(_) | CExpr::Neg(_));
-            if ind == Ind::Lag && literal && self.eval(&window) <= 0.0 {
-                let shown = if indexed {
-                    format!("{}[{}]", crate::frontend::ast_text(x), crate::frontend::ast_text(w))
-                } else {
-                    format!(
-                        "lag({}, {})",
-                        crate::frontend::ast_text(x),
-                        crate::frontend::ast_text(w)
-                    )
-                };
-                self.err(
-                    Diag::new(
-                        Code::LookAhead,
-                        format!("`{}` would read a future bar", shown),
-                        w.span,
-                        if self.eval(&window) == 0.0 {
-                            "a lag of 0 is the current bar: write the series itself"
-                        } else {
-                            "a negative lag looks ahead"
-                        },
-                    )
-                    .note("a strategy only sees bars up to the current one; a lag is at least 1"),
-                );
+            if builtins::reads_ahead(ind) && literal && self.eval(&window) <= 0.0 {
+                self.err(builtins::look_ahead(ind, x, w, indexed, self.eval(&window)));
             } else if lo == f64::NEG_INFINITY {
                 self.err(
                     Diag::new(
@@ -130,7 +110,7 @@ impl Checker<'_> {
         if self.ir.period_clock || (miss.policy != Policy::Restart && in_class == Class::Maybe) {
             class = Class::Maybe;
         }
-        if matches!(ind, Ind::Stdev | Ind::Zscore) || (ind == Ind::StdevPop && miss.policy == Policy::Restart) {
+        if builtins::needs_two_values(ind, miss.policy) {
             if self.interval(&window).0 < 2.0 {
                 self.err(
                     Diag::new(
@@ -143,7 +123,7 @@ impl Checker<'_> {
                 );
                 return None;
             }
-            if ind == Ind::Zscore {
+            if builtins::may_stay_undefined(ind) {
                 // A window of equal values has no deviation.
                 class = Class::Maybe;
             }
@@ -162,7 +142,7 @@ impl Checker<'_> {
             (_, CExpr::Num(b)) if *b == 0.0 => base.clone(),
             _ => CExpr::Bin(BinOp::Add, Box::new(base.clone()), Box::new(extra)),
         };
-        if miss.policy == Policy::Skip && ind != Ind::Lag {
+        if miss.policy == Policy::Skip && !builtins::exact_slot(ind) {
             // A skip window counts slots, missing or not: it is defined once it has seen its window
             // and holds `min` values, which an input defined from bar L has by bar L + min - 1.
             let need = match (&base, &miss.min) {
@@ -189,13 +169,13 @@ impl Checker<'_> {
         Some(self.add_node(NodeKind::Ind(ind, input, window, miss), Ty::Real, class, lb))
     }
 
-    /// `ts_sum(x, n, min)`: a window of n defined once `min` values are in it.
-    pub(super) fn partial(&mut self, x: &Expr, w: &Expr, m: &Expr) -> Option<usize> {
-        let id = self.indicator(Ind::TsSum, x, w, x.span, false, Miss::default())?;
+    /// `ts_sum(x, n, min)`, the partial form of a window: a window of n defined once `min` values are in it.
+    pub(super) fn partial(&mut self, ind: Ind, x: &Expr, w: &Expr, m: &Expr) -> Option<usize> {
+        let id = self.indicator(ind, x, w, x.span, false, Miss::default())?;
         let NodeKind::Ind(_, input, window, _) = self.ir.nodes[id].kind.clone() else {
             return None;
         };
-        let (min, _) = self.cexpr(m, "`ts_sum`'s minimum count", true)?;
+        let (min, _) = self.cexpr(m, &format!("`{}`'s minimum count", ind.name()), true)?;
         let lo = self.interval(&min).0;
         let room = self
             .interval(&CExpr::Bin(BinOp::Sub, Box::new(window.clone()), Box::new(min.clone())))
@@ -204,14 +184,17 @@ impl Checker<'_> {
             self.err(
                 Diag::new(
                     Code::MinOutOfRange,
-                    "`ts_sum`'s minimum count must be between 1 and the window",
+                    format!("`{}`'s minimum count must be between 1 and the window", ind.name()),
                     m.span,
                     format!(
                         "can be {} within the params' bounds",
                         if lo < 1.0 { "below 1" } else { "above the window" }
                     ),
                 )
-                .note("`ts_sum(x, n, m)` is defined once m of the last n values are in"),
+                .note(format!(
+                    "`{}(x, n, m)` is defined once m of the last n values are in",
+                    ind.name()
+                )),
             );
             return None;
         }

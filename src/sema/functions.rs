@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use crate::builtins;
 use crate::frontend::ast::*;
 use crate::frontend::diag::{Code, Diag};
 use crate::ir::*;
@@ -34,8 +35,15 @@ impl Checker<'_> {
             args.push((a.name.name.clone(), a.ty));
         }
         if d.ret == Ty::Int && args.iter().any(|a| a.1 != Ty::Int) {
-            self.err(Diag::new(Code::IntFunctionRealArguments, "a function returning `int` takes `int` arguments only", d.name.span, "here")
-                .note("an undefined real argument would make an undefined `int`; return `real` and use `round` or `floor`"));
+            self.err(
+                Diag::new(
+                    Code::IntFunctionRealArguments,
+                    "a function returning `int` takes `int` arguments only",
+                    d.name.span,
+                    "here",
+                )
+                .note(builtins::WHOLE_NUMBER_NOTE),
+            );
         }
         if d.external {
             // The C++ function may return any double, NaN included; a `bool` or `int` it returns is defined.

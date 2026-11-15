@@ -1,6 +1,7 @@
 //! Instruments and universes: the program's mode, which handlers each mode allows, bare and qualified
 //! fields, and cross-sectional operators.
 
+use crate::builtins;
 use crate::frontend::ast::*;
 use crate::frontend::diag::{Code, Diag};
 use crate::ir::*;
@@ -95,12 +96,9 @@ impl Checker<'_> {
     /// `xs_mean(x)`, `xs_sum(x)`, `xs_count(x)`, `xs_rank(x)`: over every instrument of a universe whose
     /// `x` is defined, at this moment.
     pub(super) fn xs(&mut self, name: &Ident, args: &[Expr], span: Span, k: HandlerKind) -> Option<HExpr> {
-        let op = match name.name.as_str() {
-            "xs_mean" => XsOp::Mean,
-            "xs_sum" => XsOp::Sum,
-            "xs_count" => XsOp::Count,
-            "xs_rank" => XsOp::Rank,
-            _ => {
+        let op = match builtins::cross_section(&name.name) {
+            Some(op) => op,
+            None => {
                 self.err(
                     Diag::new(
                         Code::UnknownFunction,
@@ -108,7 +106,7 @@ impl Checker<'_> {
                         name.span,
                         "not a function",
                     )
-                    .note("cross-sectional operators: xs_mean xs_sum xs_count xs_rank"),
+                    .note(builtins::unknown_cross_section_note()),
                 );
                 return None;
             }
@@ -172,7 +170,7 @@ impl Checker<'_> {
         let id = self.ir.xs_count;
         self.ir.xs_count += 1;
         // A sum or count over no defined value is 0; a mean is undefined, and so is the rank of an undefined value.
-        let maybe = matches!(op, XsOp::Mean | XsOp::Rank);
+        let maybe = builtins::cross_section_maybe(op);
         Some(Self::h(HKind::Xs(op, Box::new(a), id), Ty::Real, maybe))
     }
 

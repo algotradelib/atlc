@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use crate::builtins::{self, Definedness};
 use crate::frontend::ast::*;
 use crate::frontend::diag::{Code, Diag};
 use crate::ir::*;
@@ -783,19 +784,19 @@ impl Checker<'_> {
             }
             ExprKind::Call(name, _)
                 if self.uctx.is_some()
-                    && (name.name.starts_with("xs_")
+                    && (builtins::in_cross_section_family(&name.name)
                         || matches!(self.names.get(&name.name), Some((Name::Indicator(_), _)))) =>
             {
                 self.err(Diag::new(Code::CallInBody, format!("`{}` inside `{}`", name.name, self.uctx.as_ref().unwrap().name), e.span, "not here")
                     .note("functions and indicators see only their own arguments: indicators and cross-sectional values are used in a program's series and handlers"));
                 None
             }
-            ExprKind::Call(name, args) if name.name.starts_with("xs_") => self.xs(name, args, e.span, k),
+            ExprKind::Call(name, args) if builtins::in_cross_section_family(&name.name) => {
+                self.xs(name, args, e.span, k)
+            }
             ExprKind::Call(name, args) => {
                 if matches!(self.names.get(&name.name), Some((Name::Indicator(_), _)))
-                    || Ind::from_name(&name.name).is_some()
-                    || kalman_out(&name.name).is_some()
-                    || name.name.starts_with("ols_")
+                    || builtins::is_indicator_name(&name.name)
                 {
                     let shown = crate::frontend::ast_text(e);
                     self.err(
@@ -824,8 +825,11 @@ impl Checker<'_> {
                 let hs: Vec<HExpr> = hs.into_iter().collect::<Option<_>>()?;
                 let tys: Vec<Ty> = hs.iter().map(|h| h.ty).collect();
                 let ty = self.builtin_ty(b, &tys, args)?;
-                let maybe =
-                    matches!(b, Builtin::Log | Builtin::Sqrt) || (b != Builtin::Defined && hs.iter().any(|h| h.maybe));
+                let maybe = match builtins::function_definedness(b) {
+                    Definedness::Propagates => hs.iter().any(|h| h.maybe),
+                    Definedness::Always => false,
+                    Definedness::Maybe => true,
+                };
                 Some(Self::h(HKind::Call(b, hs), ty, maybe))
             }
             ExprKind::Named(n, _) => {

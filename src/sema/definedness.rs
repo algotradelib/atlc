@@ -1,6 +1,7 @@
 //! Definedness: which values may be undefined, narrowing by `defined(x)`, provably nonzero divisors,
 //! and states that may hold an undefined value.
 
+use crate::builtins;
 use crate::frontend::ast::*;
 use crate::ir::*;
 
@@ -44,7 +45,7 @@ impl Checker<'_> {
     /// The values a condition proves defined when it is true: `defined(x)`, and both sides of `and`.
     pub(super) fn defined_refs(h: &HExpr) -> Vec<HKind> {
         match &h.kind {
-            HKind::Call(Builtin::Defined, args) => match &args[0].kind {
+            HKind::Call(b, args) if builtins::proves_argument_defined(*b) => match &args[0].kind {
                 k @ (HKind::Node(_)
                 | HKind::State(_)
                 | HKind::Local(_)

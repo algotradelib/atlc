@@ -1,5 +1,6 @@
 //! Missing-value policies: `options { missing = ...; }` and the `missing =` and `min =` arguments.
 
+use crate::builtins;
 use crate::frontend::ast::*;
 use crate::frontend::diag::{Code, Diag};
 use crate::ir::*;
@@ -77,12 +78,7 @@ impl Checker<'_> {
         }
         if let Some(ms) = min_span {
             // The prototype accepted `min` here and ignored it.
-            if matches!(ind, Ind::Lag | Ind::Ema) {
-                let rule = if ind == Ind::Lag {
-                    "under `skip`, a lag reads the value in that exact slot, which may be missing"
-                } else {
-                    "under `skip`, an EMA ignores a missing value and keeps its previous output"
-                };
+            if let Some(rule) = builtins::min_refused(ind) {
                 self.err(
                     Diag::new(
                         Code::MinNotApplicable,
@@ -123,7 +119,7 @@ impl Checker<'_> {
                 return None;
             }
         }
-        if miss.policy == Policy::Skip && matches!(ind, Ind::Rsi | Ind::TsMax | Ind::TsMin) {
+        if miss.policy == Policy::Skip && !builtins::takes_skip(ind) {
             self.err(
                 Diag::new(
                     Code::SkipUnsupported,
@@ -161,8 +157,15 @@ impl Checker<'_> {
     pub(super) fn no_named(&mut self, what: &str, args: &[Expr]) -> bool {
         for a in args {
             if let ExprKind::Named(k, _) = &a.kind {
-                self.err(Diag::new(Code::NamedArgumentNotAllowed, format!("`{}` takes no named argument", what), k.span, "not here")
-                    .note("only indicators over one series take `missing = ...` (sma ema lag ts_sum stdev stdev_pop zscore, and rsi ts_max ts_min with restart or poison)"));
+                self.err(
+                    Diag::new(
+                        Code::NamedArgumentNotAllowed,
+                        format!("`{}` takes no named argument", what),
+                        k.span,
+                        "not here",
+                    )
+                    .note(builtins::named_argument_note()),
+                );
                 return false;
             }
         }

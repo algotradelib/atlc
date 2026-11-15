@@ -107,15 +107,6 @@ pub fn check(program: &Program, opts: &Options) -> Result<Ir, Vec<Diag>> {
     if c.errors.is_empty() { Ok(c.ir) } else { Err(c.errors) }
 }
 
-fn kalman_out(name: &str) -> Option<KOut> {
-    Some(match name {
-        "kf_beta" => KOut::Beta,
-        "kf_error" => KOut::Error,
-        "kf_sd" => KOut::Sd,
-        _ => return None,
-    })
-}
-
 fn field_of(name: &str) -> Option<Field> {
     Some(match name {
         "open" => Field::Open,

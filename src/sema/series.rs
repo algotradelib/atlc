@@ -1,5 +1,6 @@
 //! `series {}` and `state {}`: series expressions become nodes of the series DAG.
 
+use crate::builtins::{self, Definedness};
 use crate::frontend::ast::*;
 use crate::frontend::diag::{Code, Diag};
 use crate::ir::*;
@@ -195,8 +196,9 @@ impl Checker<'_> {
                 Some(self.add_node(NodeKind::Ternary(c, x, y), ty, class, lb))
             }
             ExprKind::Index(x, k) => {
-                let miss = self.miss_of(Ind::Lag, &[], None, e.span)?;
-                self.indicator(Ind::Lag, x, k, e.span, true, miss)
+                let ind = builtins::indexed_window();
+                let miss = self.miss_of(ind, &[], None, e.span)?;
+                self.indicator(ind, x, k, e.span, true, miss)
             }
             ExprKind::Named(k, _) => {
                 self.err(Diag::new(
@@ -256,15 +258,14 @@ impl Checker<'_> {
                 Some(self.add_node(NodeKind::UCall(f, ids), ret, class, lb))
             }
             ExprKind::Call(name, args) => {
-                if Ind::from_name(&name.name).is_some() {
+                if let Some(ind) = Ind::from_name(&name.name) {
                     let (pos, named) = Self::split_args(args);
-                    if name.name == "ts_sum" && pos.len() == 3 {
-                        if !self.no_named("ts_sum(x, n, m)", args) {
+                    if builtins::has_partial_form(ind) && pos.len() == 3 {
+                        if !self.no_named(&format!("{}(x, n, m)", ind.name()), args) {
                             return None;
                         }
-                        return self.partial(pos[0], pos[1], pos[2]);
+                        return self.partial(ind, pos[0], pos[1], pos[2]);
                     }
-                    let ind = Ind::from_name(&name.name).unwrap();
                     if pos.len() != 2 {
                         self.err(Diag::new(
                             Code::IndicatorArity,
@@ -281,18 +282,13 @@ impl Checker<'_> {
                 if !self.no_named(&name.name, args) {
                     return None;
                 }
-                if name.name == "ols_slope" || name.name == "ols_intercept" {
-                    let which = if name.name == "ols_slope" {
-                        PairInd::OlsSlope
-                    } else {
-                        PairInd::OlsIntercept
-                    };
+                if let Some(which) = builtins::pair(&name.name) {
                     return self.pair(which, args, e.span);
                 }
-                if let Some(out) = kalman_out(&name.name) {
+                if let Some(out) = builtins::filter(&name.name) {
                     return self.kalman(out, &name.name, args, e.span);
                 }
-                if name.name.starts_with("xs_") {
+                if builtins::in_cross_section_family(&name.name) {
                     self.err(Diag::new(Code::XsInSeries, format!("`{}` is computed in handlers", name.name), e.span, "not in `series {}`")
                         .note("a cross-sectional value needs every instrument's series first; compute it at the top of `on_bar` (or `on_open`/`on_close`)"));
                     return None;
@@ -310,11 +306,10 @@ impl Checker<'_> {
                     .map(|&i| self.ir.nodes[i].class)
                     .max()
                     .unwrap_or(Class::Always);
-                if b == Builtin::Defined {
-                    class = Class::Always;
-                }
-                if matches!(b, Builtin::Log | Builtin::Sqrt) {
-                    class = Class::Maybe;
+                match builtins::function_definedness(b) {
+                    Definedness::Propagates => {}
+                    Definedness::Always => class = Class::Always,
+                    Definedness::Maybe => class = Class::Maybe,
                 }
                 let lb = self.lookback_max(&ids);
                 Some(self.add_node(NodeKind::Call(b, ids), ty, class, lb))
