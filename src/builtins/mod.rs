@@ -354,12 +354,8 @@ struct WindowEntry {
     two_values: TwoValues,
     /// Undefined on some bars whatever its input (a z-score over equal values).
     may_stay_undefined: bool,
-    /// It has a `skip` rule.
-    skip: bool,
     /// Why it takes no `min =`, when it takes none.
     min_refused: Option<&'static str>,
-    /// `NAME(x, n, m)`: a window of n defined once m values are in it; its C++ class.
-    partial: Option<&'static str>,
     /// Under `skip`, a missing input leaves its value as it was (it has no ring then: see `slots`).
     skip_keeps_value: bool,
     class: Classes,
@@ -372,7 +368,7 @@ struct Classes {
     incremental: &'static str,
     /// Under `restart` or `poison` with exact arithmetic, where it has a class of its own.
     exact: Option<&'static str>,
-    /// Under `skip`, where it has a rule.
+    /// Under `skip`, where it has a rule: a window without one refuses `skip`.
     skip: Option<&'static str>,
 }
 
@@ -399,9 +395,7 @@ static WINDOWS: [WindowEntry; 10] = [
         exact_slot: false,
         two_values: TwoValues::Never,
         may_stay_undefined: false,
-        skip: true,
         min_refused: None,
-        partial: None,
         skip_keeps_value: false,
         class: Classes {
             incremental: "atls::ops::Sma",
@@ -426,9 +420,7 @@ static WINDOWS: [WindowEntry; 10] = [
         exact_slot: false,
         two_values: TwoValues::Never,
         may_stay_undefined: false,
-        skip: true,
         min_refused: Some("under `skip`, an EMA ignores a missing value and keeps its previous output"),
-        partial: None,
         skip_keeps_value: true,
         class: Classes {
             incremental: "atls::ops::Ema",
@@ -453,9 +445,7 @@ static WINDOWS: [WindowEntry; 10] = [
         exact_slot: false,
         two_values: TwoValues::Never,
         may_stay_undefined: false,
-        skip: false,
         min_refused: None,
-        partial: None,
         skip_keeps_value: false,
         class: Classes {
             incremental: "atls::ops::Rsi",
@@ -480,9 +470,7 @@ static WINDOWS: [WindowEntry; 10] = [
         exact_slot: true,
         two_values: TwoValues::Never,
         may_stay_undefined: false,
-        skip: true,
         min_refused: Some("under `skip`, a lag reads the value in that exact slot, which may be missing"),
-        partial: None,
         skip_keeps_value: false,
         class: Classes {
             incremental: "atls::ops::Lag",
@@ -507,9 +495,7 @@ static WINDOWS: [WindowEntry; 10] = [
         exact_slot: false,
         two_values: TwoValues::Never,
         may_stay_undefined: false,
-        skip: false,
         min_refused: None,
-        partial: None,
         skip_keeps_value: false,
         class: Classes {
             incremental: "atls::ops::TsMax",
@@ -534,9 +520,7 @@ static WINDOWS: [WindowEntry; 10] = [
         exact_slot: false,
         two_values: TwoValues::Never,
         may_stay_undefined: false,
-        skip: false,
         min_refused: None,
-        partial: None,
         skip_keeps_value: false,
         class: Classes {
             incremental: "atls::ops::TsMin",
@@ -561,9 +545,7 @@ static WINDOWS: [WindowEntry; 10] = [
         exact_slot: false,
         two_values: TwoValues::Never,
         may_stay_undefined: false,
-        skip: true,
         min_refused: None,
-        partial: Some("atls::ops::TsSumMin"),
         skip_keeps_value: false,
         class: Classes {
             incremental: "atls::ops::TsSum",
@@ -588,9 +570,7 @@ static WINDOWS: [WindowEntry; 10] = [
         exact_slot: false,
         two_values: TwoValues::Always,
         may_stay_undefined: false,
-        skip: true,
         min_refused: None,
-        partial: None,
         skip_keeps_value: false,
         class: Classes {
             incremental: "atls::ops::Stdev",
@@ -615,9 +595,7 @@ static WINDOWS: [WindowEntry; 10] = [
         exact_slot: false,
         two_values: TwoValues::UnderRestart,
         may_stay_undefined: false,
-        skip: true,
         min_refused: None,
-        partial: None,
         skip_keeps_value: false,
         class: Classes {
             incremental: "atls::ops::StdevPop",
@@ -642,9 +620,7 @@ static WINDOWS: [WindowEntry; 10] = [
         exact_slot: false,
         two_values: TwoValues::Always,
         may_stay_undefined: true,
-        skip: true,
         min_refused: None,
-        partial: None,
         skip_keeps_value: false,
         class: Classes {
             incremental: "atls::ops::Zscore",
@@ -683,14 +659,27 @@ pub(crate) fn indexed_window() -> Ind {
     WINDOWS.iter().find(|e| e.indexed).expect("an indexed window").id
 }
 
+/// The one partial form, `NAME(x, n, m)`: a window of n over one series, defined once m values are in it.
+/// Its IR node does not name the window, so there is one such form, of one window.
+struct Partial {
+    window: Ind,
+    /// Its C++ class.
+    class: &'static str,
+}
+
+static PARTIAL: Partial = Partial {
+    window: Ind::TsSum,
+    class: "atls::ops::TsSumMin",
+};
+
 /// `NAME(x, n, m)` is a form of this indicator.
 pub(crate) fn has_partial_form(ind: Ind) -> bool {
-    window_entry(ind).partial.is_some()
+    PARTIAL.window == ind
 }
 
 /// The C++ class of the partial form (`NAME(x, n, m)`).
 pub(crate) fn partial_class() -> &'static str {
-    WINDOWS.iter().find_map(|e| e.partial).expect("a partial form")
+    PARTIAL.class
 }
 
 /// A literal window at or below 0 reads a future bar (see [`look_ahead`]).
@@ -745,7 +734,7 @@ pub(crate) fn may_stay_undefined(ind: Ind) -> bool {
 
 /// The indicator has a `skip` rule.
 pub(crate) fn takes_skip(ind: Ind) -> bool {
-    window_entry(ind).skip
+    window_entry(ind).class.skip.is_some()
 }
 
 /// Why the indicator takes no `min =`, if it takes none.
@@ -787,7 +776,7 @@ pub(crate) fn named_argument_note() -> String {
     let names = |skip: bool| -> String {
         WINDOWS
             .iter()
-            .filter(|e| e.skip == skip)
+            .filter(|e| e.class.skip.is_some() == skip)
             .map(|e| e.name)
             .collect::<Vec<_>>()
             .join(" ")
@@ -1013,10 +1002,10 @@ pub(crate) fn in_cross_section_family(name: &str) -> bool {
     name.starts_with(CROSS_SECTION_PREFIX)
 }
 
-/// A name a handler refuses as an indicator: a window over one series, a filter output, or a name of the pair
-/// family (`ols_...`), a built-in or not.
+/// A name a handler refuses as an indicator: a window over one series or a pair, a filter output, or a name of the
+/// pair family (`ols_...`), a built-in or not.
 pub(crate) fn is_indicator_name(name: &str) -> bool {
-    Ind::from_name(name).is_some() || filter(name).is_some() || name.starts_with(PAIR_PREFIX)
+    Ind::from_name(name).is_some() || pair(name).is_some() || filter(name).is_some() || name.starts_with(PAIR_PREFIX)
 }
 
 /// The name of a built-in of any kind.
