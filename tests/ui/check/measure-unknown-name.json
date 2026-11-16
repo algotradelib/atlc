@@ -1,0 +1,1 @@
+{"severity":"error","code":"unknown-name","message":"unknown name `rett`","file":"tests/ui/check/measure-unknown-name.atls","span":{"start":{"line":3,"column":26},"end":{"line":3,"column":30},"byte_start":58,"byte_end":62},"label":"not declared","secondary":[],"notes":["did you mean `ret`?"]}

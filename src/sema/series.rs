@@ -101,6 +101,10 @@ impl Checker<'_> {
                         None
                     }
                     Some((Name::Local, _)) => None,
+                    Some((Name::Measure(_), decl)) => {
+                        self.measure_read(n, e.span, decl, false);
+                        None
+                    }
                     Some((Name::Function(_) | Name::Indicator(_), decl)) => {
                         self.err(
                             Diag::new(
@@ -287,6 +291,10 @@ impl Checker<'_> {
                 }
                 if let Some(out) = builtins::filter(&name.name) {
                     return self.kalman(out, &name.name, args, e.span);
+                }
+                if builtins::in_reduction_family(&name.name) {
+                    self.reduction_elsewhere(name, e.span);
+                    return None;
                 }
                 if builtins::in_cross_section_family(&name.name) {
                     self.err(Diag::new(Code::XsInSeries, format!("`{}` is computed in handlers", name.name), e.span, "not in `series {}`")

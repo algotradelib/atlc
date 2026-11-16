@@ -1,0 +1,4 @@
+on_bar { target(1); }
+measures {
+  real var = cum_mean((ret - cum_mean(ret)) * (ret - cum_mean(ret)));
+}

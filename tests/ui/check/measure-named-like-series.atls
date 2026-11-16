@@ -1,0 +1,3 @@
+series { real spread = close - open; }
+on_bar { target(spread > 0 ? 1 : 0); }
+measures { real spread = cum_max(drawdown); }

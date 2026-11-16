@@ -1,0 +1,49 @@
+error[not-in-measures]: `keep` has no value in `measures {}`
+ --> tests/ui/check/not-in-measures-values.atls:9:12
+  |
+9 |   real a = keep;
+  |            ^^^^ not the curve
+  = a measure reads the curve (`equity`, `ret` and `drawdown` inside a reduction; `periods_per_year`, `fills`), earlier measures, numbers and functions
+
+error[not-in-measures]: `spread` has no value in `measures {}`
+  --> tests/ui/check/not-in-measures-values.atls:10:21
+   |
+10 |   real b = cum_mean(spread);
+   |                     ^^^^^^ not the curve
+   = a measure reads the curve (`equity`, `ret` and `drawdown` inside a reduction; `periods_per_year`, `fills`), earlier measures, numbers and functions
+
+error[not-in-measures]: `announced` has no value in `measures {}`
+  --> tests/ui/check/not-in-measures-values.atls:11:12
+   |
+11 |   real c = announced;
+   |            ^^^^^^^^^ not the curve
+   = a measure reads the curve (`equity`, `ret` and `drawdown` inside a reduction; `periods_per_year`, `fills`), earlier measures, numbers and functions
+
+error[not-in-measures]: `y` has no value in `measures {}`
+  --> tests/ui/check/not-in-measures-values.atls:12:12
+   |
+12 |   real d = y;
+   |            ^ not the curve
+   = a measure reads the curve (`equity`, `ret` and `drawdown` inside a reduction; `periods_per_year`, `fills`), earlier measures, numbers and functions
+
+error[not-in-measures]: `y.close` has no value in `measures {}`
+  --> tests/ui/check/not-in-measures-values.atls:13:20
+   |
+13 |   real e = cum_max(y.close);
+   |                    ^^^^^^^ not the curve
+   = a measure reads the curve (`equity`, `ret` and `drawdown` inside a reduction; `periods_per_year`, `fills`), earlier measures, numbers and functions
+
+error[not-in-measures]: `close` has no value in `measures {}`
+  --> tests/ui/check/not-in-measures-values.atls:14:12
+   |
+14 |   real f = close;
+   |            ^^^^^ not the curve
+   = a measure reads the curve (`equity`, `ret` and `drawdown` inside a reduction; `periods_per_year`, `fills`), earlier measures, numbers and functions
+
+error[not-in-measures]: `spread[1]` has no value in `measures {}`
+  --> tests/ui/check/not-in-measures-values.atls:15:20
+   |
+15 |   real g = cum_sum(spread[1]);
+   |                    ^^^^^^^^^ not the curve
+   = a measure reads the curve (`equity`, `ret` and `drawdown` inside a reduction; `periods_per_year`, `fills`), earlier measures, numbers and functions
+

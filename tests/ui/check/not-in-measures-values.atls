@@ -1,0 +1,16 @@
+instruments { y; x; }
+data { real announced; }
+series { real spread = y.close - x.close; }
+on_bar {
+  target(y, 1);
+  target(x, -1);
+}
+measures {
+  real a = keep;
+  real b = cum_mean(spread);
+  real c = announced;
+  real d = y;
+  real e = cum_max(y.close);
+  real f = close;
+  real g = cum_sum(spread[1]);
+}

@@ -1,0 +1,5 @@
+measures { real m = cum_mean(ret); }
+on_bar {
+  m = 1;
+  target(1);
+}

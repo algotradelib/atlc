@@ -1,0 +1,3 @@
+measures { real m = cum_mean(ret); }
+series { real above = close * (1 + m); }
+on_bar { target(above > close ? 1 : 0); }

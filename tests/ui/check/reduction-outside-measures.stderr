@@ -1,0 +1,7 @@
+error[reduction-outside-measures]: `cum_mean` is computed in `measures {}`
+ --> tests/ui/check/reduction-outside-measures.atls:2:10
+  |
+2 |   target(cum_mean(close) > close ? 100 : 0);
+  |          ^^^^^^^^^^^^^^^ not here
+  = a reduction runs over the finished replay's equity curve: nothing during the replay reads one
+

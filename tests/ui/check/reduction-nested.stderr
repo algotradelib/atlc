@@ -1,0 +1,14 @@
+error[reduction-outside-measures]: `cum_mean` inside a reduction's argument
+ --> tests/ui/check/reduction-nested.atls:3:30
+  |
+3 |   real var = cum_mean((ret - cum_mean(ret)) * (ret - cum_mean(ret)));
+  |                              ^^^^^^^^^^^^^ not here
+  = name the inner reduction as an earlier measure (`real m = cum_mean(ret);`) and read `m` here
+
+error[reduction-outside-measures]: `cum_mean` inside a reduction's argument
+ --> tests/ui/check/reduction-nested.atls:3:54
+  |
+3 |   real var = cum_mean((ret - cum_mean(ret)) * (ret - cum_mean(ret)));
+  |                                                      ^^^^^^^^^^^^^ not here
+  = name the inner reduction as an earlier measure (`real m = cum_mean(ret);`) and read `m` here
+

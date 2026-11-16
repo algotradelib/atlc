@@ -1,0 +1,2 @@
+series { real typical = cum_mean(close); }
+on_bar { target(close > typical ? 1 : 0); }

@@ -1,0 +1,3 @@
+measures { real m = cum_mean(ret); }
+params { real<lower=m> cap = 1; }
+on_bar { target(cap); }

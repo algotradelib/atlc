@@ -1,0 +1,16 @@
+error[measure-order]: measure `total` is not computed yet
+ --> tests/ui/check/measure-order.atls:3:17
+  |
+3 |   real calmar = total / cum_max(drawdown);
+  |                 ^^^^^ declared later
+4 |   real total = cum_last(equity) / cum_first(equity) - 1;
+  |        ----- declared here
+  = measures are computed in declaration order: a measure reads the ones before it
+
+error[measure-order]: measure `twice` is not computed yet
+ --> tests/ui/check/measure-order.atls:5:16
+  |
+5 |   real twice = twice + 1;
+  |                ^^^^^ the measure itself
+  = measures are computed in declaration order: a measure reads the ones before it
+

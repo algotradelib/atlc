@@ -1,0 +1,7 @@
+error[built-in-name]: `ret` is a built-in name
+ --> tests/ui/check/measure-named-ret.atls:2:17
+  |
+2 | measures { real ret = cum_mean(equity); }
+  |                 ^^^ choose another name
+  = in `measures {}`, `ret` is the curve's period return
+

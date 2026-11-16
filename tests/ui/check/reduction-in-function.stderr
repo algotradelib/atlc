@@ -1,0 +1,7 @@
+error[reduction-outside-measures]: `cum_sum` is computed in `measures {}`
+ --> tests/ui/check/reduction-in-function.atls:3:12
+  |
+3 |     return cum_sum(x);
+  |            ^^^^^^^^^^ not here
+  = a reduction runs over the finished replay's equity curve: nothing during the replay reads one
+

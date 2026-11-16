@@ -1,0 +1,9 @@
+error[measure-read]: `hit` is a measure
+ --> tests/ui/check/measure-read.atls:5:10
+  |
+2 |   real hit = cum_count(ret > 0) / cum_count(defined(ret));
+  |        --- declared in `measures {}`
+5 |   target(hit > 0.5 ? 100 : 0);
+  |          ^^^ computed after the replay
+  = measures are computed after the replay; nothing during it reads one
+

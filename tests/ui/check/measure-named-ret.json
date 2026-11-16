@@ -1,0 +1,1 @@
+{"severity":"error","code":"built-in-name","message":"`ret` is a built-in name","file":"tests/ui/check/measure-named-ret.atls","span":{"start":{"line":2,"column":17},"end":{"line":2,"column":20},"byte_start":38,"byte_end":41},"label":"choose another name","secondary":[],"notes":["in `measures {}`, `ret` is the curve's period return"]}

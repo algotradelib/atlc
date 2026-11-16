@@ -1,0 +1,7 @@
+error[named-argument-not-allowed]: `cum_mean` takes no named argument
+ --> tests/ui/check/measure-named-argument.atls:2:35
+  |
+2 | measures { real m = cum_mean(ret, missing = skip); }
+  |                                   ^^^^^^^ not here
+  = only indicators over one series take `missing = ...` (sma ema lag ts_sum stdev stdev_pop zscore, and rsi ts_max ts_min with restart or poison)
+

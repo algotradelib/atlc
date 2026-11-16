@@ -1,0 +1,7 @@
+measures { real m = cum_mean(ret); }
+functions {
+  real scaled(real x) {
+    return x * m;
+  }
+}
+on_bar { target(scaled(1)); }

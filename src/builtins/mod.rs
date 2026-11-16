@@ -1,5 +1,6 @@
 //! Every built-in of atls, with what the checker and the printer need to know of it: one table per kind of call
-//! (a function; a window over one series; a window over a pair; an output of a filter; a cross-section).
+//! (a function; a window over one series; a window over a pair; an output of a filter; a cross-section; a reduction
+//! over the equity curve).
 //! The rest of the compiler names no built-in: it asks these tables.
 //! The enums identify a built-in in the IR; the tables are private, behind the functions below.
 
@@ -71,6 +72,21 @@ pub enum XsOp {
     Count,
     /// 1 for the smallest defined value, then 2, ...; ties broken by instrument order.
     Rank,
+}
+
+/// Reductions over the finished replay's equity curve, in `measures {}`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum CumOp {
+    Sum,
+    Mean,
+    /// The sample standard deviation (n - 1 in the divisor).
+    Stdev,
+    Min,
+    Max,
+    First,
+    Last,
+    /// How many points have a defined true value.
+    Count,
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -995,7 +1011,113 @@ pub(crate) fn unknown_cross_section_note() -> String {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// Reductions
+
+/// Names beginning so are reductions over the equity curve, known or not.
+const REDUCTION_PREFIX: &str = "cum_";
+
+struct ReductionEntry {
+    id: CumOp,
+    name: &'static str,
+    /// The runtime's function: `atls::measures::NAME(in, f)`.
+    cpp: &'static str,
+    /// Takes a `bool` (it counts where it is true) instead of a number.
+    takes_bool: bool,
+}
+
+/// In the order the reference lists them.
+static REDUCTIONS: [ReductionEntry; 8] = [
+    ReductionEntry {
+        id: CumOp::Sum,
+        name: "cum_sum",
+        cpp: "sum",
+        takes_bool: false,
+    },
+    ReductionEntry {
+        id: CumOp::Mean,
+        name: "cum_mean",
+        cpp: "mean",
+        takes_bool: false,
+    },
+    ReductionEntry {
+        id: CumOp::Stdev,
+        name: "cum_stdev",
+        cpp: "stdev",
+        takes_bool: false,
+    },
+    ReductionEntry {
+        id: CumOp::Min,
+        name: "cum_min",
+        cpp: "min",
+        takes_bool: false,
+    },
+    ReductionEntry {
+        id: CumOp::Max,
+        name: "cum_max",
+        cpp: "max",
+        takes_bool: false,
+    },
+    ReductionEntry {
+        id: CumOp::First,
+        name: "cum_first",
+        cpp: "first",
+        takes_bool: false,
+    },
+    ReductionEntry {
+        id: CumOp::Last,
+        name: "cum_last",
+        cpp: "last",
+        takes_bool: false,
+    },
+    ReductionEntry {
+        id: CumOp::Count,
+        name: "cum_count",
+        cpp: "count",
+        takes_bool: true,
+    },
+];
+
+fn reduction_entry(op: CumOp) -> &'static ReductionEntry {
+    REDUCTIONS
+        .iter()
+        .find(|e| e.id == op)
+        .expect("every reduction has an entry")
+}
+
+impl CumOp {
+    pub fn name(self) -> &'static str {
+        reduction_entry(self).name
+    }
+}
+
+/// The reduction of this name.
+pub(crate) fn reduction(name: &str) -> Option<CumOp> {
+    REDUCTIONS.iter().find(|e| e.name == name).map(|e| e.id)
+}
+
+/// The reduction takes a `bool`, not a number.
+pub(crate) fn reduction_takes_bool(op: CumOp) -> bool {
+    reduction_entry(op).takes_bool
+}
+
+/// The runtime function computing the reduction.
+pub(crate) fn reduction_cpp(op: CumOp) -> &'static str {
+    reduction_entry(op).cpp
+}
+
+/// The note on an unknown name of the reduction family.
+pub(crate) fn unknown_reduction_note() -> String {
+    let names: Vec<&str> = REDUCTIONS.iter().map(|e| e.name).collect();
+    format!("reductions (measures {{}} only): {}", names.join(" "))
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // Names
+
+/// A name of the reduction family (`cum_...`), a built-in or not.
+pub(crate) fn in_reduction_family(name: &str) -> bool {
+    name.starts_with(REDUCTION_PREFIX)
+}
 
 /// A name of the cross-sectional family (`xs_...`), a built-in or not.
 pub(crate) fn in_cross_section_family(name: &str) -> bool {
@@ -1015,6 +1137,7 @@ pub(crate) fn is_builtin_name(name: &str) -> bool {
         || pair(name).is_some()
         || filter(name).is_some()
         || cross_section(name).is_some()
+        || reduction(name).is_some()
 }
 
 #[cfg(test)]
@@ -1092,6 +1215,29 @@ mod tests {
         }
     }
 
+    const REDUCTION_IDS: [CumOp; 8] = [
+        CumOp::Sum,
+        CumOp::Mean,
+        CumOp::Stdev,
+        CumOp::Min,
+        CumOp::Max,
+        CumOp::First,
+        CumOp::Last,
+        CumOp::Count,
+    ];
+    fn _reduction_ids(c: CumOp) {
+        match c {
+            CumOp::Sum
+            | CumOp::Mean
+            | CumOp::Stdev
+            | CumOp::Min
+            | CumOp::Max
+            | CumOp::First
+            | CumOp::Last
+            | CumOp::Count => {}
+        }
+    }
+
     /// Each member has exactly one entry, and each entry is a member's.
     fn one_entry_each<T: PartialEq + std::fmt::Debug>(members: &[T], ids: &[T]) {
         assert_eq!(members.len(), ids.len());
@@ -1110,6 +1256,7 @@ mod tests {
             &CROSS_SECTION_IDS,
             &CROSS_SECTIONS.iter().map(|e| e.id).collect::<Vec<_>>(),
         );
+        one_entry_each(&REDUCTION_IDS, &REDUCTIONS.iter().map(|e| e.id).collect::<Vec<_>>());
     }
 
     #[test]
@@ -1121,6 +1268,7 @@ mod tests {
             .chain(PAIRS.iter().map(|e| e.name))
             .chain(FILTERS.iter().map(|e| e.name))
             .chain(CROSS_SECTIONS.iter().map(|e| e.name))
+            .chain(REDUCTIONS.iter().map(|e| e.name))
             .collect();
         for n in &names {
             assert_eq!(names.iter().filter(|m| *m == n).count(), 1, "{n}");
@@ -1141,6 +1289,7 @@ mod tests {
         }
         assert_eq!(WINDOWS.iter().filter(|e| e.indexed).count(), 1);
         assert_eq!(FUNCTIONS.iter().filter(|e| e.proves_argument).count(), 1);
+        assert!(REDUCTIONS.iter().all(|e| in_reduction_family(e.name)));
         for e in &WINDOWS {
             for mode in [Indicators::Incremental, Indicators::Naive, Indicators::Exact] {
                 for policy in [Policy::Restart, Policy::Skip, Policy::Poison] {

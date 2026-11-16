@@ -1,0 +1,6 @@
+measures {
+  real hit = cum_count(ret > 0) / cum_count(defined(ret));
+}
+on_bar {
+  target(hit > 0.5 ? 100 : 0);
+}

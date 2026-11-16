@@ -89,6 +89,10 @@ impl Checker<'_> {
             Stmt::Assign { name, value, .. } if self.uctx.is_some() && self.lookup_local(&name.name).is_none() => {
                 let ctx = self.uctx.clone().unwrap();
                 let Some(i) = ctx.states.iter().position(|st| st.0 == name.name) else {
+                    if let Some((Name::Measure(_), decl)) = self.names.get(&name.name).cloned() {
+                        self.measure_read(&name.name, name.span, decl, true);
+                        return None;
+                    }
                     self.err(
                         Diag::new(
                             Code::AssignInFunction,
@@ -262,6 +266,10 @@ impl Checker<'_> {
                             name.span,
                             "a function or indicator",
                         ));
+                        None
+                    }
+                    Some((Name::Measure(_), decl)) => {
+                        self.measure_read(&name.name, name.span, decl, true);
                         None
                     }
                     Some((Name::Local, _)) => {
@@ -445,6 +453,11 @@ impl Checker<'_> {
             k,
             HandlerKind::OnBar | HandlerKind::OnFill | HandlerKind::OnOpen | HandlerKind::OnClose
         );
+        if k == HandlerKind::Measures
+            && let Some(v) = self.measure_expr(e)
+        {
+            return v;
+        }
         match &e.kind {
             ExprKind::Num(v, int) => Some(Self::h(HKind::Num(*v), if *int { Ty::Int } else { Ty::Real }, false)),
             ExprKind::Bool(b) => Some(Self::h(HKind::Bool(*b), Ty::Bool, false)),
@@ -534,6 +547,10 @@ impl Checker<'_> {
                         Some(Self::h(HKind::Data(i), Ty::Real, true))
                     }
                     Some((Name::Local, _)) => None,
+                    Some((Name::Measure(_), decl)) => {
+                        self.measure_read(n, e.span, decl, false);
+                        None
+                    }
                     Some((Name::Function(_) | Name::Indicator(_), decl)) => {
                         self.err(
                             Diag::new(
@@ -782,6 +799,10 @@ impl Checker<'_> {
                 let maybe = self.ir.functions[f].may_undef || hs.iter().any(|h| h.maybe);
                 Some(Self::h(HKind::UserCall(f, hs), ret, maybe))
             }
+            ExprKind::Call(name, _) if builtins::in_reduction_family(&name.name) => {
+                self.reduction_elsewhere(name, e.span);
+                None
+            }
             ExprKind::Call(name, _)
                 if self.uctx.is_some()
                     && (builtins::in_cross_section_family(&name.name)
@@ -879,7 +900,7 @@ impl Checker<'_> {
                         HandlerKind::OnStop => handlers.on_stop = Some(stmts),
                         HandlerKind::OnOpen => handlers.on_open = Some(stmts),
                         HandlerKind::OnClose => handlers.on_close = Some(stmts),
-                        HandlerKind::User => {}
+                        HandlerKind::User | HandlerKind::Measures => {}
                     }
                 }
             }

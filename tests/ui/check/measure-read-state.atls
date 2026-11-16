@@ -1,0 +1,3 @@
+measures { real m = cum_mean(ret); }
+state { real level = m; }
+on_bar { target(level); }

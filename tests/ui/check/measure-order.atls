@@ -1,0 +1,6 @@
+on_bar { target(1); }
+measures {
+  real calmar = total / cum_max(drawdown);
+  real total = cum_last(equity) / cum_first(equity) - 1;
+  real twice = twice + 1;
+}

@@ -106,16 +106,25 @@ impl Checker<'_> {
     pub(super) fn unknown(&mut self, n: &str, span: Span) {
         let mut d = Diag::new(Code::UnknownName, format!("unknown name `{}`", n), span, "not declared");
         let mut best: Option<(&str, usize)> = None;
-        let mut known: Vec<String> = self
-            .names
-            .keys()
-            .cloned()
-            .chain(
-                ["open", "high", "low", "close", "volume", "held", "keep"]
-                    .iter()
-                    .map(|s| s.to_string()),
-            )
-            .collect();
+        // In a measure: the curve and the measures before it; elsewhere: every name but a measure.
+        let mut known: Vec<String> = match self.measure {
+            Some(i) => self.ir.measures[..i]
+                .iter()
+                .map(|m| m.name.clone())
+                .chain(super::measures::curve_names().map(String::from))
+                .collect(),
+            None => self
+                .names
+                .iter()
+                .filter(|(_, (name, _))| !matches!(name, Name::Measure(_)))
+                .map(|(k, _)| k.clone())
+                .chain(
+                    ["open", "high", "low", "close", "volume", "held", "keep"]
+                        .iter()
+                        .map(|s| s.to_string()),
+                )
+                .collect(),
+        };
         // Sorted, so that of several names at the same distance the suggestion is always the same one.
         known.sort();
         for k in &known {

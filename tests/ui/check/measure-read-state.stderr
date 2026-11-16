@@ -1,0 +1,9 @@
+error[measure-read]: `m` is a measure
+ --> tests/ui/check/measure-read-state.atls:2:22
+  |
+1 | measures { real m = cum_mean(ret); }
+  |                 - declared in `measures {}`
+2 | state { real level = m; }
+  |                      ^ computed after the replay
+  = measures are computed after the replay; nothing during it reads one
+

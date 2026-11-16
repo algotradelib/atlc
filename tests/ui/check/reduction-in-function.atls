@@ -1,0 +1,6 @@
+functions {
+  real f(real x) {
+    return cum_sum(x);
+  }
+}
+on_bar { target(f(close)); }

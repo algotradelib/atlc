@@ -1,0 +1,2 @@
+state { real s = cum_sum(1); }
+on_bar { target(s); }

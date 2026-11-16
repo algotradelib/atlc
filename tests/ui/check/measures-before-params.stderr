@@ -1,0 +1,16 @@
+error[measure-read]: `excess` is a measure
+ --> tests/ui/check/measures-before-params.atls:5:17
+  |
+2 |   real excess = cum_mean(ret) - rf;
+  |        ------ declared in `measures {}`
+5 | on_bar { target(excess > 0 ? 1 : 0); }
+  |                 ^^^^^^ computed after the replay
+  = measures are computed after the replay; nothing during it reads one
+
+error[not-in-measures]: `rf` has no value in `measures {}`
+ --> tests/ui/check/measures-before-params.atls:2:33
+  |
+2 |   real excess = cum_mean(ret) - rf;
+  |                                 ^^ not the curve
+  = a measure reads the curve (`equity`, `ret` and `drawdown` inside a reduction; `periods_per_year`, `fills`), earlier measures, numbers and functions
+

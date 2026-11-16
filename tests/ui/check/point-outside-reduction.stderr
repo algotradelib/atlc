@@ -1,0 +1,7 @@
+error[point-outside-reduction]: `equity` is one value per point of the curve
+ --> tests/ui/check/point-outside-reduction.atls:3:16
+  |
+3 |   real total = equity / cum_first(equity) - 1;
+  |                ^^^^^^ outside a reduction
+  = a measure is one number: reduce the curve's level, as `cum_mean(equity)`
+

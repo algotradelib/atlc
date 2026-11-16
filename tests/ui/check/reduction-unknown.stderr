@@ -1,0 +1,7 @@
+error[unknown-function]: unknown function `cum_median`
+ --> tests/ui/check/reduction-unknown.atls:2:23
+  |
+2 | measures { real med = cum_median(ret); }
+  |                       ^^^^^^^^^^ not a function
+  = reductions (measures {} only): cum_sum cum_mean cum_stdev cum_min cum_max cum_first cum_last cum_count
+

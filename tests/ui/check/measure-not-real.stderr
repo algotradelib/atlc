@@ -1,0 +1,7 @@
+error[measure-not-real]: measure `trades` is `int`
+ --> tests/ui/check/measure-not-real.atls:2:12
+  |
+2 | measures { int trades = fills; }
+  |            ^^^ write `real`
+  = a measure is one number for the whole replay, undefined where it cannot be computed
+

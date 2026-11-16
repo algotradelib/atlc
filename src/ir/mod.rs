@@ -3,7 +3,7 @@
 
 use crate::frontend::ast::{BinOp, HandlerKind, Span, Ty, UnOp};
 
-pub use crate::builtins::{Builtin, Ind, KOut, PairInd, XsOp};
+pub use crate::builtins::{Builtin, CumOp, Ind, KOut, PairInd, XsOp};
 
 /// An expression fixed before the run: numbers and params only.
 #[derive(Clone, Debug, PartialEq)]
@@ -223,6 +223,41 @@ pub enum HKind {
     UValue(usize),
     /// In an indicator: how many values its window holds (missing ones left out).
     UCount,
+    /// In a measure: a value of the equity curve (per point inside a reduction, or one for the replay).
+    Curve(Curve),
+    /// In a measure: an earlier measure.
+    Measure(usize),
+    /// In a measure: a reduction over the curve's points of its argument.
+    Reduce(CumOp, Box<HExpr>),
+}
+
+/// What a measure reads of the finished replay.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Curve {
+    /// The curve's level at a point.
+    Equity,
+    /// The period return at a point.
+    Ret,
+    /// The decline from the largest level so far, as a fraction of it.
+    Drawdown,
+    /// The run's periods per year.
+    PeriodsPerYear,
+    /// The number of executions.
+    Fills,
+}
+
+impl Curve {
+    /// One value per point of the curve, read inside a reduction.
+    pub fn per_point(self) -> bool {
+        matches!(self, Curve::Equity | Curve::Ret | Curve::Drawdown)
+    }
+}
+
+/// A measure of `measures {}`: one number computed from the finished replay.
+#[derive(Clone, Debug)]
+pub struct Measure {
+    pub name: String,
+    pub expr: HExpr,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -357,7 +392,7 @@ impl Handlers {
             HandlerKind::OnStop => &self.on_stop,
             HandlerKind::OnOpen => &self.on_open,
             HandlerKind::OnClose => &self.on_close,
-            HandlerKind::User => &None,
+            HandlerKind::User | HandlerKind::Measures => &None,
         }
     }
 }
@@ -393,6 +428,8 @@ pub struct Ir {
     pub period_clock: bool,
     pub functions: Vec<FnIr>,
     pub indicators: Vec<IndIr>,
+    /// The measures of `measures {}`, in order.
+    pub measures: Vec<Measure>,
 }
 
 impl Default for Ir {
@@ -418,6 +455,7 @@ impl Default for Ir {
             period_clock: false,
             functions: vec![],
             indicators: vec![],
+            measures: vec![],
         }
     }
 }

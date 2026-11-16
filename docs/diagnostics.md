@@ -1535,6 +1535,102 @@ error[data-not-real]: data value `announced` is `bool`
 
 From `tests/ui/check/data-not-real.atls`.
 
+## Measures
+
+### `measure-not-real`
+
+A measure of `measures {}` declared `int` or `bool`: a measure is one `real` for the whole replay.
+
+```
+error[measure-not-real]: measure `trades` is `int`
+ --> tests/ui/check/measure-not-real.atls:2:12
+  |
+2 | measures { int trades = fills; }
+  |            ^^^ write `real`
+  = a measure is one number for the whole replay, undefined where it cannot be computed
+```
+
+From `tests/ui/check/measure-not-real.atls`.
+
+### `measure-read`
+
+Something outside `measures {}` reads or assigns a measure: a handler, a series, a state's initial value, a bound, a loop bound, or a function or indicator body.
+Measures are computed after the replay, so nothing during it can read one.
+
+```
+error[measure-read]: `hit` is a measure
+ --> tests/ui/check/measure-read.atls:5:10
+  |
+2 |   real hit = cum_count(ret > 0) / cum_count(defined(ret));
+  |        --- declared in `measures {}`
+5 |   target(hit > 0.5 ? 100 : 0);
+  |          ^^^ computed after the replay
+  = measures are computed after the replay; nothing during it reads one
+```
+
+From `tests/ui/check/measure-read.atls`.
+
+### `not-in-measures`
+
+A measure reads something other than the equity curve, earlier measures, numbers and calls of functions: a parameter, a series, a state, a data value, an instrument or its field, a bar field, `held`, `keep`, `fill.*`, `bars`, `periods`, a lag, an indicator or an `xs_*` value.
+
+```
+error[not-in-measures]: `rf` has no value in `measures {}`
+ --> tests/ui/check/not-in-measures.atls:4:34
+  |
+4 |   real sharpe = (cum_mean(ret) - rf) / cum_stdev(ret);
+  |                                  ^^ not the curve
+  = a measure reads the curve (`equity`, `ret` and `drawdown` inside a reduction; `periods_per_year`, `fills`), earlier measures, numbers and functions
+```
+
+From `tests/ui/check/not-in-measures.atls`.
+
+### `point-outside-reduction`
+
+`equity`, `ret` or `drawdown` read in a measure outside a reduction's argument: each is one value per point of the curve, and a measure is one number.
+
+```
+error[point-outside-reduction]: `equity` is one value per point of the curve
+ --> tests/ui/check/point-outside-reduction.atls:3:16
+  |
+3 |   real total = equity / cum_first(equity) - 1;
+  |                ^^^^^^ outside a reduction
+  = a measure is one number: reduce the curve's level, as `cum_mean(equity)`
+```
+
+From `tests/ui/check/point-outside-reduction.atls`.
+
+### `reduction-outside-measures`
+
+A `cum_` reduction outside `measures {}` (in a handler, a series, a constant, a function or indicator body), or inside another reduction's argument, where the inner one is named as an earlier measure instead.
+
+```
+error[reduction-outside-measures]: `cum_mean` is computed in `measures {}`
+ --> tests/ui/check/reduction-outside-measures.atls:2:10
+  |
+2 |   target(cum_mean(close) > close ? 100 : 0);
+  |          ^^^^^^^^^^^^^^^ not here
+  = a reduction runs over the finished replay's equity curve: nothing during the replay reads one
+```
+
+From `tests/ui/check/reduction-outside-measures.atls`.
+
+### `measure-order`
+
+A measure reads itself or a measure declared after it: measures are computed in declaration order.
+
+```
+error[measure-order]: measure `total` is not computed yet
+ --> tests/ui/check/measure-order.atls:3:17
+  |
+3 |   real calmar = total / cum_max(drawdown);
+  |                 ^^^^^ declared later
+4 |   real total = cum_last(equity) / cum_first(equity) - 1;
+  |        ----- declared here
+  = measures are computed in declaration order: a measure reads the ones before it
+```
+
+From `tests/ui/check/measure-order.atls`.
 ## Missing-value policies
 
 ### `unknown-option`

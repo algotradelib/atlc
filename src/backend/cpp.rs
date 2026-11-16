@@ -503,7 +503,7 @@ impl<'a> Printer<'a> {
             }
             HKind::Call(b, _) if e.ty == Ty::Int && builtins::int_result_may_throw(*b) => true,
             HKind::UserCall(..) => true,
-            HKind::Unary(_, a) | HKind::Xs(_, a, _) => Self::may_throw(a),
+            HKind::Unary(_, a) | HKind::Xs(_, a, _) | HKind::Reduce(_, a) => Self::may_throw(a),
             HKind::Binary(_, a, b) => Self::may_throw(a) || Self::may_throw(b),
             HKind::Ternary(c, a, b) => Self::may_throw(c) || Self::may_throw(a) || Self::may_throw(b),
             HKind::Call(_, args) => args.iter().any(Self::may_throw),
@@ -732,6 +732,35 @@ impl<'a> Printer<'a> {
                 ty: Ty::Int,
                 repr: Repr::Plain,
             },
+            HKind::Curve(c) => V {
+                code: match c {
+                    Curve::Equity => "p.equity_",
+                    Curve::Ret => "p.ret_",
+                    Curve::Drawdown => "p.drawdown_",
+                    Curve::PeriodsPerYear => "atls::measures::periods_per_year(in)",
+                    Curve::Fills => "atls::measures::fills(in)",
+                }
+                .into(),
+                ty: Ty::Real,
+                repr: Repr::Checked,
+            },
+            HKind::Measure(i) => V {
+                code: format!("m_{}", self.ir.measures[*i].name),
+                ty: Ty::Real,
+                repr: Repr::Checked,
+            },
+            HKind::Reduce(op, a) => {
+                let a = self.hexpr(a);
+                V {
+                    code: format!(
+                        "atls::measures::{}(in, [&]([[maybe_unused]] const atls::measures::Point& p) -> double {{ return {}; }})",
+                        builtins::reduction_cpp(*op),
+                        checked(&a)
+                    ),
+                    ty: Ty::Real,
+                    repr: Repr::Checked,
+                }
+            }
         }
     }
 

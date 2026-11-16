@@ -200,6 +200,8 @@ pub enum HandlerKind {
     OnClose,
     /// The body of a function of `functions {}` or of a user indicator: sees only its own names.
     User,
+    /// A measure's expression, computed after the replay: sees the curve and earlier measures.
+    Measures,
 }
 
 impl HandlerKind {
@@ -212,6 +214,7 @@ impl HandlerKind {
             HandlerKind::OnOpen => "on_open",
             HandlerKind::OnClose => "on_close",
             HandlerKind::User => "a function or indicator",
+            HandlerKind::Measures => "measures",
         }
     }
 }

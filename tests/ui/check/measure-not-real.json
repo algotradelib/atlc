@@ -1,0 +1,1 @@
+{"severity":"error","code":"measure-not-real","message":"measure `trades` is `int`","file":"tests/ui/check/measure-not-real.atls","span":{"start":{"line":2,"column":12},"end":{"line":2,"column":15},"byte_start":33,"byte_end":36},"label":"write `real`","secondary":[],"notes":["a measure is one number for the whole replay, undefined where it cannot be computed"]}

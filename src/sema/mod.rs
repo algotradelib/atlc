@@ -6,6 +6,7 @@ mod definedness;
 mod functions;
 mod handlers;
 mod instruments;
+mod measures;
 mod names;
 mod params;
 mod policies;
@@ -44,6 +45,8 @@ enum Name {
     Function(usize),
     /// A user indicator.
     Indicator(usize),
+    /// A measure of `measures {}`.
+    Measure(usize),
 }
 
 /// What a function's or indicator's body may see: its own names only.
@@ -86,6 +89,10 @@ struct Checker<'a> {
     nest: usize,
     /// Inside a function or indicator body.
     uctx: Option<UCtx>,
+    /// Checking the measure of this index: it reads the measures before it.
+    measure: Option<usize>,
+    /// Inside a reduction's argument, where the curve's points are read.
+    reducing: bool,
 }
 
 pub fn check(program: &Program, opts: &Options) -> Result<Ir, Vec<Diag>> {
@@ -102,6 +109,8 @@ pub fn check(program: &Program, opts: &Options) -> Result<Ir, Vec<Diag>> {
         refined: vec![],
         nest: 0,
         uctx: None,
+        measure: None,
+        reducing: false,
     };
     c.run(program);
     if c.errors.is_empty() { Ok(c.ir) } else { Err(c.errors) }
@@ -128,6 +137,8 @@ impl Checker<'_> {
         self.int_literals(program);
         self.duplicate_blocks(program);
         self.modes(program);
+        // Before every other declaration, so that a measure's name is known wherever its block is.
+        self.declare_measures(program);
         for item in &program.items {
             if let Item::Params(decls, _) = item {
                 for d in decls {
@@ -171,6 +182,7 @@ impl Checker<'_> {
         }
         self.handlers(program);
         self.handler_rules(program);
+        self.measures(program);
         self.liveness();
         self.whole_history();
     }

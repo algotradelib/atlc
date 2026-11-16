@@ -1,0 +1,4 @@
+on_bar { target(1); }
+measures {
+  real sharpe = cum_mean(rett) / cum_stdev(ret);
+}

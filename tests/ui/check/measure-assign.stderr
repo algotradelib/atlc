@@ -1,0 +1,9 @@
+error[measure-read]: cannot assign to measure `m`
+ --> tests/ui/check/measure-assign.atls:3:3
+  |
+1 | measures { real m = cum_mean(ret); }
+  |                 - declared in `measures {}`
+3 |   m = 1;
+  |   ^ computed after the replay
+  = measures are computed after the replay; nothing during it reads one
+

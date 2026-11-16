@@ -1,0 +1,8 @@
+error[int-literal-too-large]: this `int` literal is above 9e15 in magnitude
+ --> tests/ui/check/measure-int-literal.atls:2:38
+  |
+2 | measures { real big = cum_sum(ret) * 10000000000000000; }
+  |                                      ^^^^^^^^^^^^^^^^^ too large
+  = an `int` passes through a double on its way into the strategy, and loses precision past 2^53
+  = write a `real` with an exponent (`1e16`) if a real is meant
+

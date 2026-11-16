@@ -1,0 +1,9 @@
+error[measure-read]: `m` is a measure
+ --> tests/ui/check/measure-read-bound.atls:2:21
+  |
+1 | measures { real m = cum_mean(ret); }
+  |                 - declared in `measures {}`
+2 | params { real<lower=m> cap = 1; }
+  |                     ^ computed after the replay
+  = measures are computed after the replay; nothing during it reads one
+

@@ -1,0 +1,7 @@
+error[not-in-measures]: `xs_mean(1)` has no value in `measures {}`
+ --> tests/ui/check/not-in-measures-xs.atls:3:27
+  |
+3 | measures { real breadth = xs_mean(1); }
+  |                           ^^^^^^^^^^ not the curve
+  = a measure reads the curve (`equity`, `ret` and `drawdown` inside a reduction; `periods_per_year`, `fills`), earlier measures, numbers and functions
+

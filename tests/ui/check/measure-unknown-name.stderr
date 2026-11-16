@@ -1,0 +1,7 @@
+error[unknown-name]: unknown name `rett`
+ --> tests/ui/check/measure-unknown-name.atls:3:26
+  |
+3 |   real sharpe = cum_mean(rett) / cum_stdev(ret);
+  |                          ^^^^ not declared
+  = did you mean `ret`?
+

@@ -150,6 +150,10 @@ impl Checker<'_> {
         if n == "keep" {
             return Some(Self::h(HKind::Keep, Ty::Real, true));
         }
+        if let Some((Name::Measure(_), decl)) = self.names.get(n).cloned() {
+            self.measure_read(n, span, decl, false);
+            return None;
+        }
         let what = if ctx.is_fn {
             "a function sees only its arguments and locals"
         } else {

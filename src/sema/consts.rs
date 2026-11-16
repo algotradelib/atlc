@@ -1,6 +1,7 @@
 //! Constant expressions (numbers and parameters, fixed before the run), their values with the defaults
 //! and their ranges over every value the parameters' bounds allow.
 
+use crate::builtins;
 use crate::frontend::ast::*;
 use crate::frontend::diag::{Code, Diag};
 use crate::ir::*;
@@ -104,6 +105,10 @@ impl Checker<'_> {
                     }
                     Some((CExpr::Param(i), ty))
                 }
+                Some((Name::Measure(_), decl)) => {
+                    self.measure_read(n, e.span, decl, false);
+                    None
+                }
                 Some((_, decl)) => {
                     self.err(
                         Diag::new(
@@ -155,6 +160,10 @@ impl Checker<'_> {
                 let (b, tb) = self.cexpr(b, what, int_only)?;
                 let ty = if *op == BinOp::Div { Ty::Real } else { join_ty(ta, tb) };
                 Some((CExpr::Bin(*op, Box::new(a), Box::new(b)), ty))
+            }
+            ExprKind::Call(name, _) if builtins::in_reduction_family(&name.name) => {
+                self.reduction_elsewhere(name, e.span);
+                None
             }
             _ => {
                 self.err(Diag::new(

@@ -1,0 +1,2 @@
+on_bar { target(1); }
+measures { real m = cum_mean(ret, missing = skip); }

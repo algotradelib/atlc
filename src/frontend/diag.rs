@@ -137,6 +137,13 @@ codes! {
     UniverseLifecycleHandler = "universe-lifecycle-handler",
     // Data.
     DataNotReal = "data-not-real",
+    // Measures.
+    MeasureNotReal = "measure-not-real",
+    MeasureRead = "measure-read",
+    NotInMeasures = "not-in-measures",
+    PointOutsideReduction = "point-outside-reduction",
+    ReductionOutsideMeasures = "reduction-outside-measures",
+    MeasureOrder = "measure-order",
     // Missing-value policies.
     UnknownOption = "unknown-option",
     DuplicateOption = "duplicate-option",

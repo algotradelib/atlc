@@ -1,0 +1,3 @@
+on_bar {
+  target(cum_mean(close) > close ? 100 : 0);
+}

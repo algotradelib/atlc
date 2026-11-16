@@ -1,0 +1,17 @@
+error[duplicate-name]: `spread` is declared twice
+ --> tests/ui/check/measure-named-like-series.atls:1:15
+  |
+1 | series { real spread = close - open; }
+  |               ^^^^^^ second declaration
+3 | measures { real spread = cum_max(drawdown); }
+  |                 ------ first declared here
+
+error[measure-read]: `spread` is a measure
+ --> tests/ui/check/measure-named-like-series.atls:2:17
+  |
+2 | on_bar { target(spread > 0 ? 1 : 0); }
+  |                 ^^^^^^ computed after the replay
+3 | measures { real spread = cum_max(drawdown); }
+  |                 ------ declared in `measures {}`
+  = measures are computed after the replay; nothing during it reads one
+

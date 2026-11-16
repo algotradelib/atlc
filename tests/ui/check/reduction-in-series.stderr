@@ -1,0 +1,7 @@
+error[reduction-outside-measures]: `cum_mean` is computed in `measures {}`
+ --> tests/ui/check/reduction-in-series.atls:1:25
+  |
+1 | series { real typical = cum_mean(close); }
+  |                         ^^^^^^^^^^^^^^^ not here
+  = a reduction runs over the finished replay's equity curve: nothing during the replay reads one
+
