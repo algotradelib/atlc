@@ -66,7 +66,8 @@ It also states `atls_mode` (`"single"`, `"named"` or `"universe"`), `atls_sessio
 
 A program with `measures {}` also states one static function per measure, in declaration order: `static double measure_NAME(const atl::backtest::MeasureInput& in)` (`atl` is `algotradelib`).
 `algotradelib::backtest::measure_input(result, fills, periods_per_year)` builds the input from a finished replay; the function computes the measure from it, NaN where it is undefined, and keeps nothing between calls, so any thread may call it (the `extern` C++ it calls must then be thread-safe too).
-Each earlier measure it reads is computed once, before the curve is walked, so a measure costs one walk of the curve per reduction it states (two for `cum_stdev`).
+Each call computes the earlier measures it reads once each, before the curve is walked, and each of those computes its own the same way: nothing is shared between calls or between paths, so a measure shared further up a chain (one that two others read, both read by a third) is computed once for each path to it.
+A measure costs one walk of the curve per reduction it and those earlier measures state (two for `cum_stdev`), linear in the curve's length.
 An exception from a measure (an `int` overflow, the user's C++) leaves the function, as one from a handler leaves the run.
 The header then includes `atls/measures.hpp`, which needs an algotradelib built with Eigen ("The runtime", below).
 
