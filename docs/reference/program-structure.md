@@ -40,6 +40,23 @@ Each block kind appears at most once, except `indicator`, which appears once per
   }
   ```
 - `functions {}`, `indicator`: see [functions and indicators](functions-and-indicators.md).
+- `measures {}`: numbers computed from the finished replay, `real NAME = EXPR;` each, as Stan's `generated quantities` are computed after sampling:
+  - a measure reads the replay's equity curve, earlier measures, numbers, and calls of built-in functions and of `functions {}` (`extern` ones included); nothing else, so no parameter, series, state, data value, instrument, bar field, `held`, `keep`, `fill.*`, `bars`, `periods`, lag, indicator or `xs_*` value;
+  - the curve, read inside a reduction's argument ([built-ins](builtins.md), "Reductions"): `equity`, its level at each point; `ret`, the period return, undefined where the replay leaves it undefined (the first point, after an unvalued bar, after non-positive equity); `drawdown`, `(peak - equity) / peak` with `peak` the largest level so far, undefined where `peak` is at or below 0;
+  - anywhere in a measure: `periods_per_year`, the run's (undefined when the run gave none), and `fills`, the number of executions;
+  - these five names are contextual: inside `measures {}` they always mean the curve, ahead of the program's own names, so a program may keep a series named `ret`, which no measure reads; a measure must not take one of them;
+  - measures are computed in declaration order, and a measure reads only the ones before it;
+  - no handler, series, state or function reads a measure, so evaluating a run never steers its decisions; a runner computes them after the replay, through the generated struct's `measure_NAME` functions ([generated code](generated-code.md));
+  - every value in a measure may be undefined (a run with no point), and an undefined measure is NaN.
+
+  ```atls
+  measures {
+    real sharpe = cum_mean(ret) / cum_stdev(ret) * sqrt(periods_per_year);
+    real total = cum_last(equity) / cum_first(equity) - 1;
+    real calmar = total / cum_max(drawdown);
+    real hit = cum_count(ret > 0) / cum_count(defined(ret));
+  }
+  ```
 - There is no `replay {}` or `live {}` block: run settings belong to whatever runs the strategy (cmdatl's run settings, for one), live settings to the operator, not to a program.
 
 ## Handlers and when they run

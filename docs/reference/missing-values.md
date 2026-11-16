@@ -32,6 +32,8 @@ Under `skip` the lookback of `sma`, `ts_sum`, `stdev`, `stdev_pop` and `zscore` 
 For `ema` the lookback is a lower bound only: the value is defined once n values have been seen, however many periods that takes.
 Refusing `min =` on `lag` and `ema` is intended behaviour (the prototype accepted and ignored it).
 
+A measure's reductions skip undefined values and take no policy: neither a `missing =` argument nor `options { missing }` applies to them ([built-ins](builtins.md), "Reductions").
+
 ## In universes
 
 Under `skip` and `poison`, a universe runs on a period clock: every instrument takes every period ([instruments](instruments.md)).

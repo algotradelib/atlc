@@ -33,6 +33,7 @@ Since an `int` overflow stops the run, what an expression evaluates is part of i
 - A user function call evaluates every argument; then an undefined `real` or `bool` argument makes it undefined without running the body.
 - A loop's bounds are evaluated once, before its first pass; a range ending at the largest 64-bit integer stops after it.
 - In `series {}`, every part of every series expression is computed on every bar, both arms of `?:` and both sides of `and` and `or` included, since an indicator anywhere in a series must see every bar (a function called there still follows the rules above inside its body).
+- In a measure, the same rules hold; a reduction (`cum_mean`, ...) evaluates its argument at every point of the curve and skips the undefined values, and each earlier measure a measure reads is computed once, before the curve is walked.
 - In a universe handler, a cross-sectional reduction (`xs_mean`, `xs_sum`, `xs_count`, `xs_rank`) is computed over every active instrument before its statement runs, whatever the conditions around it: a condition cannot guard what a reduction evaluates ([instruments](instruments.md)).
 
 ## Defined `int` and `bool` state

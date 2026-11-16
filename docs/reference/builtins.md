@@ -34,6 +34,26 @@ Each is undefined when an argument is, except `defined`, which is always defined
 Each window's arithmetic is the one the build's `--indicators` names ([types](types-and-definedness.md), "Arithmetic").
 Lookbacks: [program structure](program-structure.md); missing values: [missing values](missing-values.md).
 
+## Reductions (`measures {}` only)
+
+Each reduces its one argument over every point of the replay's equity curve, oldest first, using the points where the argument is defined.
+
+| Reduction | Over the points where its argument is defined | With none |
+| --- | --- | --- |
+| `cum_sum(x)` | the sum, oldest first | 0 |
+| `cum_mean(x)` | the mean | undefined |
+| `cum_stdev(x)` | the sample standard deviation (divisor n - 1), in two passes: the mean, then the squared deviations from it | undefined below two |
+| `cum_min(x)`, `cum_max(x)` | the smallest, the largest | undefined |
+| `cum_first(x)`, `cum_last(x)` | the first, the last defined value | undefined |
+| `cum_count(c)` | how many points have `c` defined and true | 0 |
+
+- `x` is a number (an `int` widens) and `c` a `bool`; the result is a `real`, `cum_count`'s a whole number.
+- A reduction takes one argument and no named one (`missing =` is refused): it always skips undefined values, and `options { missing }` does not touch it ([missing values](missing-values.md)).
+- A reduction inside another's argument is refused: name the inner one as an earlier measure (`real m = cum_mean(ret); real v = cum_mean((ret - m) * (ret - m));`).
+- The points are the curve as the replay recorded it: warm-up periods included (flat equity, zero returns), one per bar or per period as the run records them, up to the halt of a halted replay, none when the run records no curve.
+- `cum_max(drawdown)` is the maximum drawdown and `cum_mean(ret) / cum_stdev(ret)` the per-period Sharpe ratio, as the library computes them (to rounding: the library may order its additions differently).
+- No quantile and no financial figure (`cagr`, `calmar`) is built in: write them from these, or in your own C++ (`extern real f(real x);` called in a measure).
+
 ## In universes
 
 `xs_mean`, `xs_sum`, `xs_count`, `xs_rank`, `bars`, `periods`: see [instruments](instruments.md).

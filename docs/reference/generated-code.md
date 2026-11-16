@@ -64,6 +64,12 @@ For a runner, the struct also states `warmup_bars()`, the history requested by a
 It also states `atls_mode` (`"single"`, `"named"` or `"universe"`), `atls_session`, `atls_instruments()`, `atls_params()`, `atls_reads_data` (whether it has `data {}`) and `atls_data()` (its names, in order; empty without it).
 `atls_on_open` and `atls_on_close` state whether the program has each; a program with either also states `session_opens()` and `session_closes()`, the sessions a bar has opened and closed so far, so a runner can refuse a run that met none, and `session_outside_bars()`, the bars wholly before a session's open or after its close (pre-market or after-hours data, which still enter the series).
 
+A program with `measures {}` also states one static function per measure, in declaration order: `static double measure_NAME(const atl::backtest::MeasureInput& in)` (`atl` is `algotradelib`).
+`algotradelib::backtest::measure_input(result, fills, periods_per_year)` builds the input from a finished replay; the function computes the measure from it, NaN where it is undefined, and keeps nothing between calls, so any thread may call it (the `extern` C++ it calls must then be thread-safe too).
+Each earlier measure it reads is computed once, before the curve is walked, so a measure costs one walk of the curve per reduction it states (two for `cum_stdev`).
+An exception from a measure (an `int` overflow, the user's C++) leaves the function, as one from a handler leaves the run.
+The header then includes `atls/measures.hpp`, which needs an algotradelib built with Eigen ("The runtime", below).
+
 ### Limit orders
 
 With `set_order_pricing(atl::OrderType::LIMIT, offset)`, the strategy gives each target it submits a limit price; the same code runs in a backtest and in a live run.
@@ -87,14 +93,14 @@ How a limit fills, and when it expires, is up to the runner; [cmdatl's run setti
 
 ## The program's facts
 
-`atlc check FILE.atls --info` gives a tool what it needs to drive a program's header before building it: the struct's name, the mode, the instruments, whether it has session handlers, the parameters and the data values.
+`atlc check FILE.atls --info` gives a tool what it needs to drive a program's header before building it: the struct's name, the mode, the instruments, whether it has session handlers, the parameters, the data values and the measures.
 It prints exactly one JSON object on one line of standard output, whatever happened, and nothing on standard error:
 
 ```json
 {"atlc_info":1,"status":"ok","atlc":"0.0.0-9000",
  "program":{"path":"/abs/pairs.atls","struct":"Pairs","mode":"named","instruments":["y","x"],"session":false,
             "params":[{"name":"lookback","type":"int"},{"name":"entry","type":"real"},{"name":"short","type":"bool"}],
-            "data":[]},
+            "data":[],"measures":[]},
  "diagnostics":[]}
 ```
 
@@ -111,6 +117,7 @@ It prints exactly one JSON object on one line of standard output, whatever happe
 | `program.session` | boolean | whether the program has `on_open` or `on_close` (the struct's `atls_session`) |
 | `program.params` | array | each parameter's `name` and `type` (`"int"`, `"real"` or `"bool"`), in declaration order |
 | `program.data` | array | each value of `data {}`, its `name` and `type` (`"real"`), in declaration order (a record's `name_`) |
+| `program.measures` | array | each measure of `measures {}`, its `name` and `type` (`"real"`), in declaration order (the struct's `measure_NAME` functions) |
 | `diagnostics` | array | warnings and errors, below |
 
 Each diagnostic is `{"severity", "code", "message", "file", "line", "origin"}`:
@@ -135,6 +142,7 @@ Exit code 101 is an internal error of `atlc`, the one case that writes to standa
 | --- | --- |
 | `atls/ops.hpp` | Rings, the built-in indicators in each arithmetic, the three-valued operators on undefined values, the target rule and its pricing (`atls::ops::OrderPricing`) |
 | `atls/universe.hpp` | One single-instrument strategy over several instruments: `atls::Universe<S>` forwards each bar to the strategy trading its instrument, `atls::UniverseBars<S>` each bar of a slice |
+| `atls/measures.hpp` | The points of a finished replay's equity curve (`atls::measures::Point`) and the reductions a program's measures call; every read of `algotradelib::backtest::MeasureInput` is here |
 
 `atlc` carries the runtime headers it generates code for, compiled into it, and `--emit-runtime` writes them out as they are.
 A generated header and a runtime from different `atlc` versions are not checked against each other: a project that keeps generated headers must regenerate them and write the runtime out (`atlc build --emit-runtime DIR`) with the same `atlc`.
@@ -143,6 +151,7 @@ The first line of a generated header names the `atlc` that wrote it.
 The runtime includes algotradelib's `strategy` headers.
 `atlc` runs no strategy: [cmdatl](https://github.com/algotradelib/cmdatl) backtests and runs generated strategies from the command line, and a project's own `main` compiles them as below ("Compiling exported strategies"), with cmdatl's installed `cmdatl/replay/` headers if it wants cmdatl's data loaders and report.
 `--indicators naive` solves `ols_slope` and `ols_intercept` with Eigen, so it needs an algotradelib built with Eigen (`ATL_USE_EIGEN=ON`, the default); without it, such a strategy fails to compile with a message saying so.
+So does a program with `measures {}`: `atls/measures.hpp` includes algotradelib's `backtest` headers, which declare `MeasureInput` only with Eigen, and stops with an `#error` saying so without it.
 
 ## Compiling exported strategies
 
