@@ -6,6 +6,7 @@
 | --- | --- |
 | `atls/ops.hpp` | Rings, the built-in indicators in each arithmetic, the three-valued operators on undefined values, the target rule and its pricing |
 | `atls/universe.hpp` | One single-instrument strategy run over several instruments |
+| `atls/measures.hpp` | The points of a finished replay's equity curve and the reductions of `measures {}`; it needs algotradelib built with Eigen |
 
 They are plain hand-written files: `atlc` compiles them into its binary, so it carries the runtime it generates code for, and `atlc build --emit-runtime DIR` writes them into `DIR/atls/` as they are.
 A project that keeps generated strategies regenerates them and writes the runtime out with the same `atlc`: nothing checks a header against a runtime from another version.
