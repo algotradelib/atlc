@@ -2,7 +2,7 @@
 
 ## Functions
 
-Usable in series, in handlers and in function and indicator bodies; not in constant contexts (state initializers, bounds, window lengths).
+Usable in series, in handlers, in function and indicator bodies and in measures; not in constant contexts (state initializers, bounds, window lengths).
 Each is undefined when an argument is, except `defined`, which is always defined.
 
 | Function | Result |
