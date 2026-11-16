@@ -58,14 +58,23 @@ fn info_in(cwd: &Path, args: &[&str]) -> (i32, Json) {
         let p = v.get("program");
         assert_eq!(
             p.keys(),
-            ["path", "struct", "mode", "instruments", "session", "params", "data"]
+            [
+                "path",
+                "struct",
+                "mode",
+                "instruments",
+                "session",
+                "params",
+                "data",
+                "measures"
+            ]
         );
         assert!(Path::new(p.get("path").str()).is_absolute(), "{p:?}");
         for param in p.get("params").arr() {
             assert_eq!(param.keys(), ["name", "type"]);
             assert!(["int", "real", "bool"].contains(&param.get("type").str()), "{param:?}");
         }
-        for value in p.get("data").arr() {
+        for value in p.get("data").arr().iter().chain(p.get("measures").arr()) {
             assert_eq!(value.keys(), ["name", "type"]);
             assert_eq!(value.get("type").str(), "real", "{value:?}");
         }
@@ -196,6 +205,24 @@ fn data_names_in_order() {
     let (code, v) = info(&["examples/pairs.atls"]);
     assert_eq!(code, 0);
     assert!(v.get("program").get("data").arr().is_empty());
+}
+
+#[test]
+fn measure_names_in_order() {
+    let (code, v) = info(&["tests/generated/programs/measures.atls"]);
+    assert_eq!(code, 0);
+    let names: Vec<&str> = v
+        .get("program")
+        .get("measures")
+        .arr()
+        .iter()
+        .map(|m| m.get("name").str())
+        .collect();
+    assert_eq!(names[..3], ["mean_ret", "var_ret", "sharpe"]);
+    assert_eq!(names.len(), 11);
+    let (code, v) = info(&["examples/pairs.atls"]);
+    assert_eq!(code, 0);
+    assert!(v.get("program").get("measures").arr().is_empty());
 }
 
 #[test]

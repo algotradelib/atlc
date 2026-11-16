@@ -237,14 +237,20 @@ fn program_json(path: &std::path::Path, name: &str, ir: &Ir) -> String {
         .iter()
         .map(|n| format!("{{\"name\":{},\"type\":\"real\"}}", json_string(n)))
         .collect();
+    let measures: Vec<String> = ir
+        .measures
+        .iter()
+        .map(|m| format!("{{\"name\":{},\"type\":\"real\"}}", json_string(&m.name)))
+        .collect();
     format!(
-        "{{\"path\":{},\"struct\":{},\"mode\":\"{mode}\",\"instruments\":[{}],\"session\":{},\"params\":[{}],\"data\":[{}]}}",
+        "{{\"path\":{},\"struct\":{},\"mode\":\"{mode}\",\"instruments\":[{}],\"session\":{},\"params\":[{}],\"data\":[{}],\"measures\":[{}]}}",
         json_string(&path.display().to_string()),
         json_string(name),
         instruments.join(","),
         ir.session,
         params.join(","),
-        data.join(",")
+        data.join(","),
+        measures.join(",")
     )
 }
 
