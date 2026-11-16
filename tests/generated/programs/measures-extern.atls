@@ -1,0 +1,14 @@
+// A chain of three measures, each reading the one before, whose first reduction calls an external function that
+// counts its calls (tests/generated/test-measures.cpp): computing the last walks the curve once per reduction, so the
+// function runs once per defined return, not once per point and measure.
+functions {
+  extern real counted(real x);
+}
+on_bar {
+  target(close > 1000 ? 10 : 0);
+}
+measures {
+  real a = cum_mean(counted(ret));
+  real b = cum_mean(ret - a);
+  real c = cum_sum(ret * b);
+}

@@ -13,3 +13,13 @@ target_include_directories(test-ops PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../inclu
 target_link_libraries(test-ops PRIVATE Catch2::Catch2WithMain)
 atlc_test_target(test-ops)
 add_test(NAME test-ops COMMAND test-ops)
+
+if(ATLC_HAS_MEASURE_INPUT)
+  add_executable(test-measures test-measures.cpp)
+  target_include_directories(test-measures PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+  target_link_libraries(test-measures PRIVATE Catch2::Catch2WithMain)
+  atlc_test_target(test-measures)
+  add_test(NAME test-measures COMMAND test-measures)
+else()
+  message(STATUS "${ATLC_PENDING_MEASURES}")
+endif()

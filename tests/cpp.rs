@@ -5,7 +5,8 @@
 //! They need CMake, a C++17 compiler, Catch2 3 and an algotradelib installed with its CMake package (built with
 //! Eigen), whose prefix `ATLC_TEST_PREFIX` names; without it they pass with a message and run nothing.
 //! `ATLC_TEST_SANITIZE=1` builds and runs everything a second time with AddressSanitizer and
-//! UndefinedBehaviorSanitizer (Clang or GCC).
+//! UndefinedBehaviorSanitizer (Clang or GCC). The tests of measures need an algotradelib that declares
+//! `backtest::MeasureInput`; against one that does not, CMake leaves them out and the test says they are pending.
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -131,6 +132,15 @@ fn cmake(name: &str, source: &Path, out: Option<&Path>, prefix: &str) {
             configure.arg(format!("-DATLC_OUT={include}"));
         }
         run(&mut configure, &dir.join("configure.log"));
+        // Tests CMake leaves out for a library that lacks what they need (straight to the terminal, as `prefix`).
+        let log = std::fs::read_to_string(dir.join("configure.log")).unwrap_or_default();
+        for line in log
+            .lines()
+            .filter_map(|l| l.split_once("ATLC_PENDING: "))
+            .filter(|_| !sanitized)
+        {
+            let _ = writeln!(std::io::stderr(), "\n{name}: pending: {}", line.1);
+        }
         run(
             Command::new("cmake")
                 .arg("--build")
@@ -272,6 +282,23 @@ fn generated_strategies() {
         );
     }
     generate(&out, "extern_std", &programs.join("extern-std.atls"), &[], &[]);
+    // Measures: compiled only where the library has `MeasureInput` (tests/support/atlc-test.cmake).
+    let measures = programs.join("measures.atls");
+    generate(&out, "measures_single", &measures, &[], &[]);
+    generate(
+        &out,
+        "measures_universe",
+        &measures,
+        &[],
+        &[("params {", "universe {}\nparams {")],
+    );
+    generate(
+        &out,
+        "measures_extern",
+        &programs.join("measures-extern.atls"),
+        &[],
+        &[],
+    );
     emit_runtime(&out);
     cmake("generated", &root().join("tests/generated"), Some(&out), &prefix);
 }

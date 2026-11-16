@@ -13,6 +13,16 @@ option(ATLC_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitizer
 
 find_package(algotradelib CONFIG REQUIRED)
 
+# Whether this algotradelib declares backtest::MeasureInput, which `measures {}` reads (only with Eigen): the tests of
+# measures are built only where it does, and otherwise say so with ATLC_PENDING_MEASURES, which tests/cpp.rs prints.
+include(CheckCXXSourceCompiles)
+set(CMAKE_REQUIRED_LIBRARIES algotradelib::algotradelib)
+check_cxx_source_compiles(
+  "#include <algotradelib/backtest>\nint main() { return sizeof(algotradelib::backtest::MeasureInput) > 0 ? 0 : 1; }"
+  ATLC_HAS_MEASURE_INPUT)
+unset(CMAKE_REQUIRED_LIBRARIES)
+set(ATLC_PENDING_MEASURES "ATLC_PENDING: this algotradelib has no backtest::MeasureInput, so the tests of measures are not built")
+
 # Adds the flags above to `target`.
 function(atlc_test_target target)
   target_link_libraries(${target} PRIVATE algotradelib::algotradelib)
