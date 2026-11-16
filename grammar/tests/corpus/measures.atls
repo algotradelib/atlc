@@ -1,0 +1,12 @@
+// A `measures {}` block, before the handlers and after them: `ret` is a series of the program and, inside the block,
+// the curve's period return.
+measures {
+  real m = cum_mean(ret);
+  real v = cum_mean((ret - m) * (ret - m)) / cum_count(defined(ret));
+}
+series {
+  real ret = close / close[1] - 1;
+}
+on_bar {
+  target(ret > 0 ? 1 : 0);
+}

@@ -234,6 +234,8 @@ pub enum Item {
     Functions(Vec<FunctionDef>, Span),
     /// `indicator mean_sd(real x, int n) { ... }`: a streaming indicator for `series {}`.
     Indicator(IndicatorDef),
+    /// `measures { real sharpe = cum_mean(ret) / cum_stdev(ret); }`: numbers computed from the finished replay.
+    Measures(Vec<VarDecl>, Span),
 }
 
 /// A typed argument of a function or indicator.

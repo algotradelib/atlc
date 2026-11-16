@@ -63,7 +63,7 @@ fn diagnostic_only(p: &Program) -> bool {
         Item::Params(d, _) => d
             .iter()
             .any(|d| expr(&d.default) || d.lower.iter().chain(&d.upper).any(expr)),
-        Item::Series(d, _) | Item::State(d, _) => d.iter().any(|d| expr(&d.init)),
+        Item::Series(d, _) | Item::State(d, _) | Item::Measures(d, _) => d.iter().any(|d| expr(&d.init)),
         Item::Handler(_, body, _) => stmts(body),
         Item::Options(o, _) => o.iter().any(|(_, e)| expr(e)),
         Item::Functions(f, _) => f.iter().any(|f| stmts(&f.body)),

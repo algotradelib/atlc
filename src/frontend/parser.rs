@@ -42,7 +42,7 @@ pub const MAX_DEPTH: usize = 256;
 type R<T> = Result<T, Diag>;
 
 /// Words reserved everywhere ([syntax](docs/reference/syntax.md)).
-pub const KEYWORDS: [&str; 32] = [
+pub const KEYWORDS: [&str; 33] = [
     "params",
     "series",
     "state",
@@ -75,11 +75,12 @@ pub const KEYWORDS: [&str; 32] = [
     "functions",
     "indicator",
     "return",
+    "measures",
 ];
 
 /// The words error recovery stops at. Not `warmup`: it also begins an option and an indicator's part, which a
 /// broken item may still hold, so stopping there would misreport them as the removed top-level statement.
-const BLOCKS: [&str; 16] = [
+const BLOCKS: [&str; 17] = [
     "params",
     "series",
     "state",
@@ -96,9 +97,10 @@ const BLOCKS: [&str; 16] = [
     "options",
     "functions",
     "indicator",
+    "measures",
 ];
 
-const BLOCKS_NOTE: &str = "blocks: instruments {}, universe {}, data {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}";
+const BLOCKS_NOTE: &str = "blocks: instruments {}, universe {}, data {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}, measures {}";
 
 const REPLAY_NOTE: &str =
     "a program holds no run settings: data, dates, costs and fills go in cmdatl's run spec or on its command line";
@@ -269,7 +271,7 @@ impl Parser<'_> {
                 let end = self.expect_punct("}", "to close `params`")?;
                 Ok(Item::Params(decls, t.span.to(end)))
             }
-            "series" | "state" => {
+            "series" | "state" | "measures" => {
                 self.bump();
                 self.expect_punct("{", &format!("after `{}`", word))?;
                 let mut decls = vec![];
@@ -283,7 +285,12 @@ impl Parser<'_> {
                     }
                 }
                 let end = self.expect_punct("}", &format!("to close `{}`", word))?;
-                Ok(if word == "series" { Item::Series(decls, t.span.to(end)) } else { Item::State(decls, t.span.to(end)) })
+                let span = t.span.to(end);
+                Ok(match word.as_str() {
+                    "series" => Item::Series(decls, span),
+                    "state" => Item::State(decls, span),
+                    _ => Item::Measures(decls, span),
+                })
             }
             "warmup" => {
                 // No longer an item: parsed on purpose so that the error shows the program's own warm-up as an option.

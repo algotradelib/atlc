@@ -1,0 +1,3 @@
+measures { real a = cum_sum(ret); }
+measures { }
+on_bar { target(1); }

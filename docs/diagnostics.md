@@ -111,7 +111,7 @@ error[expected-block]: expected a block, found `;`
   |
 4 | ;
   | ^ a program is made of blocks
-  = blocks: instruments {}, universe {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}
+  = blocks: instruments {}, universe {}, data {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}, measures {}
 ```
 
 From `tests/ui/syntax/stray-token.atls`.
@@ -126,7 +126,7 @@ error[unknown-block]: unknown block `strategy`
   |
 1 | strategy {
   | ^^^^^^^^ not a block
-  = blocks: instruments {}, universe {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}
+  = blocks: instruments {}, universe {}, data {}, options {}, functions {}, indicator NAME(...) {}, params {}, series {}, state {}, on_start {}, on_bar {}, on_open {}, on_close {}, on_fill {}, on_stop {}, measures {}
 ```
 
 From `tests/ui/syntax/unknown-block.atls`.

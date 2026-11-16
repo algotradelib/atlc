@@ -144,6 +144,7 @@ impl Checker<'_> {
                 Item::Data(_, s) => ("data", *s),
                 Item::Options(_, s) => ("options", *s),
                 Item::Functions(_, s) => ("functions", *s),
+                Item::Measures(_, s) => ("measures", *s),
                 Item::Indicator(_) => continue,
             };
             if let Some(prev) = seen.get(key) {

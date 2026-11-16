@@ -69,7 +69,9 @@ fn each_expr(program: &Program, f: &mut dyn FnMut(&Expr)) {
                     expr(&d.default, f);
                 }
             }
-            Item::Series(decls, _) | Item::State(decls, _) => decls.iter().for_each(|d| expr(&d.init, f)),
+            Item::Series(decls, _) | Item::State(decls, _) | Item::Measures(decls, _) => {
+                decls.iter().for_each(|d| expr(&d.init, f))
+            }
             Item::Handler(_, body, _) => stmts(body, f),
             Item::Options(settings, _) => settings.iter().for_each(|(_, v)| expr(v, f)),
             Item::Functions(defs, _) => defs.iter().for_each(|d| stmts(&d.body, f)),
