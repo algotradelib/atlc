@@ -37,7 +37,7 @@ fn build(source: &str, options: &Options) -> String {
 }
 
 /// The expected headers: each program with the default settings, the pairs program with `naive` (Eigen's least
-/// squares), and a program with external indicators and functions (from `tests/generated/programs/`).
+/// squares), and programs with external indicators and functions and with measures (from `tests/generated/programs/`).
 #[test]
 fn expected_headers() {
     let cases = [
@@ -52,6 +52,7 @@ fn expected_headers() {
             "IdentityExternMissing",
             Indicators::Incremental,
         ),
+        ("measures", "Measures", Indicators::Incremental),
     ];
     let bless = std::env::var_os("BLESS").is_some();
     let mut failed = vec![];

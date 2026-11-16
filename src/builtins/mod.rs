@@ -1019,8 +1019,6 @@ const REDUCTION_PREFIX: &str = "cum_";
 struct ReductionEntry {
     id: CumOp,
     name: &'static str,
-    /// The runtime's function: `atls::measures::NAME(in, f)`.
-    cpp: &'static str,
     /// Takes a `bool` (it counts where it is true) instead of a number.
     takes_bool: bool,
 }
@@ -1030,49 +1028,41 @@ static REDUCTIONS: [ReductionEntry; 8] = [
     ReductionEntry {
         id: CumOp::Sum,
         name: "cum_sum",
-        cpp: "sum",
         takes_bool: false,
     },
     ReductionEntry {
         id: CumOp::Mean,
         name: "cum_mean",
-        cpp: "mean",
         takes_bool: false,
     },
     ReductionEntry {
         id: CumOp::Stdev,
         name: "cum_stdev",
-        cpp: "stdev",
         takes_bool: false,
     },
     ReductionEntry {
         id: CumOp::Min,
         name: "cum_min",
-        cpp: "min",
         takes_bool: false,
     },
     ReductionEntry {
         id: CumOp::Max,
         name: "cum_max",
-        cpp: "max",
         takes_bool: false,
     },
     ReductionEntry {
         id: CumOp::First,
         name: "cum_first",
-        cpp: "first",
         takes_bool: false,
     },
     ReductionEntry {
         id: CumOp::Last,
         name: "cum_last",
-        cpp: "last",
         takes_bool: false,
     },
     ReductionEntry {
         id: CumOp::Count,
         name: "cum_count",
-        cpp: "count",
         takes_bool: true,
     },
 ];
@@ -1100,9 +1090,9 @@ pub(crate) fn reduction_takes_bool(op: CumOp) -> bool {
     reduction_entry(op).takes_bool
 }
 
-/// The runtime function computing the reduction.
+/// The runtime function computing the reduction, `atls::measures::NAME`: its name without the family's prefix.
 pub(crate) fn reduction_cpp(op: CumOp) -> &'static str {
-    reduction_entry(op).cpp
+    &reduction_entry(op).name[REDUCTION_PREFIX.len()..]
 }
 
 /// The note on an unknown name of the reduction family.

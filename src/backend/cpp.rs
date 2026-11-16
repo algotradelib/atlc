@@ -1406,6 +1406,9 @@ impl<'a> Printer<'a> {
         self.line(0, "#pragma once");
         self.line(0, "");
         self.line(0, "#include <atls/ops.hpp>");
+        if !self.ir.measures.is_empty() {
+            self.line(0, "#include <atls/measures.hpp>");
+        }
         self.line(0, "");
         self.line(0, "namespace atls {");
         self.line(0, "");
@@ -1913,9 +1916,58 @@ impl<'a> Printer<'a> {
             let name = self.kept_name(k);
             self.line(1, &format!("{} {}{{}};", ty, name));
         }
+        self.measure_functions();
         self.line(0, "};");
         self.line(0, "");
         self.line(0, "} // namespace atls");
+    }
+
+    /// One static function per measure, of the signature cmdatl's measure hook calls. Each earlier measure it reads
+    /// is computed once, before the curve is walked.
+    fn measure_functions(&mut self) {
+        fn reads(e: &HExpr, out: &mut Vec<usize>) {
+            match &e.kind {
+                HKind::Measure(j) => out.push(*j),
+                HKind::Unary(_, a) | HKind::Reduce(_, a) => reads(a, out),
+                HKind::Binary(_, a, b) => {
+                    reads(a, out);
+                    reads(b, out);
+                }
+                HKind::Ternary(c, a, b) => [c, a, b].iter().for_each(|x| reads(x, out)),
+                HKind::Call(_, args) | HKind::UserCall(_, args) => args.iter().for_each(|a| reads(a, out)),
+                _ => {}
+            }
+        }
+        let ir = self.ir;
+        for m in &ir.measures {
+            self.line(0, "");
+            self.line(
+                1,
+                &format!(
+                    "/** The measure `{}`, from `measures {{}}`: computed after the replay; NaN where it is undefined. */",
+                    m.name
+                ),
+            );
+            self.line(
+                1,
+                &format!(
+                    "static double measure_{}([[maybe_unused]] const atl::backtest::MeasureInput& in) {{",
+                    m.name
+                ),
+            );
+            self.fp_contract();
+            let mut earlier = vec![];
+            reads(&m.expr, &mut earlier);
+            earlier.sort_unstable();
+            earlier.dedup();
+            for j in earlier {
+                let n = &ir.measures[j].name;
+                self.line(2, &format!("const double m_{n} = measure_{n}(in);"));
+            }
+            let v = self.hexpr(&m.expr);
+            self.line(2, &format!("return {};", checked(&v)));
+            self.line(1, "}");
+        }
     }
 
     /// The cross-sectional values one statement reads, innermost first.
@@ -2362,6 +2414,7 @@ impl<'a> Printer<'a> {
         for m in &members {
             self.line(1, m);
         }
+        self.measure_functions();
         self.line(0, "};");
         self.line(0, "");
         self.line(0, "} // namespace atls");

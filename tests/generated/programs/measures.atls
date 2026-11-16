@@ -1,0 +1,26 @@
+// Measures after the replay: `ret` is a series of the program, and inside `measures {}` the curve's period return;
+// a chain of three measures (each reads the one before), a constant measure, and counts of a defined value and of
+// every point. The compiled test computes each from the curve by hand.
+params {
+  int<lower=2> n = 10;
+}
+series {
+  real ret = close / close[1] - 1;
+  real fast = sma(close, n);
+}
+on_bar {
+  target(ret > 0 and close > fast ? 10 : 0);
+}
+measures {
+  real mean_ret = cum_mean(ret);
+  real var_ret = cum_sum((ret - mean_ret) * (ret - mean_ret)) / (cum_count(defined(ret)) - 1);
+  real sharpe = mean_ret / sqrt(var_ret) * sqrt(periods_per_year);
+  real total = cum_last(equity) / cum_first(equity) - 1;
+  real max_dd = cum_max(drawdown);
+  real under = cum_count(drawdown > 0.01);
+  real points = cum_count(true);
+  real trades = fills;
+  real one = 1;
+  real lowest = cum_min(equity);
+  real sd = cum_stdev(ret);
+}
