@@ -105,6 +105,8 @@ TEST_CASE("each measure equals the figure computed from the curve") {
   CHECK(S::measure_trades(in) == static_cast<double>(outcome.result_.executions_.size()));
   CHECK(S::measure_one(in) == 1);
   CHECK(S::measure_lowest(in) == h.lowest_);
+  CHECK(S::measure_flat_sd(in) == 0);
+  CHECK(std::isnan(S::measure_flat_ratio(in)));
   // The program's series `ret` is the close-to-close return, whose mean is not the curve's.
   double closes = 0;
   for (std::size_t i = 1; i < series.bars_.size(); ++i) {

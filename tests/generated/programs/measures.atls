@@ -1,6 +1,7 @@
 // Measures after the replay: `ret` is a series of the program, and inside `measures {}` the curve's period return;
 // a chain of three measures (each reads the one before), a constant measure, and counts of a defined value and of
-// every point. The compiled test computes each from the curve by hand.
+// every point; and a constant 0.1 where `ret` is defined, whose deviation is 0 and whose ratio is undefined. The
+// compiled test computes each from the curve by hand.
 params {
   int<lower=2> n = 10;
 }
@@ -23,4 +24,6 @@ measures {
   real one = 1;
   real lowest = cum_min(equity);
   real sd = cum_stdev(ret);
+  real flat_sd = cum_stdev(ret * 0 + 0.1);
+  real flat_ratio = cum_mean(ret * 0 + 0.1) / flat_sd;
 }

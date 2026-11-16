@@ -111,6 +111,25 @@ TEST_CASE("a drawdown is undefined under a peak at or below 0, as the library's"
   CHECK(m::max(in, drawdown) == atl::analytics::max_drawdown(in.levels_).magnitude_);
 }
 
+TEST_CASE("identical values have no deviation, so the Sharpe ratio is undefined as the library's") {
+  // 0.1 is not a binary fraction: the mean of many rounds away from it, which must leave no deviation.
+  std::vector<double> levels;
+  std::vector<double> returns;
+  for (int i = 0; i < 40; ++i) {
+    levels.push_back(100 + i);
+    returns.push_back(i % 7 == 0 ? NaN : 0.1);
+  }
+  const auto result = curve(levels, returns);
+  const auto in = atl::backtest::measure_input(result, atl::backtest::NextBarFillModel{}, 252.0);
+  CHECK(m::stdev(in, ret) == 0);
+  CHECK(std::isnan(atls::ops::div(m::mean(in, ret), m::stdev(in, ret))));
+  CHECK(std::isnan(atl::analytics::sharpe(in.returns_)));
+  // One defined value is still below two.
+  CHECK(std::isnan(m::stdev(in, [](const m::Point& p) {
+    return p.equity_ == 101 ? 0.1 : NaN;
+  })));
+}
+
 TEST_CASE("the maximum drawdown and the Sharpe ratio equal the library's") {
   std::vector<double> levels{1000};
   std::vector<double> returns{NaN};

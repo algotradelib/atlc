@@ -114,19 +114,29 @@ double mean(const atl::backtest::MeasureInput& in, F f) {
  *   the squared deviations from it.
  * @param in The finished replay.
  * @param f The value at a point.
- * @return The deviation; NaN below two values.
+ * @return The deviation; NaN below two values; exactly 0 when every value equals the first (a mean that rounds away
+ *   from them must not leave a tiny deviation, as the library's `sharpe` refuses a constant series).
  */
 template <class F>
 double stdev(const atl::backtest::MeasureInput& in, F f) {
   ATLS_NO_FMA
   std::size_t n = 0;
+  double first = ops::NaN;
+  bool constant = true;
   const double m = mean(in, [&](const Point& p) {
     const double v = f(p);
-    n += std::isnan(v) ? 0 : 1;
+    if (!std::isnan(v)) {
+      first = n == 0 ? v : first;
+      constant = constant && v == first;
+      ++n;
+    }
     return v;
   });
   if (n < 2) {
     return ops::NaN;
+  }
+  if (constant) {
+    return 0;
   }
   double squares = 0;
   each_defined(in, f, [&](double v) {

@@ -219,7 +219,7 @@ fn measure_names_in_order() {
         .map(|m| m.get("name").str())
         .collect();
     assert_eq!(names[..3], ["mean_ret", "var_ret", "sharpe"]);
-    assert_eq!(names.len(), 11);
+    assert_eq!(names.len(), 13);
     let (code, v) = info(&["examples/pairs.atls"]);
     assert_eq!(code, 0);
     assert!(v.get("program").get("measures").arr().is_empty());

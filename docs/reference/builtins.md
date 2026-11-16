@@ -42,7 +42,7 @@ Each reduces its one argument over every point of the replay's equity curve, old
 | --- | --- | --- |
 | `cum_sum(x)` | the sum, oldest first | 0 |
 | `cum_mean(x)` | the mean | undefined |
-| `cum_stdev(x)` | the sample standard deviation (divisor n - 1), in two passes: the mean, then the squared deviations from it | undefined below two |
+| `cum_stdev(x)` | the sample standard deviation (divisor n - 1), in two passes: the mean, then the squared deviations from it; exactly 0 when every value is the same | undefined below two |
 | `cum_min(x)`, `cum_max(x)` | the smallest, the largest | undefined |
 | `cum_first(x)`, `cum_last(x)` | the first, the last defined value | undefined |
 | `cum_count(c)` | how many points have `c` defined and true | 0 |

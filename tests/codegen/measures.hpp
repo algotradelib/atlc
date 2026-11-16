@@ -221,6 +221,23 @@ struct Measures {
 #endif
     return atls::measures::stdev(in, [&]([[maybe_unused]] const atls::measures::Point& p) -> double { return p.ret_; });
   }
+
+  /** The measure `flat_sd`, from `measures {}`: computed after the replay; NaN where it is undefined. */
+  static double measure_flat_sd([[maybe_unused]] const atl::backtest::MeasureInput& in) {
+#if defined(__clang__)
+    #pragma clang fp contract(off)
+#endif
+    return atls::measures::stdev(in, [&]([[maybe_unused]] const atls::measures::Point& p) -> double { return ((p.ret_ * static_cast<double>(0)) + 0.1); });
+  }
+
+  /** The measure `flat_ratio`, from `measures {}`: computed after the replay; NaN where it is undefined. */
+  static double measure_flat_ratio([[maybe_unused]] const atl::backtest::MeasureInput& in) {
+#if defined(__clang__)
+    #pragma clang fp contract(off)
+#endif
+    const double m_flat_sd = measure_flat_sd(in);
+    return atls::ops::div(atls::measures::mean(in, [&]([[maybe_unused]] const atls::measures::Point& p) -> double { return ((p.ret_ * static_cast<double>(0)) + 0.1); }), m_flat_sd);
+  }
 };
 
 } // namespace atls
