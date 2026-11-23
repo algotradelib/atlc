@@ -3,5 +3,5 @@ error[unknown-function]: unknown function `cube`
   |
 2 |   target(cube(close));
   |          ^^^^ not a function
-  = functions: abs min max defined sign log sqrt round floor; indicators (series only): ma ema rsi lag roll_max roll_min roll_sum roll_stdev roll_stdev_biased roll_zscore ols_slope ols_intercept; cross-sectional (universe handlers): xs_mean xs_sum xs_count xs_rank
+  = functions: abs min max defined sign log sqrt round floor; indicators (series only): ma ema rsi lag roll_max roll_min roll_sum roll_stdev roll_stdev_biased roll_zscore roll_ols; cross-sectional (universe handlers): xs_mean xs_sum xs_count xs_rank
 

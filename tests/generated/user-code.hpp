@@ -143,7 +143,7 @@ private:
   double sum_{0};
 };
 
-/** @brief `ols_slope(y, x, n)` and `ols_intercept(y, x, n)` with `--indicators incremental`: running sums. */
+/** @brief `roll_ols(y, x, n)` with `--indicators incremental`: running sums. */
 class inc_ols {
 public:
   /** @brief A window of `n` pairs. */
@@ -189,13 +189,13 @@ private:
   double sxy_{0};
 };
 
-/** @brief `ols_slope` and `ols_intercept` with `--indicators exact`: running sums, as incremental. */
+/** @brief `roll_ols` with `--indicators exact`: running sums, as incremental. */
 class exact_ols : public inc_ols {
 public:
   using inc_ols::inc_ols;
 };
 
-/** @brief `ols_slope` and `ols_intercept` with `--indicators naive`: the normal equations of [x, 1] by Eigen's LLT. */
+/** @brief `roll_ols` with `--indicators naive`: the normal equations of [x, 1] by Eigen's LLT. */
 class naive_ols {
 public:
   /** @brief A window of `n` pairs. */

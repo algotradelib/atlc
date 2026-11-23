@@ -1,4 +1,4 @@
-error[member-not-indicator]: `.v` reads a value of a user indicator
+error[member-not-indicator]: `.v` reads a value of an indicator
  --> tests/ui/check/member-not-indicator.atls:5:12
   |
 5 |   real z = f(close).v;

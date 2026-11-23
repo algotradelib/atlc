@@ -50,7 +50,7 @@ series {
   real b4 = inc_sma(hole, n);
   real a5 = ma(hole, n, missing = poison);
   real b5 = inc_sma(hole, n, missing = poison);
-  real a6 = ols_slope(hole, x, n);
+  real a6 = roll_ols(hole, x, n).slope;
   real b6 = inc_ols(hole, x, n).slope;
   // Infinity minus infinity: undefined on every bar, though the checker takes it for always defined. The C++ is
   // still never given it: the indicator restarts on every bar and is never defined.

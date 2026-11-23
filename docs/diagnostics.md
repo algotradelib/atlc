@@ -838,7 +838,7 @@ error[unknown-function]: unknown function `cube`
   |
 2 |   target(cube(close));
   |          ^^^^ not a function
-  = functions: abs min max defined sign log sqrt round floor; indicators (series only): ma ema rsi lag roll_max roll_min roll_sum roll_stdev roll_stdev_biased roll_zscore ols_slope ols_intercept; cross-sectional (universe handlers): xs_mean xs_sum xs_count xs_rank
+  = functions: abs min max defined sign log sqrt round floor; indicators (series only): ma ema rsi lag roll_max roll_min roll_sum roll_stdev roll_stdev_biased roll_zscore roll_ols; cross-sectional (universe handlers): xs_mean xs_sum xs_count xs_rank
 ```
 
 From `tests/ui/check/unknown-function.atls`.
@@ -2056,10 +2056,10 @@ From `tests/ui/check/ambiguous-value.atls`.
 
 ### `member-not-indicator`
 
-`.name` after a call of something that is not a user indicator.
+`.name` after a call of something that is not an indicator.
 
 ```
-error[member-not-indicator]: `.v` reads a value of a user indicator
+error[member-not-indicator]: `.v` reads a value of an indicator
  --> tests/ui/check/member-not-indicator.atls:5:12
   |
 5 |   real z = f(close).v;

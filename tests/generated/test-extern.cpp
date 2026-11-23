@@ -70,7 +70,7 @@ TEST_CASE("ma and least squares and functions restated as external C++ give equa
   >(t::id_of("A"), {"A"}, {"A"}, events);
 }
 
-TEST_CASE("ols_slope and ols_intercept restated as an external indicator give equal values in every variant") {
+TEST_CASE("roll_ols restated as an external indicator give equal values in every variant") {
   const auto events = t::daily_events({t::walk("Y", 11, 2000), t::walk("X", 12, 2000)});
   const std::vector<atl::InstrumentId> ids{t::id_of("Y"), t::id_of("X")};
   same_bits<

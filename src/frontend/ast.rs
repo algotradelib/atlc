@@ -105,7 +105,7 @@ pub enum ExprKind {
     Field(Ident, Ident),
     /// `name = value` as a call's argument: `ma(close, 20, missing = skip)`.
     Named(Ident, Box<Expr>),
-    /// `mean_sd(close, 20).sd`: one value of a user indicator with several.
+    /// `mean_sd(close, 20).sd`: one value of an indicator (`roll_ols(y, x, 20).slope`).
     Member(Box<Expr>, Ident),
 }
 

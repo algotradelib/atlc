@@ -88,8 +88,8 @@ struct Pairs {
     ++bars_;
     const double f_y_close = atls::ops::to_double(bar_y->bar_.close_);
     const double f_x_close = atls::ops::to_double(bar_x->bar_.close_);
-    double s_hedge;
-    s_hedge = obj2_.update(f_y_close, f_x_close);
+    obj2_.update(f_y_close, f_x_close);
+    const double s_hedge = obj2_.slope();
     const double n3 = (s_hedge * f_x_close);
     const double s_spread = (f_y_close - n3);
     double s_z;
@@ -186,7 +186,7 @@ struct Pairs {
   std::size_t history_{0};
   atls::ops::Ring ring4_;
   atls::ops::Zscore ind5_;  // roll_zscore(s_spread, params_.lookback_)
-  atls::ops::OlsLlt<true> obj2_;
+  atls::ops::OlsLlt<> obj2_;
 };
 
 } // namespace atls

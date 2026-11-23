@@ -63,7 +63,7 @@ atls names the arithmetic of each indicator, and a build can choose among three 
 | `rsi` | running sums of gains and losses | summed again | sliding sums without subtraction |
 | `roll_stdev`, `roll_stdev_biased`, `roll_zscore` | running sums of values and squares | two passes over the window (mean, then squared deviations) | running sums, as `incremental` |
 | `roll_max`, `roll_min` | a monotonic queue | the window scanned again | a monotonic queue |
-| `ols_slope`, `ols_intercept` | running sums | least squares solved with Eigen | running sums |
+| `roll_ols` | running sums | least squares solved with Eigen | running sums |
 | `ma`, `roll_sum`, `roll_stdev`, `roll_stdev_biased`, `roll_zscore` under `missing = skip` | running sums over the values present | summed again; deviations in two passes over the values present | running sums, as `incremental` |
 | `roll_sum(x, n, m)` | running sum, in every mode | | |
 | `ema`, `lag` | their recurrence or ring, in every mode | | |

@@ -80,6 +80,9 @@ struct Checker<'a> {
     intervals: Vec<(f64, f64)>,
     defaults: Vec<f64>,
     consed: HashMap<String, usize>,
+    /// Lowering an indicator over a pair's inputs: identical expressions are merged even under `--share off`, so that
+    /// identical calls read the same nodes and share one fit.
+    cons_pair_inputs: bool,
     scopes: Vec<HashMap<String, usize>>,
     /// Which nodes each handler reads directly.
     reads: Vec<(HandlerKind, usize)>,
@@ -104,6 +107,7 @@ pub fn check(program: &Program, opts: &Options) -> Result<Ir, Vec<Diag>> {
         intervals: vec![],
         defaults: vec![],
         consed: HashMap::new(),
+        cons_pair_inputs: false,
         scopes: vec![],
         reads: vec![],
         refined: vec![],

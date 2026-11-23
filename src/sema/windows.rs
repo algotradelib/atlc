@@ -216,21 +216,25 @@ impl Checker<'_> {
         Some(self.add_node(NodeKind::Partial(input, window, min), Ty::Real, class, lb))
     }
 
-    /// `ols_slope(y, x, n)`, `ols_intercept(y, x, n)`: least squares of y on x over the last n bars.
-    pub(super) fn pair(&mut self, which: PairInd, args: &[Expr], span: Span) -> Option<usize> {
+    /// `roll_ols(y, x, n).slope` and `.intercept`: least squares of y on x over the last n bars, one fit for identical
+    /// calls; `value` is the value read, `None` for a bare call.
+    pub(super) fn pair(&mut self, name: &Ident, args: &[Expr], value: Option<&Ident>, span: Span) -> Option<usize> {
+        let n = name.name.as_str();
         if args.len() != 3 {
             self.err(Diag::new(
                 Code::IndicatorArity,
-                format!("`{}` takes (y, x, window)", which.name()),
+                format!("`{}` takes (y, x, window)", n),
                 span,
                 format!("{} argument(s)", args.len()),
             ));
             return None;
         }
+        let merging = std::mem::replace(&mut self.cons_pair_inputs, true);
         let (a, b) = (self.sexpr(&args[0]), self.sexpr(&args[1]));
-        let window = self.cexpr(&args[2], &format!("`{}`'s window", which.name()), true);
+        self.cons_pair_inputs = merging;
+        let window = self.cexpr(&args[2], &format!("`{}`'s window", n), true);
         let (a, b, (window, _)) = (a?, b?, window?);
-        if !self.real_input(a, &args[0], which.name()) || !self.real_input(b, &args[1], which.name()) {
+        if !self.real_input(a, &args[0], n) || !self.real_input(b, &args[1], n) {
             return None;
         }
         let lo = self.interval(&window).0;
@@ -238,7 +242,7 @@ impl Checker<'_> {
             self.err(
                 Diag::new(
                     Code::WindowBelowTwo,
-                    format!("`{}`'s window may be below 2", which.name()),
+                    format!("`{}`'s window may be below 2", n),
                     args[2].span,
                     "a line needs two points",
                 )
@@ -259,7 +263,34 @@ impl Checker<'_> {
         if !self.lookback_fits(&lb, span) {
             return None;
         }
-        // A flat x makes the slope undefined.
+        let names = builtins::pair_output_names(n);
+        let which = match value {
+            Some(v) => match builtins::pair_output(n, &v.name) {
+                Some(w) => w,
+                None => {
+                    self.err(Diag::new(
+                        Code::UnknownValue,
+                        format!("`{}` has no value `{}`", n, v.name),
+                        v.span,
+                        format!("values: {}", names.join(", ")),
+                    ));
+                    return None;
+                }
+            },
+            None => {
+                self.err(
+                    Diag::new(
+                        Code::AmbiguousValue,
+                        format!("`{}` has several values", n),
+                        span,
+                        "which one?",
+                    )
+                    .note(format!("write `{}(...).{}`", n, names[0])),
+                );
+                return None;
+            }
+        };
+        // A flat x makes both values undefined.
         Some(self.add_node(NodeKind::Pair(which, a, b, window), Ty::Real, Class::Maybe, lb))
     }
 
@@ -512,7 +543,7 @@ mod tests {
     fn lookbacks() {
         let ir = ok(&program(
             "real a = ma(close, n); real b = ma(ma(close, 20), 30); real c = lag(close, k); real d = close[2]; \
-             real e = rsi(close, 14); real f = roll_sum(close, 20, 5); real g = ols_slope(close, open, n); \
+             real e = rsi(close, 14); real f = roll_sum(close, 20, 5); real g = roll_ols(close, open, n).slope; \
              real i = a + c; real j = close; \
              real l = ma(close, 5) [2];",
         ));
@@ -586,7 +617,7 @@ mod tests {
         );
         // A lag, an RSI and a least-squares line over a partial sum.
         let p = "series { real p = roll_sum(close[1], 5, 1); real a = lag(p, 2); real b = rsi(p, 3); \
-                 real c = ols_slope(p, close, 10); }";
+                 real c = roll_ols(p, close, 10).intercept; }";
         for (read, whole) in [("a", 8.0), ("b", 9.0), ("c", 15.0)] {
             let (history, _) = history_and_gate(&format!("{p} on_bar {{ target({read}); }}"));
             assert_eq!(history, whole, "{read}");
@@ -664,7 +695,7 @@ mod tests {
             [Code::WindowBelowTwo]
         );
         assert_eq!(
-            errors("series { real a = ols_slope(close, open, 1); } on_bar { target(a); }"),
+            errors("series { real a = roll_ols(close, open, 1).slope; } on_bar { target(a); }"),
             [Code::WindowBelowTwo]
         );
         assert_eq!(
@@ -722,5 +753,40 @@ mod tests {
         // A series read only by a handler other than on_bar is kept for it.
         let ir = ok("series { real a = ma(close, 3); } state { real s = 0; } on_fill { s = a; } on_bar { target(s); }");
         assert_eq!(ir.kept, [ir.series[0].1]);
+    }
+    #[test]
+    fn ols_values() {
+        let series = |e: &str| errors(&format!("series {{ real a = {e}; }} on_bar {{ target(a); }}"));
+        let handler = |e: &str| errors(&format!("on_bar {{ target({e}); }}"));
+        assert_eq!(series("roll_ols(close, high, 5)"), [Code::AmbiguousValue]);
+        assert_eq!(series("roll_ols(close, high, 5).slop"), [Code::UnknownValue]);
+        assert_eq!(series("roll_ols(close, high, 1).slop"), [Code::WindowBelowTwo]);
+        assert_eq!(
+            series("roll_ols(close, high, 5, min = 2).slope"),
+            [Code::NamedArgumentNotAllowed]
+        );
+        assert_eq!(series("ma(close, 5).slope"), [Code::MemberNotIndicator]);
+        assert_eq!(handler("roll_ols(close, high, 5).slope"), [Code::IndicatorInHandler]);
+        assert_eq!(handler("roll_ols(close, high, 5)"), [Code::IndicatorInHandler]);
+        // The advice for a bare call reads one of its values.
+        let Err(e) = crate::check("on_bar { target(roll_ols(close, high, 5)); }") else {
+            panic!()
+        };
+        assert!(
+            e[0].notes[1].contains("`real x = roll_ols(close, high, 5).slope;`"),
+            "{:?}",
+            e[0].notes
+        );
+        // Old and unbound names are unknown functions.
+        assert_eq!(series("sma(close, 5)"), [Code::UnknownFunction]);
+        assert_eq!(series("ols_slope(close, high, 5)"), [Code::UnknownFunction]);
+        assert_eq!(handler("ols_typo(close)"), [Code::UnknownFunction]);
+        assert_eq!(handler("roll_typo(close)"), [Code::UnknownFunction]);
+        // Every program default is accepted: the fit always restarts.
+        for policy in ["restart", "skip", "poison"] {
+            ok(&format!(
+                "options {{ missing = {policy}; }} series {{ real a = roll_ols(close, high, 5).slope; }} on_bar {{ target(a); }}"
+            ));
+        }
     }
 }

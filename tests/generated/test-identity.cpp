@@ -44,7 +44,7 @@ TEST_CASE("the identity check sees a difference of one part in 1e15") {
   CHECK(outcome.result_.executions_.size() > 100);
 }
 
-TEST_CASE("ols_slope and ols_intercept restated over a window of pairs give the same bits") {
+TEST_CASE("roll_ols restated over a window of pairs give the same bits") {
   const std::vector<t::Series> all{t::walk("Y", 11, 2000), t::walk("X", 12, 2000)};
   const auto events = t::daily_events(all);
   const std::vector<atl::InstrumentId> ids{t::id_of("Y"), t::id_of("X")};

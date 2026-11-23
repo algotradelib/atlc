@@ -923,8 +923,8 @@ struct TsSumMin {
 };
 
 /**
- * @brief Least squares of y on x with an intercept over the last n bars, from running sums of x, y, x * x
- *   and x * y over its own rings.
+ * @brief `roll_ols(y, x, n)`, incremental and exact: least squares of y on x with an intercept over the last n bars,
+ *   from running sums of x, y, x * x and x * y over its own rings; one instance gives the slope and the intercept.
  */
 struct OlsSums {
   /**
@@ -946,9 +946,8 @@ struct OlsSums {
    * @brief Takes the newest pair.
    * @param y The regressand.
    * @param x The regressor.
-   * @return Whether the window is full.
    */
-  bool push(double y, double x) {
+  void update(double y, double x) {
     ATLS_NO_FMA
     ys_.push(y);
     xs_.push(x);
@@ -964,14 +963,25 @@ struct OlsSums {
       sxx_ -= ox * ox;
       sxy_ -= ox * oy;
     }
-    return xs_.seen() >= n_;
   }
-  /** @brief The slope; undefined for a flat x. */
+  /** @brief The slope; undefined before n pairs and for a flat x. */
   double slope() const {
     ATLS_NO_FMA
+    if (xs_.seen() < n_) {
+      return NaN;
+    }
     const double n = static_cast<double>(n_);
     const double d = n * sxx_ - sx_ * sx_;
     return d != 0 ? (n * sxy_ - sx_ * sy_) / d : NaN;
+  }
+  /** @brief The intercept; undefined before n pairs and for a flat x. */
+  double intercept() const {
+    ATLS_NO_FMA
+    if (xs_.seen() < n_) {
+      return NaN;
+    }
+    const double b = slope();
+    return (sy_ - b * sx_) / static_cast<double>(n_);
   }
   /** @brief The regressands. */
   Ring ys_;
@@ -989,44 +999,13 @@ struct OlsSums {
   double sxy_{0};
 };
 
-/** @brief `ols_slope(y, x, n)`, incremental. */
-struct OlsSlope : OlsSums {
-  /**
-   * @brief Takes the newest pair.
-   * @param y The regressand.
-   * @param x The regressor.
-   * @return The slope, or NaN.
-   */
-  double update(double y, double x) {
-    return push(y, x) ? slope() : NaN;
-  }
-};
-
-/** @brief `ols_intercept(y, x, n)`, incremental. */
-struct OlsIntercept : OlsSums {
-  /**
-   * @brief Takes the newest pair.
-   * @param y The regressand.
-   * @param x The regressor.
-   * @return The intercept, or NaN.
-   */
-  double update(double y, double x) {
-    ATLS_NO_FMA
-    if (!push(y, x)) {
-      return NaN;
-    }
-    const double b = slope();
-    return (sy_ - b * sx_) / static_cast<double>(n_);
-  }
-};
-
 #if defined(ATL_HAS_EIGEN)
 /**
- * @brief `ols_slope`/`ols_intercept` solved again on every window: the normal equations of [x, 1] by Eigen's
- *   LLT (`--indicators naive`).
- * @tparam Slope The slope if true, else the intercept.
+ * @brief `roll_ols(y, x, n)` with `--indicators naive`: the normal equations of [x, 1] solved again on every window
+ *   by Eigen's LLT; one solve gives the slope and the intercept.
+ * @tparam T Unused: a template, so that without Eigen only a strategy that uses it fails to compile.
  */
-template <bool Slope>
+template <class T = void>
 struct OlsLlt {
   /**
    * @brief Sets the window.
@@ -1043,18 +1022,18 @@ struct OlsLlt {
   void reset() {
     ys_.clear();
     xs_.clear();
+    slope_ = intercept_ = NaN;
   }
   /**
-   * @brief Takes the newest pair.
+   * @brief Takes the newest pair, and solves once n pairs are in.
    * @param y The regressand.
    * @param x The regressor.
-   * @return The slope or intercept, or NaN before n pairs.
    */
-  double update(double y, double x) {
+  void update(double y, double x) {
     ys_.push(y);
     xs_.push(x);
     if (xs_.seen() < n_) {
-      return NaN;
+      return;
     }
     for (std::size_t k = 0; k < n_; ++k) {
       window_y_[static_cast<Eigen::Index>(k)] = ys_.ago(n_ - 1 - k);
@@ -1064,7 +1043,16 @@ struct OlsLlt {
     Eigen::Matrix<double, Eigen::Dynamic, 2> design(n, 2);
     design << window_x_, Eigen::VectorXd::Ones(n);
     const Eigen::VectorXd beta = fit(window_y_, design);
-    return Slope ? beta[0] : beta[1];
+    slope_ = beta[0];
+    intercept_ = beta[1];
+  }
+  /** @brief The slope, or NaN before n pairs. */
+  double slope() const {
+    return slope_;
+  }
+  /** @brief The intercept, or NaN before n pairs. */
+  double intercept() const {
+    return intercept_;
   }
   /**
    * @brief Least squares by the normal equations and LLT.
@@ -1085,17 +1073,21 @@ struct OlsLlt {
   Eigen::VectorXd window_y_;
   /** @brief The window's regressors, oldest first. */
   Eigen::VectorXd window_x_;
+  /** @brief The last slope. */
+  double slope_{NaN};
+  /** @brief The last intercept. */
+  double intercept_{NaN};
 };
 #else
 /**
  * @brief Without Eigen there is no `--indicators naive` least squares: a strategy that needs it does not compile.
- * @tparam Slope The slope if true, else the intercept.
+ * @tparam T Unused: the assertion depends on it, so it fires only where the class is used.
  */
-template <bool Slope>
+template <class T = void>
 struct OlsLlt {
   static_assert(
-    Slope != Slope,
-    "--indicators naive solves ols_slope and ols_intercept with Eigen: use an algotradelib built with ATL_USE_EIGEN=ON"
+    !std::is_same<T, T>::value,
+    "--indicators naive solves roll_ols with Eigen: use an algotradelib built with ATL_USE_EIGEN=ON"
   );
 };
 #endif

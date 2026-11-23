@@ -928,7 +928,7 @@ impl<'a> Printer<'a> {
         }
     }
 
-    /// Live indicator-like objects that keep their own buffers: partial sums, pair fits, user indicators (one per
+    /// Live indicator-like objects that keep their own buffers: partial sums, pair fits and user indicators (one per
     /// distinct instance, at its first live value).
     fn live_objs(&self) -> Vec<usize> {
         let mut seen: Vec<String> = vec![];
@@ -938,9 +938,9 @@ impl<'a> Printer<'a> {
                 continue;
             }
             match &self.ir.nodes[i].kind {
-                NodeKind::Partial(..) | NodeKind::Pair(..) => out.push(i),
-                NodeKind::UInd { .. } => {
-                    let key = self.uind_key(i);
+                NodeKind::Partial(..) => out.push(i),
+                NodeKind::Pair(..) | NodeKind::UInd { .. } => {
+                    let key = self.instance_key(i);
                     if !seen.contains(&key) {
                         seen.push(key);
                         out.push(i);
@@ -966,10 +966,27 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn uind_owner(&self, i: usize) -> usize {
-        let key = self.uind_key(i);
+    /// What identifies one fit over a pair: its inputs and window, not the value read.
+    fn pair_key(&self, i: usize) -> String {
+        match &self.ir.nodes[i].kind {
+            NodeKind::Pair(p, a, b, w) => format!("p {} {} {} {:?}", p.name(), a, b, w),
+            _ => String::new(),
+        }
+    }
+
+    /// The instance key of a user indicator's value or a pair's value.
+    fn instance_key(&self, i: usize) -> String {
+        match &self.ir.nodes[i].kind {
+            NodeKind::Pair(..) => self.pair_key(i),
+            _ => self.uind_key(i),
+        }
+    }
+
+    /// The node whose member holds this value's instance: the first live node with the same instance.
+    fn instance_owner(&self, i: usize) -> usize {
+        let key = self.instance_key(i);
         (0..self.ir.nodes.len())
-            .find(|&j| self.ir.live[j] && self.uind_key(j) == key)
+            .find(|&j| self.ir.live[j] && self.instance_key(j) == key)
             .unwrap_or(i)
     }
 
@@ -1060,10 +1077,25 @@ impl<'a> Printer<'a> {
                     let check = ir.nodes[*input].class != Class::Always;
                     self.obj_update(indent, i, &[x], check, "update");
                 }
-                NodeKind::Pair(_, a, b, _) => {
-                    let (x, y) = (checked(&self.node_v(*a)), checked(&self.node_v(*b)));
-                    let check = ir.nodes[*a].class != Class::Always || ir.nodes[*b].class != Class::Always;
-                    self.obj_update(indent, i, &[x, y], check, "update");
+                NodeKind::Pair(p, a, b, _) => {
+                    let owner = self.instance_owner(i);
+                    if owner == i {
+                        let (x, y) = (checked(&self.node_v(*a)), checked(&self.node_v(*b)));
+                        let check = ir.nodes[*a].class != Class::Always || ir.nodes[*b].class != Class::Always;
+                        let update = format!("obj{}_.update({}, {});", i, x, y);
+                        if check {
+                            self.line(indent, &format!("if (std::isnan({}) || std::isnan({})) {{", x, y));
+                            self.line(indent + 1, &format!("obj{}_.reset();", i));
+                            self.line(indent, "} else {");
+                            self.line(indent + 1, &update);
+                            self.line(indent, "}");
+                        } else {
+                            self.line(indent, &update);
+                        }
+                    }
+                    let name = self.node_name(i);
+                    let code = format!("obj{}_.{}()", owner, builtins::pair_accessor(*p));
+                    self.decl(indent, "double", &name, &code);
                 }
                 NodeKind::UInd {
                     inputs,
@@ -1072,7 +1104,7 @@ impl<'a> Printer<'a> {
                     def,
                     ..
                 } => {
-                    let owner = self.uind_owner(i);
+                    let owner = self.instance_owner(i);
                     if owner == i {
                         let xs: Vec<String> = inputs.iter().map(|&a| checked(&self.node_v(a))).collect();
                         // The C++ class of an external indicator is never given an undefined value.

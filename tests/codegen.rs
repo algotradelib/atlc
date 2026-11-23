@@ -109,7 +109,7 @@ fn each_mode_calls_the_algorithm_the_reference_names() {
     type Row = (&'static str, &'static str, [(&'static str, &'static str); 3]);
     let running = "update";
     let again = "recompute";
-    let rows: [Row; 21] = [
+    let rows: [Row; 20] = [
         (
             "restart",
             "ma(close, 5)",
@@ -152,17 +152,8 @@ fn each_mode_calls_the_algorithm_the_reference_names() {
         ),
         (
             "restart",
-            "ols_slope(close, high, 5)",
-            [("OlsSlope", running), ("OlsLlt<true>", running), ("OlsSlope", running)],
-        ),
-        (
-            "restart",
-            "ols_intercept(close, high, 5)",
-            [
-                ("OlsIntercept", running),
-                ("OlsLlt<false>", running),
-                ("OlsIntercept", running),
-            ],
+            "roll_ols(close, high, 5).slope",
+            [("OlsSums", running), ("OlsLlt<>", running), ("OlsSums", running)],
         ),
         (
             "skip",
@@ -237,6 +228,67 @@ fn each_mode_calls_the_algorithm_the_reference_names() {
                 "{call} under {policy} with --indicators {}",
                 mode.name()
             );
+        }
+    }
+}
+
+/// Identical `roll_ols` calls share one fit in every mode: one member and one update per distinct call, whichever of
+/// its values are read and wherever the first one is unused; another window, swapped inputs or another grouping make
+/// another fit; and
+/// an input that may be undefined restarts the fit under every program default.
+#[test]
+fn roll_ols_shares_one_fit_per_call() {
+    let modes = [Indicators::Incremental, Indicators::Naive, Indicators::Exact];
+    for policy in ["restart", "skip", "poison"] {
+        let source = format!(
+            "options {{ missing = {policy}; }}\nseries {{\n  real u = roll_ols(close / 7, high, 5).slope;\n  \
+             real b = roll_ols(close / 7, high, 5).intercept;\n  real b2 = roll_ols(close / 7, high, 5).intercept * 2;\n  \
+             real c = roll_ols(close / 7, high, 6).intercept;\n  real d = roll_ols(high, close / 7, 5).intercept;\n  \
+             real g = roll_ols(open, close, 5).slope;\n  real p = roll_ols(close - (open - high), high, 5).slope;\n  \
+             real q = roll_ols(close - open - high, high, 5).slope;\n}}\non_bar {{ target(b + b2 + c + d + g + p + q); }}\n"
+        );
+        for share in [true, false] {
+            for mode in modes {
+                let what = format!("{policy}, share {share}, {}", mode.name());
+                let options = Options {
+                    share_rings: share,
+                    ..options("Probe", "probe.atls", mode)
+                };
+                let (header, _) = atlc::build(&source, &options).unwrap_or_else(|e| panic!("{what}: {}", e[0].message));
+                let class = if mode == Indicators::Naive {
+                    "atls::ops::OlsLlt<> obj"
+                } else {
+                    "atls::ops::OlsSums obj"
+                };
+                let members: Vec<String> = header
+                    .lines()
+                    .filter_map(|l| l.trim().strip_prefix(class))
+                    .map(|rest| format!("obj{}", rest.trim_end_matches(';')))
+                    .collect();
+                assert_eq!(members.len(), 6, "{what}\n{header}");
+                for m in &members {
+                    assert_eq!(header.matches(&format!("{m}.update(")).count(), 1, "{what}: {m}");
+                }
+                // Every value is read from a member that is declared and updated.
+                for read in [".slope()", ".intercept()"] {
+                    for (at, _) in header.match_indices(read) {
+                        let start = header[..at].rfind("obj").unwrap();
+                        assert!(
+                            members.iter().any(|m| *m == header[start..at]),
+                            "{what}: {}",
+                            &header[start..at]
+                        );
+                    }
+                }
+                // The fit over `open` restarts on an undefined input.
+                let lines: Vec<&str> = header.lines().map(str::trim).collect();
+                let guard = lines
+                    .iter()
+                    .position(|l| *l == "if (std::isnan(f_open) || std::isnan(f_close)) {")
+                    .unwrap_or_else(|| panic!("{what}: no guard\n{header}"));
+                let fit = lines[guard + 1].strip_suffix(".reset();").expect("a reset");
+                assert_eq!(lines[guard + 3], format!("{fit}.update(f_open, f_close);"), "{what}");
+            }
         }
     }
 }

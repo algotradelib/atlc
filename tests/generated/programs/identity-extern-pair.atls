@@ -1,4 +1,4 @@
-// ols_slope and ols_intercept beside an external indicator whose C++ restates them (tests/generated/user-code.hpp);
+// roll_ols's slope and intercept beside an external indicator whose C++ restates them (tests/generated/user-code.hpp);
 // the test generates a copy per mode, with the class that mode's least squares uses (`inc_`, `naive_` or `exact_`).
 // One fill of one share of y means equal values (atls `==`) and the same definedness on every bar after the gate.
 instruments { y; x; }
@@ -15,9 +15,9 @@ extern indicator inc_ols(real y, real x, int n) {
 series {
   real ys = y.close / 7;
   real xs = x.close / 3;
-  real a1 = ols_slope(ys, xs, n);
+  real a1 = roll_ols(ys, xs, n).slope;
   real b1 = inc_ols(ys, xs, n).slope;
-  real a2 = ols_intercept(ys, xs, n);
+  real a2 = roll_ols(ys, xs, n).intercept;
   real b2 = inc_ols(ys, xs, n).intercept;
 }
 state {

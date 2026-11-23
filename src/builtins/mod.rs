@@ -45,7 +45,8 @@ pub enum Ind {
     StdevPop,
 }
 
-/// Two-input window indicators: least squares of the first input on the second, with an intercept.
+/// The values of the least-squares line of one series on another, with an intercept, over a window of pairs: each is
+/// a value of one built-in, read as `NAME(y, x, n).VALUE`, and identical calls share one fit.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PairInd {
     OlsSlope,
@@ -781,49 +782,64 @@ pub(crate) fn named_argument_note() -> String {
 // ---------------------------------------------------------------------------------------------------------------
 // Windows over a pair
 
-/// Names beginning so are indicators over a pair, known or not.
-const PAIR_PREFIX: &str = "ols_";
-
 struct PairEntry {
-    id: PairInd,
     name: &'static str,
     /// The C++ class, with running sums or exact arithmetic.
     class: &'static str,
     /// The C++ class with naive arithmetic.
     naive_class: &'static str,
+    /// Its values, each with its name, which is also the class's accessor.
+    outputs: &'static [(PairInd, &'static str)],
 }
 
-static PAIRS: [PairEntry; 2] = [
-    PairEntry {
-        id: PairInd::OlsSlope,
-        name: "ols_slope",
-        class: "atls::ops::OlsSlope",
-        naive_class: "atls::ops::OlsLlt<true>",
-    },
-    PairEntry {
-        id: PairInd::OlsIntercept,
-        name: "ols_intercept",
-        class: "atls::ops::OlsIntercept",
-        naive_class: "atls::ops::OlsLlt<false>",
-    },
-];
+static PAIRS: [PairEntry; 1] = [PairEntry {
+    name: "roll_ols",
+    class: "atls::ops::OlsSums",
+    naive_class: "atls::ops::OlsLlt<>",
+    outputs: &[(PairInd::OlsSlope, "slope"), (PairInd::OlsIntercept, "intercept")],
+}];
 
 fn pair_entry(p: PairInd) -> &'static PairEntry {
     PAIRS
         .iter()
-        .find(|e| e.id == p)
-        .expect("every pair indicator has an entry")
+        .find(|e| e.outputs.iter().any(|o| o.0 == p))
+        .expect("every pair value has an entry")
+}
+
+fn pair_named(name: &str) -> Option<&'static PairEntry> {
+    PAIRS.iter().find(|e| e.name == name)
 }
 
 impl PairInd {
+    /// The name of the built-in this is a value of.
     pub fn name(self) -> &'static str {
         pair_entry(self).name
     }
 }
 
-/// The indicator over a pair of this name.
-pub(crate) fn pair(name: &str) -> Option<PairInd> {
-    PAIRS.iter().find(|e| e.name == name).map(|e| e.id)
+/// An indicator over a pair has this name.
+pub(crate) fn is_pair(name: &str) -> bool {
+    pair_named(name).is_some()
+}
+
+/// The value `value` of the indicator over a pair named `name`, if it has one.
+pub(crate) fn pair_output(name: &str, value: &str) -> Option<PairInd> {
+    pair_named(name)?.outputs.iter().find(|o| o.1 == value).map(|o| o.0)
+}
+
+/// The names of the values of the indicator over a pair named `name`, in order.
+pub(crate) fn pair_output_names(name: &str) -> Vec<&'static str> {
+    pair_named(name).map_or(vec![], |e| e.outputs.iter().map(|o| o.1).collect())
+}
+
+/// The C++ accessor reading a value of an indicator over a pair: the value's name.
+pub(crate) fn pair_accessor(p: PairInd) -> &'static str {
+    pair_entry(p)
+        .outputs
+        .iter()
+        .find(|o| o.0 == p)
+        .expect("a value of its entry")
+        .1
 }
 
 /// The C++ class of an indicator over a pair, with naive arithmetic or not.
@@ -1038,17 +1054,16 @@ pub(crate) fn in_cross_section_family(name: &str) -> bool {
     name.starts_with(CROSS_SECTION_PREFIX)
 }
 
-/// A name a handler refuses as an indicator: a window over one series or a pair, or a name of the pair family
-/// (`ols_...`), a built-in or not.
+/// A name a handler refuses as an indicator: a window over one series or a pair.
 pub(crate) fn is_indicator_name(name: &str) -> bool {
-    Ind::from_name(name).is_some() || pair(name).is_some() || name.starts_with(PAIR_PREFIX)
+    Ind::from_name(name).is_some() || is_pair(name)
 }
 
 /// The name of a built-in of any kind.
 pub(crate) fn is_builtin_name(name: &str) -> bool {
     function(name).is_some()
         || Ind::from_name(name).is_some()
-        || pair(name).is_some()
+        || is_pair(name)
         || cross_section(name).is_some()
         || reduction(name).is_some()
 }
@@ -1157,7 +1172,13 @@ mod tests {
     fn every_member_has_one_entry() {
         one_entry_each(&FUNCTION_IDS, &FUNCTIONS.iter().map(|e| e.id).collect::<Vec<_>>());
         one_entry_each(&WINDOW_IDS, &WINDOWS.iter().map(|e| e.id).collect::<Vec<_>>());
-        one_entry_each(&PAIR_IDS, &PAIRS.iter().map(|e| e.id).collect::<Vec<_>>());
+        one_entry_each(
+            &PAIR_IDS,
+            &PAIRS
+                .iter()
+                .flat_map(|e| e.outputs.iter().map(|o| o.0))
+                .collect::<Vec<_>>(),
+        );
         one_entry_each(
             &CROSS_SECTION_IDS,
             &CROSS_SECTIONS.iter().map(|e| e.id).collect::<Vec<_>>(),

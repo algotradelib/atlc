@@ -266,26 +266,24 @@ TEST_CASE("running least squares agree with the window solved again") {
   for (std::size_t n : {2u, 5u, 20u, 60u}) {
     const auto ys = walk(800, static_cast<unsigned>(n));
     const auto xs = walk(800, static_cast<unsigned>(n + 7));
-    ops::OlsSlope slope;
-    ops::OlsIntercept intercept;
-    ops::OlsLlt<true> slope_llt;
-    ops::OlsLlt<false> intercept_llt;
-    slope.set(n);
-    intercept.set(n);
-    slope_llt.set(n);
-    intercept_llt.set(n);
-    slope.reset();
-    intercept.reset();
-    slope_llt.reset();
-    intercept_llt.reset();
+    ops::OlsSums sums;
+    ops::OlsLlt<> llt;
+    sums.set(n);
+    llt.set(n);
+    sums.reset();
+    llt.reset();
     for (std::size_t i = 0; i < ys.size(); ++i) {
-      const double a = slope.update(ys[i], xs[i]);
-      const double b = slope_llt.update(ys[i], xs[i]);
-      const double c = intercept.update(ys[i], xs[i]);
-      const double d = intercept_llt.update(ys[i], xs[i]);
+      sums.update(ys[i], xs[i]);
+      llt.update(ys[i], xs[i]);
+      const double a = sums.slope();
+      const double b = llt.slope();
+      const double c = sums.intercept();
+      const double d = llt.intercept();
       if (i + 1 < n) {
         CHECK(std::isnan(a));
         CHECK(std::isnan(b));
+        CHECK(std::isnan(c));
+        CHECK(std::isnan(d));
       } else if (!std::isnan(a)) {
         // A flat x window has no slope: NaN here, an arbitrary number from the singular solve.
         CHECK(std::fabs(a - b) <= 1e-6 * (1 + std::fabs(b)));

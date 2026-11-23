@@ -1,4 +1,4 @@
-# ols_slope and ols_intercept beside a user indicator over a window of pairs that restates them. One fill of
+# roll_ols's slope and intercept beside a user indicator over a window of pairs that restates them. One fill of
 # one share of y means identical bits on every bar.
 instruments { y; x; }
 params {
@@ -32,9 +32,9 @@ indicator u_ols(real y, real x, int n) {
 series {
   real ys = y.close / 7;
   real xs = x.close / 3;
-  real a1 = ols_slope(ys, xs, n);
+  real a1 = roll_ols(ys, xs, n).slope;
   real b1 = u_ols(ys, xs, n).slope;
-  real a2 = ols_intercept(ys, xs, n);
+  real a2 = roll_ols(ys, xs, n).intercept;
   real b2 = u_ols(ys, xs, n).intercept;
 }
 state {

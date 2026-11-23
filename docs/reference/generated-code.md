@@ -12,7 +12,7 @@ The exit code is 0 when everything was written, 1 when the program has errors (n
 | Option | Values | Default |
 | --- | --- | --- |
 | `--indicators` | how windows are summed: `incremental`, `naive` or `exact` ([types and definedness](types-and-definedness.md), "Arithmetic") | `incremental` |
-| `--share` | `on`: one ring per input series, shared by every indicator over it, and identical series expressions computed once; `off`: each indicator keeps its own ring and nothing is merged | `on` |
+| `--share` | `on`: one ring per input series, shared by every indicator over it, and identical series expressions computed once; `off`: each indicator keeps its own ring and nothing is merged, except that identical `roll_ols` calls still share one fit | `on` |
 | `--history` | `drop`: the strategy declares `reads_bar_history = false`, since its series keep their own lookback, so the runner keeps no bar history for it; `keep`: no declaration | `drop` |
 
 `--share` and `--history` change memory and speed, not results.
@@ -151,7 +151,7 @@ The first line of a generated header names the `atlc` that wrote it.
 
 The runtime includes algotradelib's `strategy` headers.
 `atlc` runs no strategy: [cmdatl](https://github.com/algotradelib/cmdatl) backtests and runs generated strategies from the command line, and a project's own `main` compiles them as below ("Compiling exported strategies"), with cmdatl's installed `cmdatl/replay/` headers if it wants cmdatl's data loaders and report.
-`--indicators naive` solves `ols_slope` and `ols_intercept` with Eigen, so it needs an algotradelib built with Eigen (`ATL_USE_EIGEN=ON`, the default); without it, such a strategy fails to compile with a message saying so.
+`--indicators naive` solves `roll_ols` with Eigen, so it needs an algotradelib built with Eigen (`ATL_USE_EIGEN=ON`, the default); without it, such a strategy fails to compile with a message saying so.
 So does a program with `measures {}`: `atls/measures.hpp` includes algotradelib's `backtest` headers, which declare `MeasureInput` only with Eigen, and stops with an `#error` saying so without it.
 
 ## Compiling exported strategies

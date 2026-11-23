@@ -1,6 +1,6 @@
-// A universe whose instruments miss bars: ma and ols_slope beside external indicators that restate them
+// A universe whose instruments miss bars: ma and roll_ols beside external indicators that restate them
 // (tests/generated/user-code.hpp), under `missing = restart`, where each instrument runs on its own bars, and in a
-// copy under `missing = poison`, where a missing bar is an undefined input (the test also builds a copy per mode). ols_slope always restarts, so its external states `restart`. One fill of one share per
+// copy under `missing = poison`, where a missing bar is an undefined input (the test also builds a copy per mode). roll_ols always restarts, so its external states `restart`. One fill of one share per
 // instrument means equal values (atls `==`) and the same definedness on every bar after the gate.
 universe {}
 options { missing = restart; }
@@ -23,8 +23,10 @@ series {
   real ret = close / close[1] - 1;
   real a1 = ma(close, n);
   real b1 = inc_sma(close, n);
-  real a2 = ols_slope(ret, close, n);
+  real a2 = roll_ols(ret, close, n).slope;
   real b2 = inc_ols(ret, close, n, missing = restart).slope;
+  real a3 = roll_ols(ret, close, n).intercept;
+  real b3 = inc_ols(ret, close, n, missing = restart).intercept;
 }
 state {
   int diffs = 0;
@@ -32,7 +34,8 @@ state {
 on_bar {
   bool d1 = defined(a1) and defined(b1) ? a1 == b1 : defined(a1) == defined(b1);
   bool d2 = defined(a2) and defined(b2) ? a2 == b2 : defined(a2) == defined(b2);
-  if (not (d1 and d2)) {
+  bool d3 = defined(a3) and defined(b3) ? a3 == b3 : defined(a3) == defined(b3);
+  if (not (d1 and d2 and d3)) {
     diffs = diffs + 1;
   }
   target(1 + diffs);

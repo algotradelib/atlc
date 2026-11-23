@@ -11,7 +11,7 @@ impl Checker<'_> {
     pub(super) fn add_node(&mut self, kind: NodeKind, ty: Ty, class: Class, lookback: CExpr) -> usize {
         let key = format!("{:?}", kind);
         // Bar fields are the inputs: always one node each, so handlers and series agree.
-        let cons = self.opts.share || matches!(kind, NodeKind::Field(..) | NodeKind::Data(..));
+        let cons = self.opts.share || self.cons_pair_inputs || matches!(kind, NodeKind::Field(..) | NodeKind::Data(..));
         if cons && let Some(&id) = self.consed.get(&key) {
             return id;
         }
@@ -215,6 +215,14 @@ impl Checker<'_> {
             }
             ExprKind::Member(call, value) => {
                 if let ExprKind::Call(name, args) = &call.kind
+                    && builtins::is_pair(&name.name)
+                {
+                    if !self.no_named(&name.name, args) {
+                        return None;
+                    }
+                    return self.pair(name, args, Some(value), e.span);
+                }
+                if let ExprKind::Call(name, args) = &call.kind
                     && let Some((Name::Indicator(d), _)) = self.names.get(&name.name).cloned()
                 {
                     return self.user_indicator(d, args, Some(value), e.span);
@@ -222,7 +230,7 @@ impl Checker<'_> {
                 self.err(
                     Diag::new(
                         Code::MemberNotIndicator,
-                        format!("`.{}` reads a value of a user indicator", value.name),
+                        format!("`.{}` reads a value of an indicator", value.name),
                         e.span,
                         "not one",
                     )
@@ -286,8 +294,8 @@ impl Checker<'_> {
                 if !self.no_named(&name.name, args) {
                     return None;
                 }
-                if let Some(which) = builtins::pair(&name.name) {
-                    return self.pair(which, args, e.span);
+                if builtins::is_pair(&name.name) {
+                    return self.pair(name, args, None, e.span);
                 }
                 if builtins::in_reduction_family(&name.name) {
                     self.reduction_elsewhere(name, e.span);
@@ -456,7 +464,7 @@ mod tests {
             [Code::IndicatorArity]
         );
         assert_eq!(
-            errors("series { real a = ols_slope(close > 1, open, 5); } on_bar { target(a); }"),
+            errors("series { real a = roll_ols(close > 1, open, 5).slope; } on_bar { target(a); }"),
             [Code::SeriesNotNumeric]
         );
         // A failed declaration is poisoned: reading it reports nothing more.

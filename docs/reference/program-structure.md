@@ -99,7 +99,7 @@ Refusing built-in names for arguments, loop variables and an indicator's window,
   - a full-window indicator of length n (`ma`, `roll_stdev`, `roll_max`, ...): L + n - 1;
   - `lag(x, k)`, `x[k]`: L + k; `rsi(x, n)`: L + n;
   - `roll_sum(x, n, m)`: L + m - 1;
-  - `ols_slope(y, x, n)`, `ols_intercept`: max(Ly, Lx) + n - 1;
+  - `roll_ols(y, x, n)`: max(Ly, Lx) + n - 1;
   - a user indicator: its inputs' largest lookback plus its window's length minus one, or its declared warm-up minus one, whichever is larger (an external indicator has no window: its warm-up's);
   - an expression of several inputs: the largest of their lookbacks;
   - under `missing = skip`: see [missing values](missing-values.md).

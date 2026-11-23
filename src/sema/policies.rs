@@ -238,7 +238,7 @@ mod tests {
             [Code::NamedArgumentNotAllowed]
         );
         assert_eq!(
-            errors("series { real a = ols_slope(close, open, 5, missing = skip); } on_bar { target(a); }"),
+            errors("series { real a = roll_ols(close, open, 5, missing = skip).slope; } on_bar { target(a); }"),
             [Code::NamedArgumentNotAllowed]
         );
         assert_eq!(

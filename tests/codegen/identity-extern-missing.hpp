@@ -124,11 +124,13 @@ struct IdentityExternMissing {
     double s_b1{};
     double s_a2{};
     double s_b2{};
+    double s_a3{};
+    double s_b3{};
     atls::ops::Ring ring0_;
     atls::ops::Lag ind1_;  // lag(f_close, 1)
     atls::ops::Sma ind5_;  // ma(f_close, params_.n_)
     Ind_inc_sma_restart obj6_;
-    atls::ops::OlsSlope obj7_;
+    atls::ops::OlsSums obj7_;
     Ind_inc_ols_restart obj8_;
     std::int64_t st_diffs_{};
 
@@ -175,16 +177,18 @@ struct IdentityExternMissing {
       s_b1 = obj6_.v_mean;
       if (std::isnan(s_ret) || std::isnan(f_close)) {
         obj7_.reset();
-        s_a2 = atls::ops::NaN;
       } else {
-        s_a2 = obj7_.update(s_ret, f_close);
+        obj7_.update(s_ret, f_close);
       }
+      s_a2 = obj7_.slope();
       if (std::isnan(s_ret) || std::isnan(f_close)) {
         obj8_.reset();
       } else {
         obj8_.step(s_ret, f_close);
       }
       s_b2 = obj8_.v_slope;
+      s_a3 = obj7_.intercept();
+      s_b3 = obj8_.v_intercept;
     }
   };
 
@@ -246,7 +250,14 @@ struct IdentityExternMissing {
         continue;
       }
       [[maybe_unused]] auto& L = lanes_[ln];
-      if (!(lv_d1_[ln] && lv_d2_[ln])) {
+      lv_d3_[ln] = (((!std::isnan(L.s_a3)) && (!std::isnan(L.s_b3))) ? ((L.s_a3 == L.s_b3)) : (((!std::isnan(L.s_a3)) == (!std::isnan(L.s_b3)))));
+    }
+    for (std::size_t ln = 0; ln < lanes_.size(); ++ln) {
+      if (!active_[ln]) {
+        continue;
+      }
+      [[maybe_unused]] auto& L = lanes_[ln];
+      if (!((lv_d1_[ln] && lv_d2_[ln]) && lv_d3_[ln])) {
         L.st_diffs_ = atls::ops::add_int(L.st_diffs_, 1);
       }
     }
@@ -290,6 +301,7 @@ struct IdentityExternMissing {
     tg_.assign(ids_.size(), atls::ops::Target{});
     lv_d1_.assign(ids_.size(), {});
     lv_d2_.assign(ids_.size(), {});
+    lv_d3_.assign(ids_.size(), {});
     warmup_ = static_cast<std::size_t>(std::max<std::int64_t>({static_cast<std::int64_t>(2), static_cast<std::int64_t>(atls::ops::add_int(1, atls::ops::sub_int(params_.n_, 1))), static_cast<std::int64_t>(atls::ops::add_int(2, atls::ops::sub_int(params_.n_, 1)))}));
     history_ = warmup_;
   }
@@ -307,6 +319,7 @@ struct IdentityExternMissing {
   std::vector<std::pair<double, std::size_t>> xs_sort_;
   std::vector<bool> lv_d1_;
   std::vector<bool> lv_d2_;
+  std::vector<bool> lv_d3_;
 };
 
 } // namespace atls

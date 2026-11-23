@@ -448,6 +448,23 @@ impl Checker<'_> {
         }
     }
 
+    /// The refusal of an indicator called in a handler or a body, with the line `shown` to declare in `series {}`.
+    fn indicator_in_handler(&mut self, name: &str, shown: String, span: Span, k: HandlerKind) {
+        self.err(
+            Diag::new(
+                Code::IndicatorInHandler,
+                format!("indicator `{}` called inside `{}`", name, k.name()),
+                span,
+                "indicators are computed in `series {}`",
+            )
+            .note(INDICATOR_NOTE)
+            .note(format!(
+                "declare `real x = {};` in `series {{}}` and read `x` here",
+                shown
+            )),
+        );
+    }
+
     pub(super) fn hexpr(&mut self, e: &Expr, k: HandlerKind) -> Option<HExpr> {
         let bar_side = matches!(
             k,
@@ -649,6 +666,14 @@ impl Checker<'_> {
                 );
                 None
             }
+            ExprKind::Member(call, _) if matches!(&call.kind, ExprKind::Call(name, _) if builtins::is_pair(&name.name)) =>
+            {
+                let ExprKind::Call(name, _) = &call.kind else {
+                    return None;
+                };
+                self.indicator_in_handler(&name.name, crate::frontend::ast_text(e), e.span, k);
+                None
+            }
             ExprKind::Member(_, _) => {
                 self.err(
                     Diag::new(
@@ -819,20 +844,12 @@ impl Checker<'_> {
                 if matches!(self.names.get(&name.name), Some((Name::Indicator(_), _)))
                     || builtins::is_indicator_name(&name.name)
                 {
-                    let shown = crate::frontend::ast_text(e);
-                    self.err(
-                        Diag::new(
-                            Code::IndicatorInHandler,
-                            format!("indicator `{}` called inside `{}`", name.name, k.name()),
-                            e.span,
-                            "indicators are computed in `series {}`",
-                        )
-                        .note(INDICATOR_NOTE)
-                        .note(format!(
-                            "declare `real x = {};` in `series {{}}` and read `x` here",
-                            shown
-                        )),
-                    );
+                    // A built-in with several values is declared with one of them.
+                    let shown = match builtins::pair_output_names(&name.name).first() {
+                        Some(v) => format!("{}.{}", crate::frontend::ast_text(e), v),
+                        None => crate::frontend::ast_text(e),
+                    };
+                    self.indicator_in_handler(&name.name, shown, e.span, k);
                     return None;
                 }
                 if !self.no_named(&name.name, args) {
