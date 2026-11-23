@@ -289,9 +289,6 @@ impl Checker<'_> {
                 if let Some(which) = builtins::pair(&name.name) {
                     return self.pair(which, args, e.span);
                 }
-                if let Some(out) = builtins::filter(&name.name) {
-                    return self.kalman(out, &name.name, args, e.span);
-                }
                 if builtins::in_reduction_family(&name.name) {
                     self.reduction_elsewhere(name, e.span);
                     return None;
@@ -456,10 +453,6 @@ mod tests {
         );
         assert_eq!(
             errors("series { real a = ma(close, 5, 1, 2); } on_bar { target(a); }"),
-            [Code::IndicatorArity]
-        );
-        assert_eq!(
-            errors("series { real a = kf_beta(close, open, 0.1); } on_bar { target(a); }"),
             [Code::IndicatorArity]
         );
         assert_eq!(

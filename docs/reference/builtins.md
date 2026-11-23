@@ -29,7 +29,6 @@ Each is undefined when an argument is, except `defined`, which is always defined
 | `roll_stdev_biased(x, n)` | population standard deviation (divisor n), as Chan's `smartstd` |
 | `roll_zscore(x, n)` | `(x - ma(x, n)) / roll_stdev(x, n)`; undefined when the deviation is 0 |
 | `ols_slope(y, x, n)`, `ols_intercept(y, x, n)` | least squares of y on x with an intercept over the last n pairs |
-| `kf_beta(y, x, delta, ve)`, `kf_error`, `kf_sd` | Chan's Kalman-filter hedge ratio, its forecast error and the error's deviation; one filter shared by the three |
 
 Each window's arithmetic is the one the build's `--indicators` names ([types](types-and-definedness.md), "Arithmetic").
 Lookbacks: [program structure](program-structure.md); missing values: [missing values](missing-values.md).

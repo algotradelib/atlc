@@ -95,7 +95,6 @@ codes! {
     LookAhead = "look-ahead",
     WindowBelowOne = "window-below-one",
     WindowBelowTwo = "window-below-two",
-    FilterParameters = "filter-parameters",
     IndicatorInHandler = "indicator-in-handler",
     // Handlers and statements.
     AssignParam = "assign-param",

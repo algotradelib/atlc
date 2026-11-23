@@ -3,7 +3,7 @@
 
 use crate::frontend::ast::{BinOp, HandlerKind, Span, Ty, UnOp};
 
-pub use crate::builtins::{Builtin, CumOp, Ind, KOut, PairInd, XsOp};
+pub use crate::builtins::{Builtin, CumOp, Ind, PairInd, XsOp};
 
 /// An expression fixed before the run: numbers and params only.
 #[derive(Clone, Debug, PartialEq)]
@@ -133,8 +133,6 @@ pub enum NodeKind {
     /// `roll_sum(x, n, min)`: defined once `min` values are in the window.
     Partial(usize, CExpr, CExpr),
     Pair(PairInd, usize, usize, CExpr),
-    /// y, x, delta, ve, output.
-    Kalman(usize, usize, CExpr, CExpr, KOut),
     /// A call of a function of `functions {}`.
     UCall(usize, Vec<usize>),
     /// One value of a user indicator: its definition, series inputs, fixed arguments, policy, value.

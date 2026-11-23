@@ -1,6 +1,5 @@
 //! Every built-in of atls, with what the checker and the printer need to know of it: one table per kind of call
-//! (a function; a window over one series; a window over a pair; an output of a filter; a cross-section; a reduction
-//! over the equity curve).
+//! (a function; a window over one series; a window over a pair; a cross-section; a reduction over the equity curve).
 //! The rest of the compiler names no built-in: it asks these tables.
 //! The enums identify a built-in in the IR; the tables are private, behind the functions below.
 
@@ -51,17 +50,6 @@ pub enum Ind {
 pub enum PairInd {
     OlsSlope,
     OlsIntercept,
-}
-
-/// What a Kalman-filter hedge reports (one filter per (y, x, delta, ve)).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum KOut {
-    /// The slope estimate after this bar's correction.
-    Beta,
-    /// The forecast error before the correction.
-    Error,
-    /// The forecast error's standard deviation.
-    Sd,
 }
 
 /// Cross-sectional operators, over every instrument of a universe at one moment.
@@ -321,7 +309,6 @@ pub(crate) fn unknown_function_note() -> String {
         .iter()
         .map(|e| e.name)
         .chain(PAIRS.iter().map(|e| e.name))
-        .chain(FILTERS.iter().map(|e| e.name))
         .collect();
     format!(
         "functions: {}; indicators (series only): {}; cross-sectional (universe handlers): {}",
@@ -846,56 +833,6 @@ pub(crate) fn pair_class(p: PairInd, naive: bool) -> &'static str {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Outputs of a filter
-
-/// The C++ class of the filter all outputs share.
-const FILTER_CLASS: &str = "atls::ops::KalmanHedge";
-
-struct FilterEntry {
-    id: KOut,
-    name: &'static str,
-    /// The filter's accessor that reads this output.
-    accessor: &'static str,
-}
-
-static FILTERS: [FilterEntry; 3] = [
-    FilterEntry {
-        id: KOut::Beta,
-        name: "kf_beta",
-        accessor: "beta",
-    },
-    FilterEntry {
-        id: KOut::Error,
-        name: "kf_error",
-        accessor: "error",
-    },
-    FilterEntry {
-        id: KOut::Sd,
-        name: "kf_sd",
-        accessor: "sd",
-    },
-];
-
-/// The filter output of this name.
-pub(crate) fn filter(name: &str) -> Option<KOut> {
-    FILTERS.iter().find(|e| e.name == name).map(|e| e.id)
-}
-
-/// The filter's accessor that reads this output.
-pub(crate) fn filter_accessor(out: KOut) -> &'static str {
-    FILTERS
-        .iter()
-        .find(|e| e.id == out)
-        .expect("every filter output has an entry")
-        .accessor
-}
-
-/// The C++ class of the filter.
-pub(crate) fn filter_class() -> &'static str {
-    FILTER_CLASS
-}
-
-// ---------------------------------------------------------------------------------------------------------------
 // Cross-sections
 
 /// Names beginning so are cross-sectional, known or not.
@@ -1101,10 +1038,10 @@ pub(crate) fn in_cross_section_family(name: &str) -> bool {
     name.starts_with(CROSS_SECTION_PREFIX)
 }
 
-/// A name a handler refuses as an indicator: a window over one series or a pair, a filter output, or a name of the
-/// pair family (`ols_...`), a built-in or not.
+/// A name a handler refuses as an indicator: a window over one series or a pair, or a name of the pair family
+/// (`ols_...`), a built-in or not.
 pub(crate) fn is_indicator_name(name: &str) -> bool {
-    Ind::from_name(name).is_some() || pair(name).is_some() || filter(name).is_some() || name.starts_with(PAIR_PREFIX)
+    Ind::from_name(name).is_some() || pair(name).is_some() || name.starts_with(PAIR_PREFIX)
 }
 
 /// The name of a built-in of any kind.
@@ -1112,7 +1049,6 @@ pub(crate) fn is_builtin_name(name: &str) -> bool {
     function(name).is_some()
         || Ind::from_name(name).is_some()
         || pair(name).is_some()
-        || filter(name).is_some()
         || cross_section(name).is_some()
         || reduction(name).is_some()
 }
@@ -1179,12 +1115,6 @@ mod tests {
             PairInd::OlsSlope | PairInd::OlsIntercept => {}
         }
     }
-    const FILTER_IDS: [KOut; 3] = [KOut::Beta, KOut::Error, KOut::Sd];
-    fn _filter_ids(k: KOut) {
-        match k {
-            KOut::Beta | KOut::Error | KOut::Sd => {}
-        }
-    }
     const CROSS_SECTION_IDS: [XsOp; 4] = [XsOp::Mean, XsOp::Sum, XsOp::Count, XsOp::Rank];
     fn _cross_section_ids(x: XsOp) {
         match x {
@@ -1228,7 +1158,6 @@ mod tests {
         one_entry_each(&FUNCTION_IDS, &FUNCTIONS.iter().map(|e| e.id).collect::<Vec<_>>());
         one_entry_each(&WINDOW_IDS, &WINDOWS.iter().map(|e| e.id).collect::<Vec<_>>());
         one_entry_each(&PAIR_IDS, &PAIRS.iter().map(|e| e.id).collect::<Vec<_>>());
-        one_entry_each(&FILTER_IDS, &FILTERS.iter().map(|e| e.id).collect::<Vec<_>>());
         one_entry_each(
             &CROSS_SECTION_IDS,
             &CROSS_SECTIONS.iter().map(|e| e.id).collect::<Vec<_>>(),
@@ -1243,7 +1172,6 @@ mod tests {
             .map(|e| e.name)
             .chain(WINDOWS.iter().map(|e| e.name))
             .chain(PAIRS.iter().map(|e| e.name))
-            .chain(FILTERS.iter().map(|e| e.name))
             .chain(CROSS_SECTIONS.iter().map(|e| e.name))
             .chain(REDUCTIONS.iter().map(|e| e.name))
             .collect();

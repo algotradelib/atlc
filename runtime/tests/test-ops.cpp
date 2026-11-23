@@ -295,38 +295,6 @@ TEST_CASE("running least squares agree with the window solved again") {
   }
 }
 
-TEST_CASE("the Kalman hedge follows Chan's recursions") {
-  // The recursions written with Eigen's matrices.
-  const double delta = 0.0001;
-  const double ve = 0.001;
-  Eigen::Vector2d beta = Eigen::Vector2d::Zero();
-  Eigen::Vector2d x = Eigen::Vector2d::Zero();
-  const Eigen::Matrix2d vw = (delta / (1 - delta)) * Eigen::Matrix2d::Identity();
-  Eigen::Matrix2d r = -vw;
-  ops::KalmanHedge kf;
-  kf.set(delta, ve);
-  kf.restart();
-  const auto ys = walk(1000, 3);
-  const auto xs = walk(1000, 4);
-  for (std::size_t i = 0; i < ys.size(); ++i) {
-    const double yi = ys[i] / 1000;
-    const double xi = xs[i] / 1000;
-    x[0] = xi;
-    x[1] = 1;
-    r += vw;
-    const double forecast = x.dot(beta);
-    const double q = x.transpose() * r * x + ve;
-    const Eigen::Vector2d k = r * x / q;
-    const double e = yi - forecast;
-    beta += k * e;
-    r -= k * x.transpose() * r;
-    kf.update(yi, xi);
-    CHECK(std::fabs(kf.error() - e) <= 1e-9);
-    CHECK(std::fabs(kf.sd() - std::sqrt(q)) <= 1e-9);
-    CHECK(std::fabs(kf.beta() - beta[0]) <= 1e-9);
-  }
-}
-
 TEST_CASE("skip windows: the values that exist in the last n slots, by every route") {
   std::mt19937 rng(7);
   for (std::size_t n : {1u, 2u, 5u, 20u, 90u}) {

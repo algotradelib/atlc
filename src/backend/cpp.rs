@@ -928,8 +928,8 @@ impl<'a> Printer<'a> {
         }
     }
 
-    /// Live indicator-like objects that keep their own buffers: partial sums, pair fits, Kalman filters
-    /// (one per distinct filter, at its first output).
+    /// Live indicator-like objects that keep their own buffers: partial sums, pair fits, user indicators (one per
+    /// distinct instance, at its first live value).
     fn live_objs(&self) -> Vec<usize> {
         let mut seen: Vec<String> = vec![];
         let mut out = vec![];
@@ -941,13 +941,6 @@ impl<'a> Printer<'a> {
                 NodeKind::Partial(..) | NodeKind::Pair(..) => out.push(i),
                 NodeKind::UInd { .. } => {
                     let key = self.uind_key(i);
-                    if !seen.contains(&key) {
-                        seen.push(key);
-                        out.push(i);
-                    }
-                }
-                NodeKind::Kalman(..) => {
-                    let key = self.kalman_key(i);
                     if !seen.contains(&key) {
                         seen.push(key);
                         out.push(i);
@@ -984,27 +977,11 @@ impl<'a> Printer<'a> {
         format!("Ind_{}_{}", def.name, policy.name())
     }
 
-    fn kalman_key(&self, i: usize) -> String {
-        match &self.ir.nodes[i].kind {
-            NodeKind::Kalman(a, b, d, v, _) => format!("{} {} {:?} {:?}", a, b, d, v),
-            _ => String::new(),
-        }
-    }
-
-    /// The member holding a Kalman node's filter: the first live node with the same filter.
-    fn kalman_owner(&self, i: usize) -> usize {
-        let key = self.kalman_key(i);
-        (0..self.ir.nodes.len())
-            .find(|&j| self.ir.live[j] && self.kalman_key(j) == key)
-            .unwrap_or(i)
-    }
-
     fn obj_type(&self, i: usize) -> String {
         let naive = self.o.indicators == Indicators::Naive;
         match &self.ir.nodes[i].kind {
             NodeKind::Partial(..) => builtins::partial_class().into(),
             NodeKind::Pair(p, ..) => builtins::pair_class(*p, naive).into(),
-            NodeKind::Kalman(..) => builtins::filter_class().into(),
             NodeKind::UInd { def, miss, .. } => Self::uind_type(&self.ir.indicators[*def], miss.policy),
             _ => unreachable!(),
         }
@@ -1142,22 +1119,6 @@ impl<'a> Printer<'a> {
                     let code = format!("obj{}_.v_{}", owner, ir.indicators[*def].values[*value].name);
                     self.decl(indent, "double", &name, &code);
                 }
-                NodeKind::Kalman(a, b, _, _, out) => {
-                    let owner = self.kalman_owner(i);
-                    let name = self.node_name(i);
-                    let read = builtins::filter_accessor(*out);
-                    if owner == i {
-                        let (x, y) = (checked(&self.node_v(*a)), checked(&self.node_v(*b)));
-                        let check = ir.nodes[*a].class != Class::Always || ir.nodes[*b].class != Class::Always;
-                        if check {
-                            self.line(indent, &format!("if (std::isnan({x}) || std::isnan({y})) {{ obj{i}_.restart(); }} else {{ obj{i}_.update({x}, {y}); }}", x = x, y = y, i = i));
-                        } else {
-                            self.line(indent, &format!("obj{}_.update({}, {});", i, x, y));
-                        }
-                    }
-                    let code = format!("obj{}_.{}()", owner, read);
-                    self.decl(indent, "double", &name, &code);
-                }
                 _ => {
                     let code = self.series_node_code(i).unwrap();
                     let ty = if self.node_repr[i] == Repr::Plain {
@@ -1285,13 +1246,6 @@ impl<'a> Printer<'a> {
                     let w = self.size_expr(w);
                     self.line(indent, &format!("obj{}_.set({});", i, w));
                 }
-                NodeKind::Kalman(_, _, d, v, _) => {
-                    let (d, v) = (self.cexpr(d), self.cexpr(v));
-                    self.line(
-                        indent,
-                        &format!("obj{}_.set(static_cast<double>({}), static_cast<double>({}));", i, d, v),
-                    );
-                }
                 NodeKind::UInd { consts, .. } => {
                     let cs: Vec<String> = consts
                         .iter()
@@ -1302,11 +1256,7 @@ impl<'a> Printer<'a> {
                 }
                 _ => {}
             }
-            if !matches!(ir.nodes[i].kind, NodeKind::Kalman(..)) {
-                self.line(indent, &format!("obj{}_.reset();", i));
-            } else {
-                self.line(indent, &format!("obj{}_.restart();", i));
-            }
+            self.line(indent, &format!("obj{}_.reset();", i));
         }
         for (r, _, members) in &rings {
             let cap = self.size_expr(&self.ring_capacity(members));

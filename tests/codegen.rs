@@ -109,7 +109,7 @@ fn each_mode_calls_the_algorithm_the_reference_names() {
     type Row = (&'static str, &'static str, [(&'static str, &'static str); 3]);
     let running = "update";
     let again = "recompute";
-    let rows: [Row; 22] = [
+    let rows: [Row; 21] = [
         (
             "restart",
             "ma(close, 5)",
@@ -207,15 +207,6 @@ fn each_mode_calls_the_algorithm_the_reference_names() {
             "skip",
             "ema(close, 5)",
             [("Ema", running), ("Ema", running), ("Ema", running)],
-        ),
-        (
-            "restart",
-            "kf_beta(close, high, 0.0001, 0.001)",
-            [
-                ("KalmanHedge", running),
-                ("KalmanHedge", running),
-                ("KalmanHedge", running),
-            ],
         ),
         // A lag reads its ring; `recompute` is the same read.
         (

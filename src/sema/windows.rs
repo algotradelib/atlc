@@ -263,49 +263,6 @@ impl Checker<'_> {
         Some(self.add_node(NodeKind::Pair(which, a, b, window), Ty::Real, Class::Maybe, lb))
     }
 
-    /// `kf_beta(y, x, delta, ve)` and its error and deviation: one Kalman filter of y on x and 1.
-    pub(super) fn kalman(&mut self, out: KOut, name: &str, args: &[Expr], span: Span) -> Option<usize> {
-        if args.len() != 4 {
-            self.err(
-                Diag::new(
-                    Code::IndicatorArity,
-                    format!("`{}` takes (y, x, delta, ve)", name),
-                    span,
-                    format!("{} argument(s)", args.len()),
-                )
-                .note("delta: how fast the hedge may drift; ve: the measurement variance"),
-            );
-            return None;
-        }
-        let (a, b) = (self.sexpr(&args[0]), self.sexpr(&args[1]));
-        let delta = self.cexpr(&args[2], "the filter's delta", false);
-        let ve = self.cexpr(&args[3], "the filter's measurement variance", false);
-        let (a, b, (delta, _), (ve, _)) = (a?, b?, delta?, ve?);
-        if !self.real_input(a, &args[0], name) || !self.real_input(b, &args[1], name) {
-            return None;
-        }
-        let (dlo, dhi) = self.interval(&delta);
-        let ve_lo = self.interval(&ve).0;
-        if !(dlo >= 0.0 && dhi <= 1.0) || ve_lo.is_nan() || ve_lo < 0.0 {
-            self.err(
-                Diag::new(
-                    Code::FilterParameters,
-                    "the filter needs delta in [0, 1) and ve >= 0",
-                    span,
-                    "may be outside within the params' bounds",
-                )
-                .note("bound the params, e.g. `real<lower=0, upper=1> delta = 0.0001;`"),
-            );
-            return None;
-        }
-        let mut class = self.ir.nodes[a].class.max(self.ir.nodes[b].class);
-        if self.ir.period_clock {
-            class = Class::Maybe;
-        }
-        let lb = self.lookback_max(&[a, b]);
-        Some(self.add_node(NodeKind::Kalman(a, b, delta, ve, out), Ty::Real, class, lb))
-    }
-
     pub(super) fn liveness(&mut self) {
         let mut live = vec![false; self.ir.nodes.len()];
         let mut stack: Vec<usize> = self.reads.iter().map(|r| r.1).collect();
@@ -327,7 +284,7 @@ impl Checker<'_> {
                 }
                 NodeKind::Call(_, args) => stack.extend(args.iter().copied()),
                 NodeKind::Ind(_, a, _, _) | NodeKind::Partial(a, _, _) => stack.push(*a),
-                NodeKind::Pair(_, a, b, _) | NodeKind::Kalman(a, b, _, _, _) => {
+                NodeKind::Pair(_, a, b, _) => {
                     stack.push(*a);
                     stack.push(*b)
                 }
@@ -364,7 +321,7 @@ impl Checker<'_> {
 
     /// The history a live runner requests (`ir.history`): the bars every finite window needs to be whole at the first decision, which a lookback does not give where a window decides before it is full (`roll_sum(x, n, m)`, a `skip` window, a user indicator's window under `skip`).
     /// Each node's figure is its inputs' figure plus its window's length minus one (the length for a lag or an RSI), built as its lookback is, so a program without those forms gets its lookback back.
-    /// Only windows count: what a value remembers from its own start (an `ema`'s seed, `kf_*`, a user indicator's state, `poison`, `state`) does not.
+    /// Only windows count: what a value remembers from its own start (an `ema`'s seed, a user indicator's state, `poison`, `state`) does not.
     /// Nodes come after their inputs, so one walk in index order sees every input's figure first.
     pub(super) fn whole_history(&mut self) {
         let mut hist: Vec<CExpr> = Vec::with_capacity(self.ir.nodes.len());
@@ -391,7 +348,6 @@ impl Checker<'_> {
                     Box::new(history_max(&hist, &[*a, *b])),
                     Box::new(CExpr::Bin(BinOp::Sub, Box::new(w.clone()), Box::new(CExpr::Num(1.0)))),
                 ),
-                NodeKind::Kalman(a, b, ..) => history_max(&hist, &[*a, *b]),
                 NodeKind::UInd {
                     def, inputs, consts, ..
                 } => match self.user_history(*def, &history_max(&hist, inputs), consts) {
@@ -557,7 +513,7 @@ mod tests {
         let ir = ok(&program(
             "real a = ma(close, n); real b = ma(ma(close, 20), 30); real c = lag(close, k); real d = close[2]; \
              real e = rsi(close, 14); real f = roll_sum(close, 20, 5); real g = ols_slope(close, open, n); \
-             real h = kf_beta(close, open, 0.0001, 0.001); real i = a + c; real j = close; \
+             real i = a + c; real j = close; \
              real l = ma(close, 5) [2];",
         ));
         assert_eq!(lookback(&ir, "a"), 20.0);
@@ -567,7 +523,6 @@ mod tests {
         assert_eq!(lookback(&ir, "e"), 15.0);
         assert_eq!(lookback(&ir, "f"), 5.0);
         assert_eq!(lookback(&ir, "g"), 20.0);
-        assert_eq!(lookback(&ir, "h"), 1.0);
         assert_eq!(lookback(&ir, "i"), 20.0);
         assert_eq!(lookback(&ir, "j"), 1.0);
         assert_eq!(lookback(&ir, "l"), 7.0);
@@ -629,10 +584,10 @@ mod tests {
             history_and_gate(&one(kn, "ma(roll_sum(close[k], n, 1), 3, missing = skip)")),
             (3.0 + 1.0 + 19.0 + 2.0, 4.0)
         );
-        // A lag, an RSI, a least-squares line and a filter over a partial sum.
+        // A lag, an RSI and a least-squares line over a partial sum.
         let p = "series { real p = roll_sum(close[1], 5, 1); real a = lag(p, 2); real b = rsi(p, 3); \
-                 real c = ols_slope(p, close, 10); real d = kf_beta(p, close, 0.0001, 0.001); }";
-        for (read, whole) in [("a", 8.0), ("b", 9.0), ("c", 15.0), ("d", 6.0)] {
+                 real c = ols_slope(p, close, 10); }";
+        for (read, whole) in [("a", 8.0), ("b", 9.0), ("c", 15.0)] {
             let (history, _) = history_and_gate(&format!("{p} on_bar {{ target({read}); }}"));
             assert_eq!(history, whole, "{read}");
         }
@@ -727,12 +682,6 @@ mod tests {
         assert_eq!(
             errors("series { real a = roll_sum(close, 5, 6); } on_bar { target(a); }"),
             [Code::MinOutOfRange]
-        );
-        assert_eq!(
-            errors(
-                "params { real<lower=0, upper=2> d = 0.5; } series { real a = kf_beta(close, open, d, 1); } on_bar { target(a); }"
-            ),
-            [Code::FilterParameters]
         );
         // roll_stdev_biased takes a window of one under skip.
         ok("series { real a = roll_stdev_biased(close, 1, missing = skip); } on_bar { target(a); }");

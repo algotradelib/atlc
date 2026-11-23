@@ -838,7 +838,7 @@ error[unknown-function]: unknown function `cube`
   |
 2 |   target(cube(close));
   |          ^^^^ not a function
-  = functions: abs min max defined sign log sqrt round floor; indicators (series only): ma ema rsi lag roll_max roll_min roll_sum roll_stdev roll_stdev_biased roll_zscore ols_slope ols_intercept kf_beta kf_error kf_sd; cross-sectional (universe handlers): xs_mean xs_sum xs_count xs_rank
+  = functions: abs min max defined sign log sqrt round floor; indicators (series only): ma ema rsi lag roll_max roll_min roll_sum roll_stdev roll_stdev_biased roll_zscore ols_slope ols_intercept; cross-sectional (universe handlers): xs_mean xs_sum xs_count xs_rank
 ```
 
 From `tests/ui/check/unknown-function.atls`.
@@ -946,21 +946,6 @@ error[window-below-two]: `roll_stdev`'s window may be below 2
 ```
 
 From `tests/ui/check/window-below-two.atls`.
-
-### `filter-parameters`
-
-A Kalman filter's `delta` not provably in [0, 1], or `ve` not provably at least 0.
-
-```
-error[filter-parameters]: the filter needs delta in [0, 1) and ve >= 0
- --> tests/ui/check/filter-parameters.atls:5:12
-  |
-5 |   real b = kf_beta(close, open, delta, 0.001);
-  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ may be outside within the params' bounds
-  = bound the params, e.g. `real<lower=0, upper=1> delta = 0.0001;`
-```
-
-From `tests/ui/check/filter-parameters.atls`.
 
 ### `indicator-in-handler`
 

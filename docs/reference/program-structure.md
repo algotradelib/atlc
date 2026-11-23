@@ -99,7 +99,7 @@ Refusing built-in names for arguments, loop variables and an indicator's window,
   - a full-window indicator of length n (`ma`, `roll_stdev`, `roll_max`, ...): L + n - 1;
   - `lag(x, k)`, `x[k]`: L + k; `rsi(x, n)`: L + n;
   - `roll_sum(x, n, m)`: L + m - 1;
-  - `ols_slope(y, x, n)`, `ols_intercept`: max(Ly, Lx) + n - 1; `kf_*`: max(Ly, Lx);
+  - `ols_slope(y, x, n)`, `ols_intercept`: max(Ly, Lx) + n - 1;
   - a user indicator: its inputs' largest lookback plus its window's length minus one, or its declared warm-up minus one, whichever is larger (an external indicator has no window: its warm-up's);
   - an expression of several inputs: the largest of their lookbacks;
   - under `missing = skip`: see [missing values](missing-values.md).
@@ -116,6 +116,6 @@ Refusing built-in names for arguments, loop variables and an indicator's window,
   Under `missing = skip` a declared warm-up counts valid values, not bars, so where the input can be missing this figure is only a lower bound in bars, and a window over that indicator can still be partial at the first live decision.
   The checker keeps the figure as an expression of parameters, as a lookback, and refuses it past the same 256 levels.
   The gate is unchanged, so a backtest still decides from the gate over the windows there are.
-  The figure covers finite windows only: an `ema`'s seed, `kf_*`, what an external indicator's C++ keeps beyond its declared warm-up, any state a user indicator keeps (in `update`, `enter` or `leave`, with a window or without: a declared window does not make `leave` undo `enter`), a user indicator's declared warm-up under `missing = skip` over an input that can be missing, a `poison` latch, any `state`, and the windows over them carry values from their own start, so a live run's first decision can differ from a backtest's on them.
+  The figure covers finite windows only: an `ema`'s seed, what an external indicator's C++ keeps beyond its declared warm-up, any state a user indicator keeps (in `update`, `enter` or `leave`, with a window or without: a declared window does not make `leave` undo `enter`), a user indicator's declared warm-up under `missing = skip` over an input that can be missing, a `poison` latch, any `state`, and the windows over them carry values from their own start, so a live run's first decision can differ from a backtest's on them.
   Raising `warmup` does not help a `state`, since states change only once the gate has passed.
   Nor does the figure cover a broker that returns fewer bars than requested, or floating-point sums whose result depends on where they started.

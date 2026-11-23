@@ -66,7 +66,7 @@ atls names the arithmetic of each indicator, and a build can choose among three 
 | `ols_slope`, `ols_intercept` | running sums | least squares solved with Eigen | running sums |
 | `ma`, `roll_sum`, `roll_stdev`, `roll_stdev_biased`, `roll_zscore` under `missing = skip` | running sums over the values present | summed again; deviations in two passes over the values present | running sums, as `incremental` |
 | `roll_sum(x, n, m)` | running sum, in every mode | | |
-| `ema`, `kf_*`, `lag` | their recurrence or ring, in every mode | | |
+| `ema`, `lag` | their recurrence or ring, in every mode | | |
 | user indicators | the arithmetic their author wrote, in every mode | | |
 | external indicators and functions | the user's C++, in every mode | | |
 
