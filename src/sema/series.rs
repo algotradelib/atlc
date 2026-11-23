@@ -401,7 +401,7 @@ mod tests {
 
     #[test]
     fn identical_expressions_share_one_node() {
-        let src = "series { real a = sma(close, 5); real b = sma(close, 5) + 1; } on_bar { target(a + b); }";
+        let src = "series { real a = ma(close, 5); real b = ma(close, 5) + 1; } on_bar { target(a + b); }";
         let ir = ok(src);
         let NodeKind::Binary(_, left, _) = series(&ir, "b").kind else {
             panic!()
@@ -455,7 +455,7 @@ mod tests {
             [Code::XsInSeries]
         );
         assert_eq!(
-            errors("series { real a = sma(close, 5, 1, 2); } on_bar { target(a); }"),
+            errors("series { real a = ma(close, 5, 1, 2); } on_bar { target(a); }"),
             [Code::IndicatorArity]
         );
         assert_eq!(

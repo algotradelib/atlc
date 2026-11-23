@@ -3,7 +3,7 @@ params {
   int<lower=fast + 1> slow = 50;
 }
 series {
-  real a = sma(close, fast);
+  real a = ma(close, fast);
 }
 on_bar {
   target(a > close ? 1 : 0);

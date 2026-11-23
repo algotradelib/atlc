@@ -314,12 +314,11 @@ pub(crate) fn function_cpp(b: Builtin, args: &[CppArg], ty: Ty, checked: bool) -
     }
 }
 
-/// The note on a call of an unknown function. It leaves out `stdev_pop`, as it always has.
+/// The note on a call of an unknown function.
 pub(crate) fn unknown_function_note() -> String {
     let functions: Vec<&str> = FUNCTIONS.iter().map(|e| e.name).collect();
     let indicators: Vec<&str> = WINDOWS
         .iter()
-        .filter(|e| e.in_function_note)
         .map(|e| e.name)
         .chain(PAIRS.iter().map(|e| e.name))
         .chain(FILTERS.iter().map(|e| e.name))
@@ -357,8 +356,6 @@ enum TwoValues {
 struct WindowEntry {
     id: Ind,
     name: &'static str,
-    /// Listed in the unknown-function note (`stdev_pop` is not, as it never was).
-    in_function_note: bool,
     /// `x[k]` is this indicator.
     indexed: bool,
     /// A literal window at or below 0 reads a future bar, and is refused with its own diagnostic (`look_ahead`).
@@ -403,8 +400,7 @@ struct Slots {
 static WINDOWS: [WindowEntry; 10] = [
     WindowEntry {
         id: Ind::Sma,
-        name: "sma",
-        in_function_note: true,
+        name: "ma",
         indexed: false,
         reads_ahead: false,
         steps_back: false,
@@ -429,7 +425,6 @@ static WINDOWS: [WindowEntry; 10] = [
     WindowEntry {
         id: Ind::Ema,
         name: "ema",
-        in_function_note: true,
         indexed: false,
         reads_ahead: false,
         steps_back: false,
@@ -454,7 +449,6 @@ static WINDOWS: [WindowEntry; 10] = [
     WindowEntry {
         id: Ind::Rsi,
         name: "rsi",
-        in_function_note: true,
         indexed: false,
         reads_ahead: false,
         steps_back: true,
@@ -479,7 +473,6 @@ static WINDOWS: [WindowEntry; 10] = [
     WindowEntry {
         id: Ind::Lag,
         name: "lag",
-        in_function_note: true,
         indexed: true,
         reads_ahead: true,
         steps_back: true,
@@ -503,8 +496,7 @@ static WINDOWS: [WindowEntry; 10] = [
     },
     WindowEntry {
         id: Ind::TsMax,
-        name: "ts_max",
-        in_function_note: true,
+        name: "roll_max",
         indexed: false,
         reads_ahead: false,
         steps_back: false,
@@ -528,8 +520,7 @@ static WINDOWS: [WindowEntry; 10] = [
     },
     WindowEntry {
         id: Ind::TsMin,
-        name: "ts_min",
-        in_function_note: true,
+        name: "roll_min",
         indexed: false,
         reads_ahead: false,
         steps_back: false,
@@ -553,8 +544,7 @@ static WINDOWS: [WindowEntry; 10] = [
     },
     WindowEntry {
         id: Ind::TsSum,
-        name: "ts_sum",
-        in_function_note: true,
+        name: "roll_sum",
         indexed: false,
         reads_ahead: false,
         steps_back: false,
@@ -578,8 +568,7 @@ static WINDOWS: [WindowEntry; 10] = [
     },
     WindowEntry {
         id: Ind::Stdev,
-        name: "stdev",
-        in_function_note: true,
+        name: "roll_stdev",
         indexed: false,
         reads_ahead: false,
         steps_back: false,
@@ -603,8 +592,7 @@ static WINDOWS: [WindowEntry; 10] = [
     },
     WindowEntry {
         id: Ind::StdevPop,
-        name: "stdev_pop",
-        in_function_note: false,
+        name: "roll_stdev_biased",
         indexed: false,
         reads_ahead: false,
         steps_back: false,
@@ -628,8 +616,7 @@ static WINDOWS: [WindowEntry; 10] = [
     },
     WindowEntry {
         id: Ind::Zscore,
-        name: "zscore",
-        in_function_note: true,
+        name: "roll_zscore",
         indexed: false,
         reads_ahead: false,
         steps_back: false,

@@ -2,7 +2,7 @@ params {
   int<lower=1> fast = 20;
 }
 series {
-  real a = sma(close, fats);
+  real a = ma(close, fats);
 }
 on_bar {
   target(a > clsoe ? 100 : 0);

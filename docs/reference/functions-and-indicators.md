@@ -65,7 +65,7 @@ extern indicator ols(real y, real x, int n) {
 
 series {
   real beta = ols(y.close, x.close, 60).slope;
-  real z = zscore(y.close - beta * x.close, 20);
+  real z = roll_zscore(y.close - beta * x.close, 20);
 }
 
 on_bar {

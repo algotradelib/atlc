@@ -1,14 +1,14 @@
-error[window-below-one]: `sma`'s window may be below 1
- --> tests/ui/check/window-unbounded.atls:6:23
+error[window-below-one]: `ma`'s window may be below 1
+ --> tests/ui/check/window-unbounded.atls:6:22
   |
-6 |   real a = sma(close, fast);
-  |                       ^^^^ nothing bounds this from below
+6 |   real a = ma(close, fast);
+  |                      ^^^^ nothing bounds this from below
   = give the param a lower bound, e.g. `int<lower=1> n = 20;`
 
-error[window-below-one]: `sma`'s window may be below 1
- --> tests/ui/check/window-unbounded.atls:7:23
+error[window-below-one]: `ma`'s window may be below 1
+ --> tests/ui/check/window-unbounded.atls:7:22
   |
-7 |   real b = sma(close, slow - 5);
-  |                       ^^^^^^^^ can be as low as -3 within the params' bounds
+7 |   real b = ma(close, slow - 5);
+  |                      ^^^^^^^^ can be as low as -3 within the params' bounds
   = raise the params' lower bounds so the window is at least 1
 

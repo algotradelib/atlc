@@ -234,22 +234,22 @@ mod tests {
     fn ranges_over_the_bounds() {
         // Ranges are intervals: n * n - 3 is at least 1 from n >= 2, but m - n is not proved positive from
         // m >= n + 1, since the two ranges are not related.
-        ok("params { int<lower=2> n = 2; } series { real b = sma(close, n * n - 3); } on_bar { target(b); }");
+        ok("params { int<lower=2> n = 2; } series { real b = ma(close, n * n - 3); } on_bar { target(b); }");
         assert_eq!(
             errors(
-                "params { int<lower=2> n = 2; int<lower=n + 1> m = 5; } series { real a = sma(close, m - n); } on_bar { target(a); }"
+                "params { int<lower=2> n = 2; int<lower=n + 1> m = 5; } series { real a = ma(close, m - n); } on_bar { target(a); }"
             ),
             [Code::WindowBelowOne]
         );
         assert_eq!(
             errors(
-                "params { int<lower=2> n = 2; int m = 5; } series { real a = sma(close, n * m); } on_bar { target(a); }"
+                "params { int<lower=2> n = 2; int m = 5; } series { real a = ma(close, n * m); } on_bar { target(a); }"
             ),
             [Code::WindowBelowOne]
         );
         assert_eq!(
             errors(
-                "params { int<lower=-3, upper=4> n = 2; } series { real a = sma(close, n * n + 1); } on_bar { target(a); }"
+                "params { int<lower=-3, upper=4> n = 2; } series { real a = ma(close, n * n + 1); } on_bar { target(a); }"
             ),
             [Code::WindowBelowOne]
         );

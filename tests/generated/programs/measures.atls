@@ -7,7 +7,7 @@ params {
 }
 series {
   real ret = close / close[1] - 1;
-  real fast = sma(close, n);
+  real fast = ma(close, n);
 }
 on_bar {
   target(ret > 0 and close > fast ? 10 : 0);

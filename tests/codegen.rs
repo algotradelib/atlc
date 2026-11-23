@@ -112,12 +112,12 @@ fn each_mode_calls_the_algorithm_the_reference_names() {
     let rows: [Row; 22] = [
         (
             "restart",
-            "sma(close, 5)",
+            "ma(close, 5)",
             [("Sma", running), ("Sma", again), ("SmaExact", running)],
         ),
         (
             "restart",
-            "ts_sum(close, 5)",
+            "roll_sum(close, 5)",
             [("TsSum", running), ("TsSum", again), ("TsSumExact", running)],
         ),
         (
@@ -127,27 +127,27 @@ fn each_mode_calls_the_algorithm_the_reference_names() {
         ),
         (
             "restart",
-            "stdev(close, 5)",
+            "roll_stdev(close, 5)",
             [("Stdev", running), ("Stdev", again), ("Stdev", running)],
         ),
         (
             "restart",
-            "stdev_pop(close, 5)",
+            "roll_stdev_biased(close, 5)",
             [("StdevPop", running), ("StdevPop", again), ("StdevPop", running)],
         ),
         (
             "restart",
-            "zscore(close, 5)",
+            "roll_zscore(close, 5)",
             [("Zscore", running), ("Zscore", again), ("Zscore", running)],
         ),
         (
             "restart",
-            "ts_max(close, 5)",
+            "roll_max(close, 5)",
             [("TsMax", running), ("TsMax", again), ("TsMax", running)],
         ),
         (
             "restart",
-            "ts_min(close, 5)",
+            "roll_min(close, 5)",
             [("TsMin", running), ("TsMin", again), ("TsMin", running)],
         ),
         (
@@ -166,22 +166,22 @@ fn each_mode_calls_the_algorithm_the_reference_names() {
         ),
         (
             "skip",
-            "sma(close, 5)",
+            "ma(close, 5)",
             [("SmaSkip", running), ("SmaSkip", again), ("SmaSkip", running)],
         ),
         (
             "skip",
-            "ts_sum(close, 5)",
+            "roll_sum(close, 5)",
             [("TsSumSkip", running), ("TsSumSkip", again), ("TsSumSkip", running)],
         ),
         (
             "skip",
-            "stdev(close, 5)",
+            "roll_stdev(close, 5)",
             [("StdevSkip", running), ("StdevSkip", again), ("StdevSkip", running)],
         ),
         (
             "skip",
-            "stdev_pop(close, 5)",
+            "roll_stdev_biased(close, 5)",
             [
                 ("StdevPopSkip", running),
                 ("StdevPopSkip", again),
@@ -190,12 +190,12 @@ fn each_mode_calls_the_algorithm_the_reference_names() {
         ),
         (
             "skip",
-            "zscore(close, 5)",
+            "roll_zscore(close, 5)",
             [("ZscoreSkip", running), ("ZscoreSkip", again), ("ZscoreSkip", running)],
         ),
         (
             "restart",
-            "ts_sum(close, 5, 2)",
+            "roll_sum(close, 5, 2)",
             [("TsSumMin", running), ("TsSumMin", running), ("TsSumMin", running)],
         ),
         (
@@ -230,7 +230,7 @@ fn each_mode_calls_the_algorithm_the_reference_names() {
         ),
         (
             "poison",
-            "sma(close, 5)",
+            "ma(close, 5)",
             [("Sma", running), ("Sma", again), ("SmaExact", running)],
         ),
     ];

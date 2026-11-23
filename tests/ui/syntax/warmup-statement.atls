@@ -3,7 +3,7 @@ params {
 }
 warmup slow + 1;
 series {
-  real a = sma(close, slow);
+  real a = ma(close, slow);
 }
 on_bar {
   target(close > a ? 1 : 0);

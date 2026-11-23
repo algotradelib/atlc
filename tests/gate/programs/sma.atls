@@ -8,8 +8,8 @@ options {
   warmup = slow + 1;
 }
 series {
-  real fast_avg = sma(close, fast);
-  real slow_avg = sma(close, slow);
+  real fast_avg = ma(close, fast);
+  real slow_avg = ma(close, slow);
 }
 on_bar {
   target(fast_avg > slow_avg ? quantity : 0);

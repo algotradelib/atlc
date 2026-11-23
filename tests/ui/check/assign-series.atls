@@ -1,5 +1,5 @@
 series {
-  real average = sma(close, 20);
+  real average = ma(close, 20);
 }
 on_bar {
   average = close;

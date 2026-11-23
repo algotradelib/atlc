@@ -30,7 +30,7 @@ Each block kind appears at most once, except `indicator`, which appears once per
 
   ```atls
   data { real level; }
-  series { real mean = sma(level, 5); }
+  series { real mean = ma(level, 5); }
   on_bar {
     if (level > mean) {
       target(1);
@@ -96,22 +96,22 @@ Refusing built-in names for arguments, loop variables and an indicator's window,
   It works with each value's range: with `int<lower=2> n` it proves `n * n - 3` at least 1, but with `int<lower=n + 1> m` it does not prove `m - n` at least 1, since the ranges of `m` and `n` are not related.
 - A lag must be provably at least 1: `close[0]` and `lag(close, 0)` are refused (write `close`), and a negative lag reads a future bar.
 - The lookback of a value, with L its input's lookback (a bar field has L = 1):
-  - a full-window indicator of length n (`sma`, `stdev`, `ts_max`, ...): L + n - 1;
+  - a full-window indicator of length n (`ma`, `roll_stdev`, `roll_max`, ...): L + n - 1;
   - `lag(x, k)`, `x[k]`: L + k; `rsi(x, n)`: L + n;
-  - `ts_sum(x, n, m)`: L + m - 1;
+  - `roll_sum(x, n, m)`: L + m - 1;
   - `ols_slope(y, x, n)`, `ols_intercept`: max(Ly, Lx) + n - 1; `kf_*`: max(Ly, Lx);
   - a user indicator: its inputs' largest lookback plus its window's length minus one, or its declared warm-up minus one, whichever is larger (an external indicator has no window: its warm-up's);
   - an expression of several inputs: the largest of their lookbacks;
   - under `missing = skip`: see [missing values](missing-values.md).
   The checker keeps each lookback as an expression of parameters, and refuses a program whose lookback expression is more than 256 levels high, the nesting limit of [syntax](syntax.md); a chain of indicators over indicators deepens it, by several levels for a `skip` window, a pair indicator or a user indicator.
-  So `sma(sma(close, 20), 30)` needs 49 periods.
+  So `ma(ma(close, 20), 30)` needs 49 periods.
 - The periodic handlers' first call comes after max(1, warmup, the lookbacks of every series any handler reads) periods: one gate for the program.
   `warmup` is set in `options { warmup = EXPR; }`, a whole number built from integer literals and integer parameters with `+ - *` and negation; unlike a window's length, it is not proved at least 1, and it only raises the gate, for a strategy that needs a longer start than its lookbacks.
   `warmup` is not a block: the former top-level statement `warmup EXPR;` is refused.
 - After that gate the checker treats eventually-defined values as defined, but a handler can still see an undefined value: an undefined input restarts an indicator, and `skip`, `poison` or a domain error (`log(0)`) can leave a value undefined ([types and definedness](types-and-definedness.md)).
 - A live runner requests more history than the gate where a window decides before it is whole (the generated struct's `warmup_bars()`, [generated code](generated-code.md)): enough for every finite window to be whole at its first decision.
-  Each value needs its input's figure (1 for a bar field) plus its window's length minus one (the length for a lag and an RSI), the largest over several inputs, under every missing-value policy and for `ts_sum(x, n, m)` too.
-  So `ts_sum(sign(close - close[k]), h - 1, 1)` is decided from bar k + 1 but needs k + h - 1 bars to be whole, and a live run's first decision then sees the windows a backtest sees on that date over the same bars.
+  Each value needs its input's figure (1 for a bar field) plus its window's length minus one (the length for a lag and an RSI), the largest over several inputs, under every missing-value policy and for `roll_sum(x, n, m)` too.
+  So `roll_sum(sign(close - close[k]), h - 1, 1)` is decided from bar k + 1 but needs k + h - 1 bars to be whole, and a live run's first decision then sees the windows a backtest sees on that date over the same bars.
   A user indicator's figure is its inputs' figure plus its window's length minus one or its declared warm-up minus one, whichever is larger; an external indicator's, its inputs' figure plus its warm-up minus one, so a warm-up shorter than the C++'s own window gives a live run less history than it needs.
   Under `missing = skip` a declared warm-up counts valid values, not bars, so where the input can be missing this figure is only a lower bound in bars, and a window over that indicator can still be partial at the first live decision.
   The checker keeps the figure as an expression of parameters, as a lookback, and refuses it past the same 256 levels.

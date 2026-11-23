@@ -9,8 +9,8 @@ params {
   int<lower=0> quantity = 100;
 }
 series {
-  real fast_avg = sma(close, fast);
-  real slow_avg = sma(close, slow);
+  real fast_avg = ma(close, fast);
+  real slow_avg = ma(close, slow);
 }
 state {
   bool in_trade = false;

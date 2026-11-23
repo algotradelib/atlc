@@ -59,18 +59,18 @@ atls names the arithmetic of each indicator, and a build can choose among three 
 
 | Indicator | `incremental` (default) | `naive` | `exact` |
 | --- | --- | --- | --- |
-| `sma`, `ts_sum(x, n)` | running sum: add the newest value, subtract the oldest | the window summed again, oldest first | sliding sum without subtraction ("two stacks") |
+| `ma`, `roll_sum(x, n)` | running sum: add the newest value, subtract the oldest | the window summed again, oldest first | sliding sum without subtraction ("two stacks") |
 | `rsi` | running sums of gains and losses | summed again | sliding sums without subtraction |
-| `stdev`, `stdev_pop`, `zscore` | running sums of values and squares | two passes over the window (mean, then squared deviations) | running sums, as `incremental` |
-| `ts_max`, `ts_min` | a monotonic queue | the window scanned again | a monotonic queue |
+| `roll_stdev`, `roll_stdev_biased`, `roll_zscore` | running sums of values and squares | two passes over the window (mean, then squared deviations) | running sums, as `incremental` |
+| `roll_max`, `roll_min` | a monotonic queue | the window scanned again | a monotonic queue |
 | `ols_slope`, `ols_intercept` | running sums | least squares solved with Eigen | running sums |
-| `sma`, `ts_sum`, `stdev`, `stdev_pop`, `zscore` under `missing = skip` | running sums over the values present | summed again; deviations in two passes over the values present | running sums, as `incremental` |
-| `ts_sum(x, n, m)` | running sum, in every mode | | |
+| `ma`, `roll_sum`, `roll_stdev`, `roll_stdev_biased`, `roll_zscore` under `missing = skip` | running sums over the values present | summed again; deviations in two passes over the values present | running sums, as `incremental` |
+| `roll_sum(x, n, m)` | running sum, in every mode | | |
 | `ema`, `kf_*`, `lag` | their recurrence or ring, in every mode | | |
 | user indicators | the arithmetic their author wrote, in every mode | | |
 | external indicators and functions | the user's C++, in every mode | | |
 
-`exact` selects subtraction-free sums for `sma`, `ts_sum(x, n)` and `rsi`, which leave no cancellation residue; the other indicators keep the algorithm the table names, and none of this is decimal arithmetic.
+`exact` selects subtraction-free sums for `ma`, `roll_sum(x, n)` and `rsi`, which leave no cancellation residue; the other indicators keep the algorithm the table names, and none of this is decimal arithmetic.
 A result computed another way (by another tool, or in decimal) may differ at an exact tie.
 
 Floating-point contraction (fused multiply-add) is off in generated code and in the runtime: with Clang by pragma, with GCC by `-ffp-contract=off`, and with MSVC by `/fp:precise`, which leaves contraction off from Visual Studio 2022 (17.0) on; earlier MSVC versions are not supported.

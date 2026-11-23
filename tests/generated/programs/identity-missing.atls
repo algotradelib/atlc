@@ -1,4 +1,4 @@
-# A universe whose instruments miss bars: sma and stdev_pop beside user indicators written with the window's
+# A universe whose instruments miss bars: ma and roll_stdev_biased beside user indicators written with the window's
 # count, under `missing = skip` (the test also builds a copy under `missing = poison`). One fill of one share
 # per instrument means identical bits on every bar.
 universe {}
@@ -32,9 +32,9 @@ indicator u_pdev(real x, int n) {
 
 series {
   real ret = close / close[1] - 1;
-  real a1 = sma(close, n);
+  real a1 = ma(close, n);
   real b1 = u_mean(close, n);
-  real a2 = stdev_pop(ret, n);
+  real a2 = roll_stdev_biased(ret, n);
   real b2 = u_pdev(ret, n);
 }
 state {

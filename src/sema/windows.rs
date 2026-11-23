@@ -12,8 +12,8 @@ use crate::ir::*;
 use super::*;
 
 impl Checker<'_> {
-    /// A lookback built from parameters deepens by one level per indicator over an indicator (`sma(s, k)`
-    /// over `s = sma(close, k)`...): refused past the parser's nesting limit, so that no expression the
+    /// A lookback built from parameters deepens by one level per indicator over an indicator (`ma(s, k)`
+    /// over `s = ma(close, k)`...): refused past the parser's nesting limit, so that no expression the
     /// checker builds is deeper than the program's own tree may be.
     pub(super) fn lookback_fits(&mut self, lb: &CExpr, span: Span) -> bool {
         self.depth_fits(lb, span, "lookback")
@@ -167,7 +167,7 @@ impl Checker<'_> {
         Some(self.add_node(NodeKind::Ind(ind, input, window, miss), Ty::Real, class, lb))
     }
 
-    /// `ts_sum(x, n, min)`, the partial form of a window: a window of n defined once `min` values are in it.
+    /// `roll_sum(x, n, min)`, the partial form of a window: a window of n defined once `min` values are in it.
     pub(super) fn partial(&mut self, ind: Ind, x: &Expr, w: &Expr, m: &Expr) -> Option<usize> {
         let id = self.indicator(ind, x, w, x.span, false, Miss::default())?;
         let NodeKind::Ind(_, input, window, _) = self.ir.nodes[id].kind.clone() else {
@@ -362,7 +362,7 @@ impl Checker<'_> {
         self.ir.live = live;
     }
 
-    /// The history a live runner requests (`ir.history`): the bars every finite window needs to be whole at the first decision, which a lookback does not give where a window decides before it is full (`ts_sum(x, n, m)`, a `skip` window, a user indicator's window under `skip`).
+    /// The history a live runner requests (`ir.history`): the bars every finite window needs to be whole at the first decision, which a lookback does not give where a window decides before it is full (`roll_sum(x, n, m)`, a `skip` window, a user indicator's window under `skip`).
     /// Each node's figure is its inputs' figure plus its window's length minus one (the length for a lag or an RSI), built as its lookback is, so a program without those forms gets its lookback back.
     /// Only windows count: what a value remembers from its own start (an `ema`'s seed, `kf_*`, a user indicator's state, `poison`, `state`) does not.
     /// Nodes come after their inputs, so one walk in index order sees every input's figure first.
@@ -555,10 +555,10 @@ mod tests {
     #[test]
     fn lookbacks() {
         let ir = ok(&program(
-            "real a = sma(close, n); real b = sma(sma(close, 20), 30); real c = lag(close, k); real d = close[2]; \
-             real e = rsi(close, 14); real f = ts_sum(close, 20, 5); real g = ols_slope(close, open, n); \
+            "real a = ma(close, n); real b = ma(ma(close, 20), 30); real c = lag(close, k); real d = close[2]; \
+             real e = rsi(close, 14); real f = roll_sum(close, 20, 5); real g = ols_slope(close, open, n); \
              real h = kf_beta(close, open, 0.0001, 0.001); real i = a + c; real j = close; \
-             real l = sma(close, 5) [2];",
+             real l = ma(close, 5) [2];",
         ));
         assert_eq!(lookback(&ir, "a"), 20.0);
         assert_eq!(lookback(&ir, "b"), 49.0);
@@ -577,9 +577,9 @@ mod tests {
     fn skip_lookbacks() {
         // max(n, L + min - 1) for the skip windows; a lag keeps L + k.
         let ir = ok(&program(
-            "real a = sma(close, 3, missing = skip); real b = sma(sma(close, 5), 3, missing = skip); \
-             real c = sma(sma(close, 5), 3, missing = skip, min = 2); real d = lag(close, 3, missing = skip); \
-             real e = stdev(sma(close, 10), 4, missing = skip, min = 3);",
+            "real a = ma(close, 3, missing = skip); real b = ma(ma(close, 5), 3, missing = skip); \
+             real c = ma(ma(close, 5), 3, missing = skip, min = 2); real d = lag(close, 3, missing = skip); \
+             real e = roll_stdev(ma(close, 10), 4, missing = skip, min = 3);",
         ));
         assert_eq!(lookback(&ir, "a"), 3.0);
         assert_eq!(lookback(&ir, "b"), 5.0);
@@ -609,28 +609,28 @@ mod tests {
         let k = "int<lower=1> k = 250; int<lower=2> h = 25;";
         // A partial sum over a lag: whole at k + h - 1, decided from k + 1.
         assert_eq!(
-            history_and_gate(&one(k, "ts_sum(sign(close - close[k]), h - 1, 1)")),
+            history_and_gate(&one(k, "roll_sum(sign(close - close[k]), h - 1, 1)")),
             (274.0, 251.0)
         );
         // A skip window over a one-bar return.
         let n = "int<lower=2> n = 90;";
         assert_eq!(
-            history_and_gate(&one(n, "stdev_pop(close / close[1] - 1, n, missing = skip)")),
+            history_and_gate(&one(n, "roll_stdev_biased(close / close[1] - 1, n, missing = skip)")),
             (91.0, 90.0)
         );
         // Where a window is full when it is defined, the figure is the lookback.
-        assert_eq!(history_and_gate(&one(n, "sma(close, n, missing = skip)")), (90.0, 90.0));
-        assert_eq!(history_and_gate(&one(n, "sma(sma(close, 20), 30)")), (49.0, 49.0));
-        assert_eq!(history_and_gate(&one(n, "ts_sum(close, n)")), (90.0, 90.0));
+        assert_eq!(history_and_gate(&one(n, "ma(close, n, missing = skip)")), (90.0, 90.0));
+        assert_eq!(history_and_gate(&one(n, "ma(ma(close, 20), 30)")), (49.0, 49.0));
+        assert_eq!(history_and_gate(&one(n, "roll_sum(close, n)")), (90.0, 90.0));
         assert_eq!(history_and_gate(&one(n, "rsi(close[2], 14)")), (17.0, 17.0));
         // Nested: the input's whole figure, then each window's length less one.
         let kn = "int<lower=1> k = 3; int<lower=1> n = 20;";
         assert_eq!(
-            history_and_gate(&one(kn, "sma(ts_sum(close[k], n, 1), 3, missing = skip)")),
+            history_and_gate(&one(kn, "ma(roll_sum(close[k], n, 1), 3, missing = skip)")),
             (3.0 + 1.0 + 19.0 + 2.0, 4.0)
         );
         // A lag, an RSI, a least-squares line and a filter over a partial sum.
-        let p = "series { real p = ts_sum(close[1], 5, 1); real a = lag(p, 2); real b = rsi(p, 3); \
+        let p = "series { real p = roll_sum(close[1], 5, 1); real a = lag(p, 2); real b = rsi(p, 3); \
                  real c = ols_slope(p, close, 10); real d = kf_beta(p, close, 0.0001, 0.001); }";
         for (read, whole) in [("a", 8.0), ("b", 9.0), ("c", 15.0), ("d", 6.0)] {
             let (history, _) = history_and_gate(&format!("{p} on_bar {{ target({read}); }}"));
@@ -640,14 +640,14 @@ mod tests {
         assert_eq!(
             history_and_gate(&format!(
                 "options {{ warmup = 500; }} {}",
-                one(k, "ts_sum(sign(close - close[k]), h - 1, 1)")
+                one(k, "roll_sum(sign(close - close[k]), h - 1, 1)")
             )),
             (500.0, 500.0)
         );
         assert_eq!(
             history_and_gate(&format!(
                 "options {{ warmup = k + 2; }} {}",
-                one(k, "ts_sum(sign(close - close[k]), h - 1, 1)")
+                one(k, "roll_sum(sign(close - close[k]), h - 1, 1)")
             )),
             (274.0, 252.0)
         );
@@ -661,7 +661,7 @@ mod tests {
         let program = |defaults: &str| {
             format!(
                 "{ind} params {{ int<lower=1> k = 3; int<lower=1> n = 20; {defaults} }} \
-                 series {{ real u = m(ts_sum(close[k], n, 1), w, z, missing = skip); }} on_bar {{ target(u); }}"
+                 series {{ real u = m(roll_sum(close[k], n, 1), w, z, missing = skip); }} on_bar {{ target(u); }}"
             )
         };
         // The window wins: k + n + w - 1; the gate is max(w, k + 1) and k + 1 + z + 1.
@@ -677,7 +677,7 @@ mod tests {
         // Under restart, the window's figure over the input's whole figure, not its lookback.
         let restart = format!(
             "{ind} params {{ int<lower=1> k = 3; int<lower=1> n = 20; }} \
-             series {{ real u = m(ts_sum(close[k], n, 1), 10, 0); }} on_bar {{ target(u); }}"
+             series {{ real u = m(roll_sum(close[k], n, 1), 10, 0); }} on_bar {{ target(u); }}"
         );
         assert_eq!(history_and_gate(&restart), (32.0, 13.0));
     }
@@ -685,7 +685,7 @@ mod tests {
     #[test]
     fn whole_history_counts_live_values_only() {
         let (history, gate) = history_and_gate(
-            "series { real a = sma(close, 3); real unused = ts_sum(close[50], 20, 1); } on_bar { target(a); }",
+            "series { real a = ma(close, 3); real unused = roll_sum(close[50], 20, 1); } on_bar { target(a); }",
         );
         assert_eq!((history, gate), (3.0, 3.0));
     }
@@ -693,19 +693,19 @@ mod tests {
     #[test]
     fn windows_are_proved_from_the_bounds() {
         assert_eq!(
-            errors("params { int n = 5; } series { real a = sma(close, n); } on_bar { target(a); }"),
+            errors("params { int n = 5; } series { real a = ma(close, n); } on_bar { target(a); }"),
             [Code::WindowBelowOne]
         );
         assert_eq!(
-            errors("params { int<lower=0> n = 5; } series { real a = sma(close, n); } on_bar { target(a); }"),
+            errors("params { int<lower=0> n = 5; } series { real a = ma(close, n); } on_bar { target(a); }"),
             [Code::WindowBelowOne]
         );
         assert_eq!(
-            message("params { int<lower=0> n = 5; } series { real a = sma(close, n); } on_bar { target(a); }"),
-            "`sma`'s window may be below 1"
+            message("params { int<lower=0> n = 5; } series { real a = ma(close, n); } on_bar { target(a); }"),
+            "`ma`'s window may be below 1"
         );
         assert_eq!(
-            errors("params { int<lower=1> n = 5; } series { real a = stdev(close, n); } on_bar { target(a); }"),
+            errors("params { int<lower=1> n = 5; } series { real a = roll_stdev(close, n); } on_bar { target(a); }"),
             [Code::WindowBelowTwo]
         );
         assert_eq!(
@@ -721,11 +721,11 @@ mod tests {
             [Code::LookAhead]
         );
         assert_eq!(
-            errors("params { int<lower=2> n = 5; } series { real a = sma(close, n - 2); } on_bar { target(a); }"),
+            errors("params { int<lower=2> n = 5; } series { real a = ma(close, n - 2); } on_bar { target(a); }"),
             [Code::WindowBelowOne]
         );
         assert_eq!(
-            errors("series { real a = ts_sum(close, 5, 6); } on_bar { target(a); }"),
+            errors("series { real a = roll_sum(close, 5, 6); } on_bar { target(a); }"),
             [Code::MinOutOfRange]
         );
         assert_eq!(
@@ -734,14 +734,14 @@ mod tests {
             ),
             [Code::FilterParameters]
         );
-        // stdev_pop takes a window of one under skip.
-        ok("series { real a = stdev_pop(close, 1, missing = skip); } on_bar { target(a); }");
+        // roll_stdev_biased takes a window of one under skip.
+        ok("series { real a = roll_stdev_biased(close, 1, missing = skip); } on_bar { target(a); }");
     }
 
     #[test]
     fn warmup_and_liveness() {
         let ir = ok(
-            "params { int<lower=1> n = 4; } options { warmup = n * 2 + 1; } series { real a = sma(close, 3); real unused = sma(close, 9); } on_bar { target(a); }",
+            "params { int<lower=1> n = 4; } options { warmup = n * 2 + 1; } series { real a = ma(close, 3); real unused = ma(close, 9); } on_bar { target(a); }",
         );
         assert_eq!(value(&ir, ir.warmup.as_ref().unwrap()), 9.0);
         assert_eq!(ir.warnings.len(), 1);
@@ -767,12 +767,11 @@ mod tests {
         );
         // Checked after the series are declared: a series is not fixed before the run, not an unknown name.
         assert_eq!(
-            errors("options { warmup = a; } series { real a = sma(close, 3); } on_bar { target(a); }"),
+            errors("options { warmup = a; } series { real a = ma(close, 3); } on_bar { target(a); }"),
             [Code::NotConstant]
         );
         // A series read only by a handler other than on_bar is kept for it.
-        let ir =
-            ok("series { real a = sma(close, 3); } state { real s = 0; } on_fill { s = a; } on_bar { target(s); }");
+        let ir = ok("series { real a = ma(close, 3); } state { real s = 0; } on_fill { s = a; } on_bar { target(s); }");
         assert_eq!(ir.kept, [ir.series[0].1]);
     }
 }

@@ -2,7 +2,7 @@ params {
   int<lower=1> fast = 20
 }
 series {
-  real a = sma(close, fast);
+  real a = ma(close, fast);
   real b = (close + ;
 }
 on_bar {

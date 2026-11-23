@@ -3,5 +3,5 @@ error[named-argument-not-allowed]: `abs` takes no named argument
   |
 2 |   real a = abs(close, missing = skip);
   |                       ^^^^^^^ not here
-  = only indicators over one series take `missing = ...` (sma ema lag ts_sum stdev stdev_pop zscore, and rsi ts_max ts_min with restart or poison)
+  = only indicators over one series take `missing = ...` (ma ema lag roll_sum roll_stdev roll_stdev_biased roll_zscore, and rsi roll_max roll_min with restart or poison)
 

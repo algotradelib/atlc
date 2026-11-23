@@ -22,11 +22,11 @@ error[built-in-name]: `open` is a built-in name
 9 | indicator g(real open) {
   |                  ^^^^ choose another name
 
-error[built-in-name]: `sma` is a built-in name
+error[built-in-name]: `ma` is a built-in name
   --> tests/ui/check/reserved-argument-names.atls:10:10
    |
-10 |   window sma[3];
-   |          ^^^ choose another name
+10 |   window ma[3];
+   |          ^^ choose another name
 
 error[built-in-name]: `volume` is a built-in name
   --> tests/ui/check/reserved-argument-names.atls:11:14

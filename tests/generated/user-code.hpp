@@ -57,7 +57,7 @@ struct Last {
 
 } // namespace detail
 
-/** @brief `sma(x, n)` with `--indicators incremental`: a running sum. */
+/** @brief `ma(x, n)` with `--indicators incremental`: a running sum. */
 class inc_sma {
 public:
   /** @brief A window of `n`. */
@@ -80,7 +80,7 @@ private:
   double sum_{0};
 };
 
-/** @brief `sma(x, n)` with `--indicators naive`: the window summed again, oldest first. */
+/** @brief `ma(x, n)` with `--indicators naive`: the window summed again, oldest first. */
 class naive_sma {
 public:
   /** @brief A window of `n`. */
@@ -102,7 +102,7 @@ private:
   detail::Last last_;
 };
 
-/** @brief `sma(x, n)` with `--indicators exact`: a sliding sum without subtraction ("two stacks"). */
+/** @brief `ma(x, n)` with `--indicators exact`: a sliding sum without subtraction ("two stacks"). */
 class exact_sma {
 public:
   /** @brief A window of `n`. */

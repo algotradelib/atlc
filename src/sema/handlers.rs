@@ -973,7 +973,7 @@ mod tests {
             [Code::UnknownField]
         );
         assert_eq!(
-            errors("series { real a = sma(close, 3); } on_bar { target(sma(close, 3)); }"),
+            errors("series { real a = ma(close, 3); } on_bar { target(ma(close, 3)); }"),
             [Code::IndicatorInHandler]
         );
         assert_eq!(errors("on_bar { target(close[1]); }"), [Code::IndicatorInHandler]);

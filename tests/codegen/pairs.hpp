@@ -185,7 +185,7 @@ struct Pairs {
   std::size_t warmup_{0};
   std::size_t history_{0};
   atls::ops::Ring ring4_;
-  atls::ops::Zscore ind5_;  // zscore(s_spread, params_.lookback_)
+  atls::ops::Zscore ind5_;  // roll_zscore(s_spread, params_.lookback_)
   atls::ops::OlsSlope obj2_;
 };
 

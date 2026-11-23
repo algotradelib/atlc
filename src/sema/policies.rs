@@ -193,7 +193,7 @@ mod tests {
     #[test]
     fn program_default_and_overrides() {
         let p = policies(
-            "options { missing = skip; } series { real a = sma(close, 5); real b = sma(close, 6, missing = poison); } on_bar { target(a + b); }",
+            "options { missing = skip; } series { real a = ma(close, 5); real b = ma(close, 6, missing = poison); } on_bar { target(a + b); }",
         );
         assert_eq!(
             p,
@@ -202,7 +202,7 @@ mod tests {
                 (Ind::Sma, Policy::Poison, CExpr::Num(1.0))
             ]
         );
-        let p = policies("series { real a = stdev(close, 5, missing = skip, min = 3); } on_bar { target(a); }");
+        let p = policies("series { real a = roll_stdev(close, 5, missing = skip, min = 3); } on_bar { target(a); }");
         assert_eq!(p, [(Ind::Stdev, Policy::Skip, CExpr::Num(3.0))]);
         assert_eq!(
             errors("options { missing = drop; } on_bar { target(1); }"),
@@ -230,7 +230,7 @@ mod tests {
     #[test]
     fn named_arguments() {
         assert_eq!(
-            errors("series { real a = sma(close, 5, window = 3); } on_bar { target(a); }"),
+            errors("series { real a = ma(close, 5, window = 3); } on_bar { target(a); }"),
             [Code::UnknownNamedArgument]
         );
         assert_eq!(
@@ -242,19 +242,19 @@ mod tests {
             [Code::NamedArgumentNotAllowed]
         );
         assert_eq!(
-            errors("series { real a = ts_sum(close, 5, 3, missing = skip); } on_bar { target(a); }"),
+            errors("series { real a = roll_sum(close, 5, 3, missing = skip); } on_bar { target(a); }"),
             [Code::NamedArgumentNotAllowed]
         );
         assert_eq!(
-            errors("series { real a = sma(close, 5, min = 2); } on_bar { target(a); }"),
+            errors("series { real a = ma(close, 5, min = 2); } on_bar { target(a); }"),
             [Code::MinWithoutSkip]
         );
         assert_eq!(
-            errors("series { real a = sma(close, 5, missing = skip, min = 6); } on_bar { target(a); }"),
+            errors("series { real a = ma(close, 5, missing = skip, min = 6); } on_bar { target(a); }"),
             [Code::MinOutOfRange]
         );
         assert_eq!(
-            errors("series { real a = sma(close, 5, missing = skip, min = 0); } on_bar { target(a); }"),
+            errors("series { real a = ma(close, 5, missing = skip, min = 0); } on_bar { target(a); }"),
             [Code::MinOutOfRange]
         );
         assert_eq!(
@@ -262,11 +262,11 @@ mod tests {
             [Code::SkipUnsupported]
         );
         assert_eq!(
-            errors("options { missing = skip; } series { real a = ts_max(close, 5); } on_bar { target(a); }"),
+            errors("options { missing = skip; } series { real a = roll_max(close, 5); } on_bar { target(a); }"),
             [Code::SkipUnsupported]
         );
         ok(
-            "options { missing = skip; } series { real a = ts_max(close, 5, missing = restart); } on_bar { target(a); }",
+            "options { missing = skip; } series { real a = roll_max(close, 5, missing = restart); } on_bar { target(a); }",
         );
     }
 

@@ -2,7 +2,7 @@ params {
   int<lower=0> quantity = 100;
 }
 series {
-  real average = sma(close, 20);
+  real average = ma(close, 20);
 }
 on_bar {
   if (close < average) {

@@ -9,7 +9,7 @@ params {
 series {
   real hedge = ols_slope(y.close, x.close, lookback);
   real spread = y.close - hedge * x.close;
-  real z = zscore(spread, lookback);
+  real z = roll_zscore(spread, lookback);
 }
 on_bar {
   if (z < -entry) {

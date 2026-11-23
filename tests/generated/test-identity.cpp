@@ -29,7 +29,7 @@ void one_share_each(const t::Outcome& outcome, const std::vector<std::string>& s
 
 } // namespace
 
-TEST_CASE("sma, stdev and zscore restated as user indicators give the same bits") {
+TEST_CASE("ma, roll_stdev and roll_zscore restated as user indicators give the same bits") {
   const auto events = t::daily_events({t::walk("A", 10, 2000)});
   for (const double n : {2.0, 5.0, 20.0, 90.0}) {
     INFO("n = " << n);

@@ -10,7 +10,7 @@ options {
   warmup = trend + 1;
 }
 series {
-  real average = sma(close, trend);
+  real average = ma(close, trend);
   real level = rsi(close, fast);
 }
 on_bar {

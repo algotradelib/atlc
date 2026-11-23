@@ -6,7 +6,7 @@ How a window treats a missing value is a property of the strategy, because it ch
 
 ```atls
 options { missing = skip; } // the program's default
-series { real z = zscore(close, 20, missing = restart); } // one indicator's own policy
+series { real z = roll_zscore(close, 20, missing = restart); } // one indicator's own policy
 ```
 
 | Policy | A window with a missing value |
@@ -19,16 +19,16 @@ series { real z = zscore(close, 20, missing = restart); } // one indicator's own
 
 | Built-in | Policies | Under `skip` |
 | --- | --- | --- |
-| `sma`, `ts_sum` | `restart`, `skip`, `poison` | mean or sum of the values present |
-| `stdev`, `stdev_pop` | `restart`, `skip`, `poison` | over the values present; `stdev` needs at least two |
-| `zscore` | `restart`, `skip`, `poison` | needs a positive deviation and a defined newest value |
+| `ma`, `roll_sum` | `restart`, `skip`, `poison` | mean or sum of the values present |
+| `roll_stdev`, `roll_stdev_biased` | `restart`, `skip`, `poison` | over the values present; `roll_stdev` needs at least two |
+| `roll_zscore` | `restart`, `skip`, `poison` | needs a positive deviation and a defined newest value |
 | `lag`, `x[k]` | `restart`, `skip`, `poison` | the value in that exact slot, which may be missing; `min =` is refused |
 | `ema` | `restart`, `skip`, `poison` | a missing value is ignored and the previous output kept; defined once n values have been seen; `min =` is refused |
-| `rsi`, `ts_max`, `ts_min` | `restart`, `poison` | not available |
-| `ols_slope`, `ols_intercept`, `kf_*`, `ts_sum(x, n, m)` | always `restart` | not available; another program default does not change them, and a `missing =` argument is refused |
+| `rsi`, `roll_max`, `roll_min` | `restart`, `poison` | not available |
+| `ols_slope`, `ols_intercept`, `kf_*`, `roll_sum(x, n, m)` | always `restart` | not available; another program default does not change them, and a `missing =` argument is refused |
 | an external indicator | `restart`, `poison` | not available: a call under a program default of `skip` must state another policy ([functions and indicators](functions-and-indicators.md), "External C++") |
 
-Under `skip` the lookback of `sma`, `ts_sum`, `stdev`, `stdev_pop` and `zscore` is max(n, L + min - 1), with L the input's lookback; `lag` keeps L + k.
+Under `skip` the lookback of `ma`, `roll_sum`, `roll_stdev`, `roll_stdev_biased` and `roll_zscore` is max(n, L + min - 1), with L the input's lookback; `lag` keeps L + k.
 For `ema` the lookback is a lower bound only: the value is defined once n values have been seen, however many periods that takes.
 Refusing `min =` on `lag` and `ema` is intended behaviour (the prototype accepted and ignored it).
 

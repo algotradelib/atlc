@@ -1,7 +1,7 @@
-// sma and least squares beside external indicators whose C++ restates them (tests/generated/user-code.hpp), also
+// ma and least squares beside external indicators whose C++ restates them (tests/generated/user-code.hpp), also
 // over an input undefined on many bars (restart and poison), and functions written in atls beside external functions
 // that restate them. The test generates a copy per mode, with the class that
-// mode's sma uses (`inc_`, `naive_` or `exact_`). The program counts the bars where a value or its definedness
+// mode's ma uses (`inc_`, `naive_` or `exact_`). The program counts the bars where a value or its definedness
 // differs and states one share more than that count, so one fill of one share means equal values (atls `==`) and the
 // same definedness on every bar after the gate.
 params {
@@ -36,7 +36,7 @@ extern indicator inc_ols(real y, real x, int n) {
 
 series {
   real x = close / 7;
-  real a1 = sma(x, n);
+  real a1 = ma(x, n);
   real b1 = inc_sma(x, n);
   // Undefined during the warm-up: an external function is not called then.
   real d = x - a1;
@@ -46,9 +46,9 @@ series {
   real b3 = inside_c(d, 0.05) ? 1 : 0;
   // Undefined whenever the close is at most 10,000, about half the bars: the indicators restart or are poisoned.
   real hole = x / (close > 10000 ? 1 : 0);
-  real a4 = sma(hole, n);
+  real a4 = ma(hole, n);
   real b4 = inc_sma(hole, n);
-  real a5 = sma(hole, n, missing = poison);
+  real a5 = ma(hole, n, missing = poison);
   real b5 = inc_sma(hole, n, missing = poison);
   real a6 = ols_slope(hole, x, n);
   real b6 = inc_ols(hole, x, n).slope;

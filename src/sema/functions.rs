@@ -831,7 +831,7 @@ mod tests {
             [Code::IntFunctionRealArguments]
         );
         assert_eq!(
-            errors("functions { real f(real x) { return sma(x, 3); } } on_bar { target(f(1)); }"),
+            errors("functions { real f(real x) { return ma(x, 3); } } on_bar { target(f(1)); }"),
             [Code::IndicatorInHandler]
         );
         // A function whose body may return an undefined value makes its calls maybe undefined.

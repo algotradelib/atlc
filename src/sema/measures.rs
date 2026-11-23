@@ -334,7 +334,7 @@ mod tests {
         assert_eq!(e("real a = ret > 0;"), [Code::PointOutsideReduction]);
         assert_eq!(e("real a = true;"), [Code::TypeMismatch]);
         assert_eq!(e("real a = cum_mean(close[1]);"), [Code::NotInMeasures]);
-        assert_eq!(e("real a = cum_sum(sma(close, 2));"), [Code::NotInMeasures]);
+        assert_eq!(e("real a = cum_sum(ma(close, 2));"), [Code::NotInMeasures]);
         assert_eq!(e("real a = held + keep;"), [Code::NotInMeasures, Code::NotInMeasures]);
         assert_eq!(e("real a = target(1);"), [Code::TargetAsValue]);
         assert_eq!(e("real ret = 1;"), [Code::BuiltInName]);

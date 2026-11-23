@@ -106,10 +106,10 @@ mod tests {
     #[test]
     fn classes() {
         let ir = ok("params { int<lower=1> n = 5; real r = 0; } series { \
-            real a = close * 2; real b = open; real c = sma(close, n); real d = close / 2; real e = close / close; \
-            real f = close / n; real g = close / r; real h = zscore(close, 5); real i = log(close); \
-            real j = sma(open, 3); bool k = defined(open); real l = sma(close, 3, missing = poison); \
-            real m = sma(open, 3, missing = skip); } \
+            real a = close * 2; real b = open; real c = ma(close, n); real d = close / 2; real e = close / close; \
+            real f = close / n; real g = close / r; real h = roll_zscore(close, 5); real i = log(close); \
+            real j = ma(open, 3); bool k = defined(open); real l = ma(close, 3, missing = poison); \
+            real m = ma(open, 3, missing = skip); } \
             on_bar { target(a + b + c + d + e + f + g + h + i + j + l + m); if (k) { target(0); } }");
         let class = |name| series(&ir, name).class;
         assert_eq!(class("a"), Class::Always);
@@ -127,7 +127,7 @@ mod tests {
         assert_eq!(class("m"), Class::Maybe);
         // A universe on a period clock: a missing row reaches every window.
         let ir = ok(
-            "universe {} options { missing = skip; } series { real a = close; real b = sma(close, 3); } on_bar { target(a + b); }",
+            "universe {} options { missing = skip; } series { real a = close; real b = ma(close, 3); } on_bar { target(a + b); }",
         );
         assert_eq!(series(&ir, "a").class, Class::Maybe);
         assert_eq!(series(&ir, "b").class, Class::Maybe);

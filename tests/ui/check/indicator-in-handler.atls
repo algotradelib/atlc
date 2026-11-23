@@ -3,6 +3,6 @@ params {
 }
 on_bar {
   if (held == 0) {
-    target(close > sma(close, fast) ? 100 : 0);
+    target(close > ma(close, fast) ? 100 : 0);
   }
 }

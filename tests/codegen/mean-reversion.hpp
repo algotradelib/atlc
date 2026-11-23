@@ -148,7 +148,7 @@ struct MeanReversion {
   std::size_t warmup_{0};
   std::size_t history_{0};
   atls::ops::Ring ring0_;
-  atls::ops::Zscore ind1_;  // zscore(f_close, params_.lookback_)
+  atls::ops::Zscore ind1_;  // roll_zscore(f_close, params_.lookback_)
 };
 
 } // namespace atls

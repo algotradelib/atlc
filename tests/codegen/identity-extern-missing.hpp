@@ -126,7 +126,7 @@ struct IdentityExternMissing {
     double s_b2{};
     atls::ops::Ring ring0_;
     atls::ops::Lag ind1_;  // lag(f_close, 1)
-    atls::ops::Sma ind5_;  // sma(f_close, params_.n_)
+    atls::ops::Sma ind5_;  // ma(f_close, params_.n_)
     Ind_inc_sma_restart obj6_;
     atls::ops::OlsSlope obj7_;
     Ind_inc_ols_restart obj8_;

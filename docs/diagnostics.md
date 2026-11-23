@@ -64,11 +64,11 @@ From `tests/ui/syntax/unexpected-character.atls`.
 A punctuation mark or word the grammar requires here is missing, such as `;`, `}` or `in`.
 
 ```
-error[expected-token]: expected `)` to close `sma(`, found `;`
- --> tests/ui/syntax/missing-paren.atls:2:24
+error[expected-token]: expected `)` to close `ma(`, found `;`
+ --> tests/ui/syntax/missing-paren.atls:2:23
   |
-2 |   real a = sma(close, 5;
-  |                        ^ expected `)`
+2 |   real a = ma(close, 5;
+  |                       ^ expected `)`
 ```
 
 From `tests/ui/syntax/missing-paren.atls`.
@@ -396,10 +396,10 @@ A name that is not declared; a near name is suggested.
 
 ```
 error[unknown-name]: unknown name `fats`
- --> tests/ui/check/unknown-name.atls:5:23
+ --> tests/ui/check/unknown-name.atls:5:22
   |
-5 |   real a = sma(close, fats);
-  |                       ^^^^ not declared
+5 |   real a = ma(close, fats);
+  |                      ^^^^ not declared
   = did you mean `fast`?
 ```
 
@@ -444,7 +444,7 @@ Warning: a series no handler reads, directly or through another series; it is no
 warning[unused-series]: series `unused` is never read
  --> tests/ui/check/unused-series.atls:2:8
   |
-2 |   real unused = sma(close, 5);
+2 |   real unused = ma(close, 5);
   |        ^^^^^^ not computed
 ```
 
@@ -679,11 +679,11 @@ From `tests/ui/check/loop-bound-not-fixed.atls`.
 A count of bars (a window, the warm-up, a loop bound) that is not a whole number.
 
 ```
-error[not-whole-number]: `sma`'s window is a whole number of bars
- --> tests/ui/check/not-whole-number.atls:2:23
+error[not-whole-number]: `ma`'s window is a whole number of bars
+ --> tests/ui/check/not-whole-number.atls:2:22
   |
-2 |   real a = sma(close, 2.5);
-  |                       ^^^ not a whole number
+2 |   real a = ma(close, 2.5);
+  |                      ^^^ not a whole number
 ```
 
 From `tests/ui/check/not-whole-number.atls`.
@@ -693,11 +693,11 @@ From `tests/ui/check/not-whole-number.atls`.
 A constant built from a parameter of the wrong type: a count of bars from a parameter that is not an `int`, or a bound or a state's initial value from a `bool` parameter.
 
 ```
-error[const-param-not-int]: `sma`'s window is built from `int` params
- --> tests/ui/check/const-param-not-int.atls:5:23
+error[const-param-not-int]: `ma`'s window is built from `int` params
+ --> tests/ui/check/const-param-not-int.atls:5:22
   |
-5 |   real a = sma(close, n);
-  |                       ^ `n` is `real`
+5 |   real a = ma(close, n);
+  |                      ^ `n` is `real`
 ```
 
 From `tests/ui/check/const-param-not-int.atls`.
@@ -707,11 +707,11 @@ From `tests/ui/check/const-param-not-int.atls`.
 A count of bars that divides; `/` gives a `real`.
 
 ```
-error[count-division]: `sma`'s window cannot divide
- --> tests/ui/check/count-division.atls:5:23
+error[count-division]: `ma`'s window cannot divide
+ --> tests/ui/check/count-division.atls:5:22
   |
-5 |   real a = sma(close, n / 2);
-  |                       ^^^^^ `/` gives a real
+5 |   real a = ma(close, n / 2);
+  |                      ^^^^^ `/` gives a real
   = a count of bars is a whole number
 ```
 
@@ -838,7 +838,7 @@ error[unknown-function]: unknown function `cube`
   |
 2 |   target(cube(close));
   |          ^^^^ not a function
-  = functions: abs min max defined sign log sqrt round floor; indicators (series only): sma ema rsi lag ts_max ts_min ts_sum stdev zscore ols_slope ols_intercept kf_beta kf_error kf_sd; cross-sectional (universe handlers): xs_mean xs_sum xs_count xs_rank
+  = functions: abs min max defined sign log sqrt round floor; indicators (series only): ma ema rsi lag roll_max roll_min roll_sum roll_stdev roll_stdev_biased roll_zscore ols_slope ols_intercept kf_beta kf_error kf_sd; cross-sectional (universe handlers): xs_mean xs_sum xs_count xs_rank
 ```
 
 From `tests/ui/check/unknown-function.atls`.
@@ -878,11 +878,11 @@ From `tests/ui/check/target-as-value.atls`.
 An indicator called with the wrong number of arguments.
 
 ```
-error[indicator-arity]: `sma` takes (series, window)
+error[indicator-arity]: `ma` takes (series, window)
  --> tests/ui/check/indicator-arity.atls:2:12
   |
-2 |   real a = sma(close);
-  |            ^^^^^^^^^^ 1 argument(s)
+2 |   real a = ma(close);
+  |            ^^^^^^^^^ 1 argument(s)
 ```
 
 From `tests/ui/check/indicator-arity.atls`.
@@ -892,11 +892,11 @@ From `tests/ui/check/indicator-arity.atls`.
 An indicator over a `bool` series.
 
 ```
-error[series-not-numeric]: `sma` needs a real series
- --> tests/ui/check/series-not-numeric.atls:2:16
+error[series-not-numeric]: `ma` needs a real series
+ --> tests/ui/check/series-not-numeric.atls:2:15
   |
-2 |   real a = sma(close > 1, 5);
-  |                ^^^^^^^^^ this is `bool`
+2 |   real a = ma(close > 1, 5);
+  |               ^^^^^^^^^ this is `bool`
   = write `c ? 1 : 0` to count a condition
 ```
 
@@ -922,11 +922,11 @@ From `tests/ui/check/look-ahead.atls`.
 A window that the parameters' bounds do not prove at least 1.
 
 ```
-error[window-below-one]: `sma`'s window may be below 1
- --> tests/ui/check/window-unbounded.atls:6:23
+error[window-below-one]: `ma`'s window may be below 1
+ --> tests/ui/check/window-unbounded.atls:6:22
   |
-6 |   real a = sma(close, fast);
-  |                       ^^^^ nothing bounds this from below
+6 |   real a = ma(close, fast);
+  |                      ^^^^ nothing bounds this from below
   = give the param a lower bound, e.g. `int<lower=1> n = 20;`
 ```
 
@@ -937,11 +937,11 @@ From `tests/ui/check/window-unbounded.atls`.
 A deviation's or a regression's window that the bounds do not prove at least 2.
 
 ```
-error[window-below-two]: `stdev`'s window may be below 2
- --> tests/ui/check/window-below-two.atls:2:25
+error[window-below-two]: `roll_stdev`'s window may be below 2
+ --> tests/ui/check/window-below-two.atls:2:30
   |
-2 |   real a = stdev(close, 1);
-  |                         ^ a deviation needs two values
+2 |   real a = roll_stdev(close, 1);
+  |                              ^ a deviation needs two values
   = raise the params' lower bounds so the window is at least 2
 ```
 
@@ -967,13 +967,13 @@ From `tests/ui/check/filter-parameters.atls`.
 An indicator (or a lag) called outside `series {}`: it must see every bar.
 
 ```
-error[indicator-in-handler]: indicator `sma` called inside `on_bar`
+error[indicator-in-handler]: indicator `ma` called inside `on_bar`
  --> tests/ui/check/indicator-in-handler.atls:6:20
   |
-6 |     target(close > sma(close, fast) ? 100 : 0);
-  |                    ^^^^^^^^^^^^^^^^ indicators are computed in `series {}`
+6 |     target(close > ma(close, fast) ? 100 : 0);
+  |                    ^^^^^^^^^^^^^^^ indicators are computed in `series {}`
   = an indicator keeps the history of its input, so it must see every bar; under an `if` it would skip bars and change meaning
-  = declare `real x = sma(close, fast);` in `series {}` and read `x` here
+  = declare `real x = ma(close, fast);` in `series {}` and read `x` here
 ```
 
 From `tests/ui/check/indicator-in-handler.atls`.
@@ -1005,7 +1005,7 @@ An assignment to a series.
 error[assign-series]: cannot assign to series `average`
  --> tests/ui/check/assign-series.atls:5:3
   |
-2 |   real average = sma(close, 20);
+2 |   real average = ma(close, 20);
   |        ------- declared in `series {}`
 5 |   average = close;
   |   ^^^^^^^ series are computed from the bars, every bar
@@ -1684,11 +1684,11 @@ From `tests/ui/check/policy-unknown.atls`.
 An indicator called with a named argument it does not take.
 
 ```
-error[unknown-named-argument]: `sma` takes no argument `window`
- --> tests/ui/check/unknown-named-argument.atls:2:26
+error[unknown-named-argument]: `ma` takes no argument `window`
+ --> tests/ui/check/unknown-named-argument.atls:2:25
   |
-2 |   real a = sma(close, 5, window = 2);
-  |                          ^^^^^^ unknown argument
+2 |   real a = ma(close, 5, window = 2);
+  |                         ^^^^^^ unknown argument
   = named arguments: missing = restart | skip | poison, and min = N with skip
 ```
 
@@ -1704,7 +1704,7 @@ error[named-argument-not-allowed]: `abs` takes no named argument
   |
 2 |   real a = abs(close, missing = skip);
   |                       ^^^^^^^ not here
-  = only indicators over one series take `missing = ...` (sma ema lag ts_sum stdev stdev_pop zscore, and rsi ts_max ts_min with restart or poison)
+  = only indicators over one series take `missing = ...` (ma ema lag roll_sum roll_stdev roll_stdev_biased roll_zscore, and rsi roll_max roll_min with restart or poison)
 ```
 
 From `tests/ui/check/named-argument-not-allowed.atls`.
@@ -1715,10 +1715,10 @@ From `tests/ui/check/named-argument-not-allowed.atls`.
 
 ```
 error[min-without-skip]: `min` applies to `missing = skip` only
- --> tests/ui/check/policy-min-restart.atls:1:40
+ --> tests/ui/check/policy-min-restart.atls:1:39
   |
-1 | series { real m = sma(close, 20, min = 5); }
-  |                                        ^ not used
+1 | series { real m = ma(close, 20, min = 5); }
+  |                                       ^ not used
   = restart and poison need a full window of values
 ```
 
@@ -1741,21 +1741,21 @@ From `tests/ui/check/min-not-applicable.atls`.
 
 ### `min-out-of-range`
 
-A minimum count (`min =`, or `ts_sum`'s third argument) not provably between 1 and the window.
+A minimum count (`min =`, or `roll_sum`'s third argument) not provably between 1 and the window.
 
 ```
 error[min-out-of-range]: `min` must be between 1 and the window
- --> tests/ui/check/min-out-of-range.atls:2:48
+ --> tests/ui/check/min-out-of-range.atls:2:47
   |
-2 |   real a = sma(close, 5, missing = skip, min = 6);
-  |                                                ^ may be outside within the params' bounds
+2 |   real a = ma(close, 5, missing = skip, min = 6);
+  |                                               ^ may be outside within the params' bounds
 ```
 
 From `tests/ui/check/min-out-of-range.atls`.
 
 ### `skip-unsupported`
 
-`missing = skip` on an indicator without a skip rule (`rsi`, `ts_max`, `ts_min`).
+`missing = skip` on an indicator without a skip rule (`rsi`, `roll_max`, `roll_min`).
 
 ```
 error[skip-unsupported]: `rsi` has no `skip` rule yet

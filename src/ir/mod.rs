@@ -130,7 +130,7 @@ pub enum NodeKind {
     Call(Builtin, Vec<usize>),
     /// An indicator over one input, its window and its missing-value policy.
     Ind(Ind, usize, CExpr, Miss),
-    /// `ts_sum(x, n, min)`: defined once `min` values are in the window.
+    /// `roll_sum(x, n, min)`: defined once `min` values are in the window.
     Partial(usize, CExpr, CExpr),
     Pair(PairInd, usize, usize, CExpr),
     /// y, x, delta, ve, output.

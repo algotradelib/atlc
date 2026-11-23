@@ -103,7 +103,7 @@ pub enum ExprKind {
     Index(Box<Expr>, Box<Expr>),
     /// `fill.price`
     Field(Ident, Ident),
-    /// `name = value` as a call's argument: `sma(close, 20, missing = skip)`.
+    /// `name = value` as a call's argument: `ma(close, 20, missing = skip)`.
     Named(Ident, Box<Expr>),
     /// `mean_sd(close, 20).sd`: one value of a user indicator with several.
     Member(Box<Expr>, Ident),

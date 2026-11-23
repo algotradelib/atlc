@@ -132,7 +132,7 @@ fn a_single_instrument_program() {
     std::fs::write(
         &file,
         "params {\n  int<lower=2> lookback = 5;\n  real entry = 1.5;\n  bool flag = false;\n}\nseries {\n  \
-         real m = sma(close, lookback);\n}\non_bar {\n  if (close < m - entry) {\n    target(flag ? -1 : 1);\n  }\n}\n",
+         real m = ma(close, lookback);\n}\non_bar {\n  if (close < m - entry) {\n    target(flag ? -1 : 1);\n  }\n}\n",
     )
     .unwrap();
     // A relative path, from another directory.

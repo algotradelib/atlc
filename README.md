@@ -19,7 +19,7 @@ params {
   int<lower=0> quantity = 100;
 }
 series {
-  real z = zscore(close, lookback);
+  real z = roll_zscore(close, lookback);
 }
 on_bar {
   if (z < -entry) {
@@ -66,7 +66,7 @@ A program is a set of blocks:
 | Block | What it holds |
 | --- | --- |
 | `params {}` | Typed parameters with bounds (`int<lower=2> lookback = 20;`); a tuning grid runs them all from one build |
-| `series {}` | Values computed every bar before the handlers, including indicators (`zscore`, `sma`, `ema`, `ols_slope`, ...) |
+| `series {}` | Values computed every bar before the handlers, including indicators (`roll_zscore`, `ma`, `ema`, `ols_slope`, ...) |
 | `state {}` | Values the handlers keep from bar to bar |
 | `on_start`, `on_bar`, `on_fill`, `on_stop` | Handlers; the only output is a target position |
 | `instruments {}`, `universe {}` | Several named instruments, or the same program over many |

@@ -216,7 +216,7 @@ mod tests {
         );
         assert_eq!(
             errors(
-                "indicator g(real x) { window sma[2]; state real abs = 0; enter(log) { abs = log; } leave(upper) { abs = 0; } value real v = abs; } on_bar { target(1); }"
+                "indicator g(real x) { window ma[2]; state real abs = 0; enter(log) { abs = log; } leave(upper) { abs = 0; } value real v = abs; } on_bar { target(1); }"
             ),
             [Code::BuiltInName; 4]
         );
@@ -229,7 +229,7 @@ mod tests {
             "indicator g(real window) { value real update = window; } series { real a = g(close); } on_bar { target(a); }",
         );
         // Contextual indicator words are ordinary names outside an indicator.
-        ok("params { int<lower=1> window = 3; } series { real value = sma(close, window); } on_bar { target(value); }");
+        ok("params { int<lower=1> window = 3; } series { real value = ma(close, window); } on_bar { target(value); }");
     }
 
     #[test]

@@ -1269,7 +1269,7 @@ mod tests {
         assert!(matches!(expr("f(x).v").kind, ExprKind::Member(..)));
         assert!(matches!(expr("y.close").kind, ExprKind::Field(..)));
         assert!(
-            matches!(expr("sma(x, 3, missing = skip)").kind, ExprKind::Call(_, ref a) if matches!(a[2].kind, ExprKind::Named(..)))
+            matches!(expr("ma(x, 3, missing = skip)").kind, ExprKind::Call(_, ref a) if matches!(a[2].kind, ExprKind::Named(..)))
         );
         // Parentheses keep their span but leave no node.
         let e = expr("(1)");

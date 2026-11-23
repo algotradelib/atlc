@@ -178,7 +178,7 @@ struct TrailingStop {
   std::size_t warmup_{0};
   std::size_t history_{0};
   atls::ops::Ring ring1_;
-  atls::ops::TsMax ind1_;  // ts_max(f_high, params_.lookback_)
+  atls::ops::TsMax ind1_;  // roll_max(f_high, params_.lookback_)
   atls::ops::Lag ind2_;  // lag(n1, 1)
   bool st_in_trade_{};
   double st_peak_{};

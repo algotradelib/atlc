@@ -51,7 +51,7 @@ struct Universe {
     double s_last_close{};
     double s_trend{};
     atls::ops::Ring ring0s_;
-    atls::ops::SmaSkip ind1_;  // sma(s_last_close, params_.lookback_, missing = skip)
+    atls::ops::SmaSkip ind1_;  // ma(s_last_close, params_.lookback_, missing = skip)
 
     /** Sizes the rings and resets every series and state. */
     void setup([[maybe_unused]] const Params& params_) {

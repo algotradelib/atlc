@@ -20,14 +20,14 @@ Each is undefined when an argument is, except `defined`, which is always defined
 | Indicator | Definition |
 | --- | --- |
 | `lag(x, k)`, `x[k]` | `x` k periods ago; k at least 1 |
-| `sma(x, n)` | mean of the last n values |
+| `ma(x, n)` | mean of the last n values |
 | `ema(x, n)` | seeded with the mean of the first n values, then alpha 2/(n+1) |
 | `rsi(x, n)` | Cutler's RSI: simple means of the gains and losses over the last n moves (n+1 values); 50 when nothing moved |
-| `ts_max(x, n)`, `ts_min(x, n)` | largest and smallest of the last n values |
-| `ts_sum(x, n)`, `ts_sum(x, n, m)` | sum of the last n values; with m, defined once m of them are in |
-| `stdev(x, n)` | sample standard deviation (divisor n - 1) |
-| `stdev_pop(x, n)` | population standard deviation (divisor n), as Chan's `smartstd` |
-| `zscore(x, n)` | `(x - sma(x, n)) / stdev(x, n)`; undefined when the deviation is 0 |
+| `roll_max(x, n)`, `roll_min(x, n)` | largest and smallest of the last n values |
+| `roll_sum(x, n)`, `roll_sum(x, n, m)` | sum of the last n values; with m, defined once m of them are in |
+| `roll_stdev(x, n)` | sample standard deviation (divisor n - 1) |
+| `roll_stdev_biased(x, n)` | population standard deviation (divisor n), as Chan's `smartstd` |
+| `roll_zscore(x, n)` | `(x - ma(x, n)) / roll_stdev(x, n)`; undefined when the deviation is 0 |
 | `ols_slope(y, x, n)`, `ols_intercept(y, x, n)` | least squares of y on x with an intercept over the last n pairs |
 | `kf_beta(y, x, delta, ve)`, `kf_error`, `kf_sd` | Chan's Kalman-filter hedge ratio, its forecast error and the error's deviation; one filter shared by the three |
 

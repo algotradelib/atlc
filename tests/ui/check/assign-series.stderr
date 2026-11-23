@@ -1,7 +1,7 @@
 error[assign-series]: cannot assign to series `average`
  --> tests/ui/check/assign-series.atls:5:3
   |
-2 |   real average = sma(close, 20);
+2 |   real average = ma(close, 20);
   |        ------- declared in `series {}`
 5 |   average = close;
   |   ^^^^^^^ series are computed from the bars, every bar

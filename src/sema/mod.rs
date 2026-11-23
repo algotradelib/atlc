@@ -24,7 +24,7 @@ use names::is_reserved;
 use types::join_ty;
 
 pub struct Options {
-    /// Merge identical series expressions (`sma(close, fast)` written twice is one node).
+    /// Merge identical series expressions (`ma(close, fast)` written twice is one node).
     pub share: bool,
 }
 

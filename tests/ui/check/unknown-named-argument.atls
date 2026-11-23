@@ -1,4 +1,4 @@
 series {
-  real a = sma(close, 5, window = 2);
+  real a = ma(close, 5, window = 2);
 }
 on_bar { target(a); }

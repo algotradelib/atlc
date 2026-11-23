@@ -455,7 +455,7 @@ TEST_CASE("each indicator's arithmetic is the algorithm the reference names") {
     }
     const double nd = static_cast<double>(n);
     const bool full = i + 1 >= n;
-    // incremental: running sums (sma, ts_sum, rsi, stdev, stdev_pop, zscore).
+    // incremental: running sums (ma, roll_sum, rsi, roll_stdev, roll_stdev_biased, roll_zscore).
     CHECK(same(sma.update(ring), full ? s / nd : ops::NaN));
     CHECK(same(sum.update(ring), full ? s : ops::NaN));
     CHECK(same(rsi.update(ring), i >= n ? (up + down == 0 ? 50 : 100 * up / (up + down)) : ops::NaN));
@@ -463,7 +463,7 @@ TEST_CASE("each indicator's arithmetic is the algorithm the reference names") {
     CHECK(same(pop.update(ring), full ? std::sqrt(std::max(0.0, (q - s * s / nd) / nd)) : ops::NaN));
     const double zd = std::sqrt((q - s * s / nd) / (nd - 1));
     CHECK(same(z.update(ring), full && zd > 0 ? (x - s / nd) / zd : ops::NaN));
-    // naive: summed again (sma, ts_sum) and two passes (stdev, stdev_pop, zscore).
+    // naive: summed again (ma, roll_sum) and two passes (roll_stdev, roll_stdev_biased, roll_zscore).
     CHECK(same(sma.recompute(ring), full ? mean : ops::NaN));
     CHECK(same(sum.recompute(ring), full ? again : ops::NaN));
     CHECK(same(sd.recompute(ring), full ? std::sqrt(squares / (nd - 1)) : ops::NaN));

@@ -330,7 +330,7 @@ mod tests {
             "on_bar { int n = 9007199254740993; target(n); }",
             "series { real big = 10000000000000000; } on_bar { target(big); }",
             "params { int<upper=99999999999999999999> n = 1; } on_bar { target(n); }",
-            "series { real a = sma(close, 9000000000000001); } on_bar { target(a); }",
+            "series { real a = ma(close, 9000000000000001); } on_bar { target(a); }",
             "functions { int f(int a) { return a + 9000000000000001; } } on_bar { target(f(1)); }",
         ] {
             assert_eq!(errors(src)[0], Code::IntLiteralTooLarge, "{src}");

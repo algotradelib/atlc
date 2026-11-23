@@ -129,7 +129,7 @@ struct Measures {
   std::size_t history_{0};
   atls::ops::Ring ring0_;
   atls::ops::Lag ind1_;  // lag(f_close, 1)
-  atls::ops::Sma ind5_;  // sma(f_close, params_.n_)
+  atls::ops::Sma ind5_;  // ma(f_close, params_.n_)
 
   /** The measure `mean_ret`, from `measures {}`: computed after the replay; NaN where it is undefined. */
   static double measure_mean_ret([[maybe_unused]] const atl::backtest::MeasureInput& in) {

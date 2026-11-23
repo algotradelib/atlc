@@ -1,11 +1,11 @@
-# Built-ins beside user indicators that restate them with the same arithmetic in the same order: sma, stdev
-# and zscore. The program counts the bars where a value or its definedness differs and states one share more
+# Built-ins beside user indicators that restate them with the same arithmetic in the same order: ma, roll_stdev
+# and roll_zscore. The program counts the bars where a value or its definedness differs and states one share more
 # than that count, so one fill of one share means identical bits on every bar.
 params {
   int<lower=2> n = 20;
 }
 
-# sma(x, n): a running sum over the window.
+# ma(x, n): a running sum over the window.
 indicator u_sma(real x, int n) {
   window w[n];
   state real s = 0;
@@ -14,7 +14,7 @@ indicator u_sma(real x, int n) {
   value real mean = s / n;
 }
 
-# stdev(x, n) and zscore(x, n): running sums of the values and their squares, sample deviation; one instance
+# roll_stdev(x, n) and roll_zscore(x, n): running sums of the values and their squares, sample deviation; one instance
 # gives both values.
 indicator u_dev(real x, int n) {
   window w[n];
@@ -34,11 +34,11 @@ indicator u_dev(real x, int n) {
 
 series {
   real x = close / 7;
-  real a1 = sma(x, n);
+  real a1 = ma(x, n);
   real b1 = u_sma(x, n);
-  real a2 = stdev(x, n);
+  real a2 = roll_stdev(x, n);
   real b2 = u_dev(x, n).sd;
-  real a3 = zscore(x, n);
+  real a3 = roll_zscore(x, n);
   real b3 = u_dev(x, n).z;
 }
 state {

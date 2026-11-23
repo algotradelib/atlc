@@ -7,7 +7,7 @@ functions {
   }
 }
 indicator g(real open) {
-  window sma[3];
+  window ma[3];
   state real volume = 0;
   enter(high) { volume = volume + high; }
   leave(low) { volume = volume - low; }

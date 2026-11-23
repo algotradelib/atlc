@@ -91,9 +91,9 @@ fn parentheses_calls_and_lookbacks() {
         &format!("on_bar {{ target({}1{}); }}", "abs(".repeat(300), ")".repeat(300)),
     );
     let lookbacks = |n: usize| {
-        let mut s = String::from("params { int<lower=2> k = 2; } series { real s0 = sma(close, k);");
+        let mut s = String::from("params { int<lower=2> k = 2; } series { real s0 = ma(close, k);");
         for i in 1..n {
-            s += &format!(" real s{i} = sma(s{}, k);", i - 1);
+            s += &format!(" real s{i} = ma(s{}, k);", i - 1);
         }
         s + &format!(" }} on_bar {{ target(s{}); }}", n - 1)
     };
@@ -101,9 +101,9 @@ fn parentheses_calls_and_lookbacks() {
     refused("lookbacks-20000", &lookbacks(20_000));
     // Partial sums keep a lookback of 1 bar, but the history they need to be whole deepens as a lookback does.
     let partial_sums = |n: usize| {
-        let mut s = String::from("params { int<lower=1> k = 2; } series { real s0 = ts_sum(close, k, 1);");
+        let mut s = String::from("params { int<lower=1> k = 2; } series { real s0 = roll_sum(close, k, 1);");
         for i in 1..n {
-            s += &format!(" real s{i} = ts_sum(s{}, k, 1);", i - 1);
+            s += &format!(" real s{i} = roll_sum(s{}, k, 1);", i - 1);
         }
         s + &format!(" }} on_bar {{ target(s{}); }}", n - 1)
     };

@@ -62,7 +62,7 @@ void same_bits(
 
 } // namespace
 
-TEST_CASE("sma and least squares and functions restated as external C++ give equal values in every variant") {
+TEST_CASE("ma and least squares and functions restated as external C++ give equal values in every variant") {
   const auto events = t::daily_events({t::walk("A", 10, 2000)});
   same_bits<
     atls::IdentityExternIncremental, atls::IdentityExternNaive, atls::IdentityExternExact, atls::IdentityExternNoshare,

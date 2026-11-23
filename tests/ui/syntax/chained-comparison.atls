@@ -1,6 +1,6 @@
 series {
-  real a = sma(close, 5);
-  real b = sma(close, 20);
+  real a = ma(close, 5);
+  real b = ma(close, 20);
 }
 on_bar {
   if (a < close < b) {

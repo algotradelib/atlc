@@ -750,7 +750,7 @@ struct SkipSums : Window {
   std::size_t min_{1};
 };
 
-/** @brief `sma(x, n, missing = skip)`: the mean of the values that exist in the last n slots. */
+/** @brief `ma(x, n, missing = skip)`: the mean of the values that exist in the last n slots. */
 struct SmaSkip : SkipSums {
   /**
    * @brief After the ring took the newest slot.
@@ -772,7 +772,7 @@ struct SmaSkip : SkipSums {
   }
 };
 
-/** @brief `ts_sum(x, n, missing = skip)`: the sum of the values that exist in the last n slots. */
+/** @brief `roll_sum(x, n, missing = skip)`: the sum of the values that exist in the last n slots. */
 struct TsSumSkip : SkipSums {
   /**
    * @brief After the ring took the newest slot.
@@ -842,14 +842,14 @@ struct StdevSkipT : SkipSums {
   }
 };
 
-/** @brief `stdev(x, n, missing = skip)`: sample deviation over the values that exist. */
+/** @brief `roll_stdev(x, n, missing = skip)`: sample deviation over the values that exist. */
 using StdevSkip = StdevSkipT<false>;
 
-/** @brief `stdev_pop(x, n, missing = skip)`: population deviation over the values that exist. */
+/** @brief `roll_stdev_biased(x, n, missing = skip)`: population deviation over the values that exist. */
 using StdevPopSkip = StdevSkipT<true>;
 
 /**
- * @brief `zscore(x, n, missing = skip)`: the newest value against the values that exist; undefined if it is
+ * @brief `roll_zscore(x, n, missing = skip)`: the newest value against the values that exist; undefined if it is
  *   missing.
  */
 struct ZscoreSkip : StdevSkipT<false> {
@@ -882,7 +882,7 @@ struct ZscoreSkip : StdevSkipT<false> {
   }
 };
 
-/** @brief `ts_sum(x, n, m)`: the sum of the last n values, defined once m are in. Keeps its own ring. */
+/** @brief `roll_sum(x, n, m)`: the sum of the last n values, defined once m are in. Keeps its own ring. */
 struct TsSumMin {
   /**
    * @brief Sets the window and the minimum count.

@@ -9,7 +9,7 @@ params {
   int<lower=1> m = 3;
 }
 series {
-  real u = sma(ts_sum(sign(y.close - x.close[k]), h - 1, 1), m, missing = skip);
+  real u = ma(roll_sum(sign(y.close - x.close[k]), h - 1, 1), m, missing = skip);
 }
 on_bar {
   if (defined(u)) {
