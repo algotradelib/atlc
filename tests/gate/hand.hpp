@@ -11,8 +11,8 @@
 /**
  * @file
  * @brief Strategies written by hand the way an experienced user of the library would (running sums over a
- *   ring, no bar history), to compare compiled programs with: `programs/pullback.atls` and
- *   `programs/trail.atls`.
+ *   ring, no bar history), to compare compiled programs with: `programs/pullback.atls`,
+ *   `programs/trail.atls` and `programs/sma.atls`.
  */
 
 namespace hand {
@@ -286,6 +286,84 @@ struct TrailingTrend {
   std::int64_t bars_in_{0};
   /** @brief Bars since the last exit. */
   std::int64_t since_exit_;
+};
+
+/**
+ * @brief Holds `quantity_` while the fast simple average is above the slow one, and nothing otherwise.
+ *   `programs/sma.atls` by hand, by the rule of the moving-average crossover the library used to ship: it acts
+ *   once `slow_ + 1` closes are in, states the level on every bar, and compares strictly (`slow < fast`).
+ *   Each average is summed again over its window every bar, oldest first, so it shares nothing with the
+ *   runtime's running sums.
+ */
+struct SmaCrossover {
+  /** @brief Its own lookback: no bar history. */
+  static constexpr bool reads_bar_history = false;
+
+  /** @brief The parameters. */
+  struct Params {
+    /** @brief The fast average's window; nonzero and below `slow_`. */
+    std::size_t fast_{20};
+    /** @brief The slow average's window. */
+    std::size_t slow_{50};
+    /** @brief The shares held while the fast average leads. */
+    std::int64_t quantity_{100};
+  };
+
+  /**
+   * @brief Trades `instrument`.
+   * @param instrument The instrument.
+   * @param params The parameters.
+   */
+  SmaCrossover(atl::InstrumentId instrument, Params params)
+  : instrument_(std::move(instrument)), params_(params), closes_(params.slow_ + 1) {}
+
+  /**
+   * @brief How many bars it needs before it acts.
+   * @return `slow_ + 1`.
+   */
+  std::size_t warmup_bars() const {
+    return params_.slow_ + 1;
+  }
+
+  /**
+   * @brief States a target once the warm-up is in.
+   * @param ctx The runner's context.
+   * @param bar The bar.
+   */
+  template <class Ctx>
+  void on_bar(Ctx& ctx, const atl::strategy::BarEvent& bar) {
+    if (!(bar.instrument_ == instrument_)) {
+      return;
+    }
+    closes_.push(to_double(bar.bar_.close_));
+    if (params_.fast_ == 0 || params_.slow_ <= params_.fast_ || closes_.seen_ < params_.slow_ + 1) {
+      return;
+    }
+    const double fast = mean(params_.fast_);
+    const double slow = mean(params_.slow_);
+    atl::strategy::TargetPosition order;
+    order.instrument_ = instrument_;
+    order.tag_ = "ma-crossover";
+    order.target_quantity_ = atl::Decimal64(slow < fast ? params_.quantity_ : 0, 0);
+    ctx.submit(order);
+  }
+
+  /** @brief The instrument. */
+  atl::InstrumentId instrument_;
+  /** @brief The parameters. */
+  Params params_;
+  /** @brief The closes. */
+  Closes closes_;
+
+private:
+  // The mean of the last `window` closes, summed oldest first.
+  double mean(std::size_t window) const {
+    double sum = 0;
+    for (std::size_t k = window; k-- > 0;) {
+      sum += closes_.ago(k);
+    }
+    return sum / static_cast<double>(window);
+  }
 };
 
 } // namespace hand

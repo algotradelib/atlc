@@ -1,4 +1,4 @@
-# The library's SmaCrossover: long while the fast average is above the slow one.
+# A moving-average crossover: long while the fast average is above the slow one.
 params {
   int<lower=1> fast = 20;
   int<lower=fast + 1> slow = 50;

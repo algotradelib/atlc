@@ -1,5 +1,5 @@
 // The differential gate: compiled programs, in every arithmetic and with rings shared or not, against the same
-// strategies written by hand (hand.hpp) and against the library's SmaCrossover, over generated daily bars.
+// strategies written by hand (hand.hpp), over generated daily bars.
 // Every fill and the report must be identical; the run must compare exactly the expected number of cases.
 #include "hand.hpp"
 #include "replay.hpp"
@@ -16,8 +16,6 @@
 #include <trail_incremental.hpp>
 #include <trail_naive.hpp>
 #include <trail_noshare.hpp>
-
-#include <algotradelib/vanilla>
 
 #include <cstdio>
 #include <string>
@@ -78,11 +76,10 @@ int main() {
     for (const auto& point : std::vector<std::pair<std::int64_t, std::int64_t>>{{5, 20}, {20, 50}, {10, 120}}) {
       const std::int64_t fast = point.first;
       const std::int64_t slow = point.second;
-      atl::strategy::vanilla::MovingAverageCrossover::Params q;
-      q.instrument_ = id;
+      hand::SmaCrossover::Params q;
       q.fast_ = static_cast<std::size_t>(fast);
       q.slow_ = static_cast<std::size_t>(slow);
-      q.quantity_ = atl::Decimal64(100, 0);
+      q.quantity_ = 100;
       const auto compiled = [&](auto strategy) {
         // `slow` is bounded below by `fast + 1`, and each `set` checks the bounds: `fast` first.
         strategy.set("fast", static_cast<double>(fast));
@@ -92,7 +89,7 @@ int main() {
       ++cases;
       good += compare(
         tag("sma") + " fast=" + std::to_string(fast) + " slow=" + std::to_string(slow),
-        {{"library SmaCrossover", t::run(atl::strategy::vanilla::SmaCrossover{q}, symbols, events, s)},
+        {{"hand SmaCrossover", t::run(hand::SmaCrossover(id, q), symbols, events, s)},
           {"incremental", compiled(atls::SmaIncremental(id))}, {"naive", compiled(atls::SmaNaive(id))},
           {"exact", compiled(atls::SmaExact(id))}, {"noshare", compiled(atls::SmaNoshare(id))}},
         comparisons
