@@ -285,7 +285,7 @@ TEST_CASE("running least squares agree with the window solved again") {
         CHECK(std::isnan(c));
         CHECK(std::isnan(d));
       } else if (!std::isnan(a)) {
-        // A flat x window has no slope: NaN here, an arbitrary number from the singular solve.
+        // A zero denominator gives NaN here, and the singular solve an arbitrary number.
         CHECK(std::fabs(a - b) <= 1e-6 * (1 + std::fabs(b)));
         CHECK(std::fabs(c - d) <= 1e-4 * (1 + std::fabs(d)));
       }

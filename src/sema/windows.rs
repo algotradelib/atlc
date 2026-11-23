@@ -290,7 +290,7 @@ impl Checker<'_> {
                 return None;
             }
         };
-        // A flat x makes both values undefined.
+        // Both values may be undefined (a computed denominator of 0).
         Some(self.add_node(NodeKind::Pair(which, a, b, window), Ty::Real, Class::Maybe, lb))
     }
 

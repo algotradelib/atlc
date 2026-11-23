@@ -964,7 +964,7 @@ struct OlsSums {
       sxy_ -= ox * oy;
     }
   }
-  /** @brief The slope; undefined before n pairs and for a flat x. */
+  /** @brief The slope; undefined before n pairs and where the computed denominator is 0. */
   double slope() const {
     ATLS_NO_FMA
     if (xs_.seen() < n_) {
@@ -974,7 +974,7 @@ struct OlsSums {
     const double d = n * sxx_ - sx_ * sx_;
     return d != 0 ? (n * sxy_ - sx_ * sy_) / d : NaN;
   }
-  /** @brief The intercept; undefined before n pairs and for a flat x. */
+  /** @brief The intercept; undefined before n pairs and where the computed denominator is 0. */
   double intercept() const {
     ATLS_NO_FMA
     if (xs_.seen() < n_) {
