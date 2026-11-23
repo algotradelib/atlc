@@ -782,6 +782,24 @@ mod tests {
         assert_eq!(series("ols_slope(close, high, 5)"), [Code::UnknownFunction]);
         assert_eq!(handler("ols_typo(close)"), [Code::UnknownFunction]);
         assert_eq!(handler("roll_typo(close)"), [Code::UnknownFunction]);
+        // An `int` and a `real` literal of one value are different inputs, in either order and either sharing mode.
+        let take = "functions { real take_int(int k) { return k; } }";
+        for share in [true, false] {
+            let codes = |series: &str| {
+                let program =
+                    crate::frontend::parse(&format!("{take} series {{ {series} }} on_bar {{ target(a + b); }}"));
+                match crate::sema::check(&program.unwrap(), &crate::sema::Options { share }) {
+                    Ok(_) => vec![],
+                    Err(e) => e.iter().map(|d| d.code).collect::<Vec<_>>(),
+                }
+            };
+            let real_first =
+                "real a = roll_ols(close + 1.0, high, 5).slope; real b = roll_ols(close + take_int(1), high, 5).slope;";
+            let int_first =
+                "real a = roll_ols(close + 1, high, 5).slope; real b = roll_ols(close + take_int(1.0), high, 5).slope;";
+            assert_eq!(codes(real_first), [], "share {share}");
+            assert_eq!(codes(int_first), [Code::ArgumentType], "share {share}");
+        }
         // Every program default is accepted: the fit always restarts.
         for policy in ["restart", "skip", "poison"] {
             ok(&format!(

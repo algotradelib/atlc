@@ -1,0 +1,13 @@
+# An `int` and a `real` literal of one value are different expressions: (9000000000000000 * 2 + 1) - 9000000000000000 * 2
+# is 1 in 64-bit integers and 0 in doubles. Each least-squares fit keeps its own input, so after two bars the target
+# is the slope of close against itself minus the slope of 0 against close: 1. The test also builds a copy with the
+# literals swapped (the real one first, a target of -1), each under `--share on` and `off`.
+series {
+  real p = roll_ols(close * ((9000000000000000 * 2 + 1) - 9000000000000000 * 2), close, 2).slope;
+  real q = roll_ols(close * ((9000000000000000.0 * 2 + 1) - 9000000000000000.0 * 2), close, 2).slope;
+}
+on_bar {
+  if (defined(p) and defined(q)) {
+    target(p - q);
+  }
+}

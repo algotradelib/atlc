@@ -241,6 +241,20 @@ fn generated_strategies() {
             &[],
         );
     }
+    // An int and a real literal of one value: each order, each sharing mode.
+    let swap = [
+        ("9000000000000000 *", "INT *"),
+        ("9000000000000000.0 *", "9000000000000000 *"),
+        ("INT *", "9000000000000000.0 *"),
+    ];
+    for (name, args, edits) in [
+        ("literal_types", &[][..], &[][..]),
+        ("literal_types_noshare", &["--share", "off"][..], &[][..]),
+        ("literal_types_real_first", &[][..], &swap[..]),
+        ("literal_types_real_first_noshare", &["--share", "off"][..], &swap[..]),
+    ] {
+        generate(&out, name, &programs.join("literal-types.atls"), args, edits);
+    }
     // The universe under each missing-value policy: `restart` (the default), `skip` and `poison`.
     for policy in ["skip", "poison"] {
         let options = format!("universe {{}}\noptions {{ missing = {policy}; }}");

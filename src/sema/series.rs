@@ -9,7 +9,8 @@ use super::*;
 
 impl Checker<'_> {
     pub(super) fn add_node(&mut self, kind: NodeKind, ty: Ty, class: Class, lookback: CExpr) -> usize {
-        let key = format!("{:?}", kind);
+        // The type is part of the identity: an `int` and a `real` literal of one value are different expressions.
+        let key = format!("{:?} {:?}", kind, ty);
         // Bar fields are the inputs: always one node each, so handlers and series agree.
         let cons = self.opts.share || self.cons_pair_inputs || matches!(kind, NodeKind::Field(..) | NodeKind::Data(..));
         if cons && let Some(&id) = self.consed.get(&key) {

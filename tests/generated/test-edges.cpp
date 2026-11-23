@@ -6,6 +6,10 @@
 #include <int_compare.hpp>
 #include <integers.hpp>
 #include <lazy.hpp>
+#include <literal_types.hpp>
+#include <literal_types_noshare.hpp>
+#include <literal_types_real_first.hpp>
+#include <literal_types_real_first_noshare.hpp>
 #include <loop_edge.hpp>
 #include <missing_open.hpp>
 #include <skip_value.hpp>
@@ -120,6 +124,18 @@ TEST_CASE("integers above 2^53 are compared as integers") {
     auto strategy = t::with(atls::IntCompare(t::id_of("A")), {{"which", static_cast<double>(which)}});
     CHECK(target_of(strategy) == expected[which]);
   }
+}
+
+TEST_CASE("an int and a real literal of one value feed different fits in either order and sharing mode") {
+  const auto id = t::id_of("A");
+  const auto second_target = [](auto strategy) {
+    CHECK(target_of(strategy, true, 10000) == std::nullopt);
+    return target_of(strategy, true, 20000);
+  };
+  CHECK(second_target(atls::LiteralTypes(id)) == std::optional<std::string>("1"));
+  CHECK(second_target(atls::LiteralTypesNoshare(id)) == std::optional<std::string>("1"));
+  CHECK(second_target(atls::LiteralTypesRealFirst(id)) == std::optional<std::string>("-1"));
+  CHECK(second_target(atls::LiteralTypesRealFirstNoshare(id)) == std::optional<std::string>("-1"));
 }
 
 TEST_CASE("a loop ending at the largest 64-bit integer runs once and stops") {

@@ -12,7 +12,7 @@ The exit code is 0 when everything was written, 1 when the program has errors (n
 | Option | Values | Default |
 | --- | --- | --- |
 | `--indicators` | how windows are summed: `incremental`, `naive` or `exact` ([types and definedness](types-and-definedness.md), "Arithmetic") | `incremental` |
-| `--share` | `on`: one ring per input series, shared by every indicator over it, and identical series expressions computed once; `off`: each indicator keeps its own ring and nothing is merged, except that identical `roll_ols` calls still share one fit | `on` |
+| `--share` | `on`: one ring per input series, shared by every indicator over it, and identical series expressions computed once; `off`: each indicator keeps its own ring and nothing is merged, except that identical `roll_ols` calls still share one fit: identical expressions inside a call's inputs are merged for that | `on` |
 | `--history` | `drop`: the strategy declares `reads_bar_history = false`, since its series keep their own lookback, so the runner keeps no bar history for it; `keep`: no declaration | `drop` |
 
 `--share` and `--history` change memory and speed, not results.

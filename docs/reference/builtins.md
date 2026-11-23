@@ -28,7 +28,7 @@ Each is undefined when an argument is, except `defined`, which is always defined
 | `roll_stdev(x, n)` | sample standard deviation (divisor n - 1) |
 | `roll_stdev_biased(x, n)` | population standard deviation (divisor n), as Chan's `smartstd` |
 | `roll_zscore(x, n)` | `(x - ma(x, n)) / roll_stdev(x, n)`; undefined when the deviation is 0 |
-| `roll_ols(y, x, n).slope`, `roll_ols(y, x, n).intercept` | least squares of y on x with an intercept over the last n pairs, n at least 2; undefined for a flat x; one fit shared by identical calls, whichever values they read |
+| `roll_ols(y, x, n).slope`, `roll_ols(y, x, n).intercept` | least squares of y on x with an intercept over the last n pairs, n at least 2; one fit shared by identical calls, whichever values they read; with `incremental` and `exact`, both values are undefined where the computed denominator is 0 (a flat x), while `naive` (Eigen's LLT solve) may give finite values on such a singular window |
 
 `roll_ols` has two values, read as a user indicator's (`.slope`, `.intercept`); a bare `roll_ols(...)` is refused.
 The names in these tables are reserved: no declaration may take one.
