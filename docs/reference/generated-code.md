@@ -141,11 +141,16 @@ Exit code 101 is an internal error of `atlc`, the one case that writes to standa
 
 | Header | Contents |
 | --- | --- |
-| `atls/ops.hpp` | Rings, the built-in indicators in each arithmetic, the three-valued operators on undefined values, the target rule and its pricing (`atls::ops::OrderPricing`) |
+| `atls/ops.hpp` | The runtime's umbrella, which every generated header includes: it includes `expr.hpp`, `window.hpp`, `orders.hpp` and `data.hpp` |
+| `atls/expr.hpp` | The undefined value, checked integer arithmetic and the three-valued operators on undefined values |
+| `atls/window.hpp` | Rings and the built-in indicators in each arithmetic |
+| `atls/orders.hpp` | The target rule and its pricing (`atls::ops::OrderPricing`) |
+| `atls/data.hpp` | What a program with `data {}` reads: the record `on_data` takes (`atls::DataRecord`) and the value each bar sees (`atls::DataTape`) |
 | `atls/universe.hpp` | One single-instrument strategy over several instruments: `atls::Universe<S>` forwards each bar to the strategy trading its instrument, `atls::UniverseBars<S>` each bar of a slice |
 | `atls/measures.hpp` | The points of a finished replay's equity curve (`atls::measures::Point`) and the reductions a program's measures call; every read of `algotradelib::backtest::MeasureInput` is here |
 
 `atlc` carries the runtime headers it generates code for, compiled into it, and `--emit-runtime` writes them out as they are.
+A project takes the whole `atls/` directory `--emit-runtime` writes, not single headers: `ops.hpp` includes the parts beside it.
 A generated header and a runtime from different `atlc` versions are not checked against each other: a project that keeps generated headers must regenerate them and write the runtime out (`atlc build --emit-runtime DIR`) with the same `atlc`.
 The first line of a generated header names the `atlc` that wrote it.
 
